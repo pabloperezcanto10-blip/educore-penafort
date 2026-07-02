@@ -1,0 +1,16 @@
+node_modules
+.next
+.next-dev
+.pnpm-store
+out
+dist
+.vercel
+.env
+.env*.local
+*.log
+dev-server.err
+dev-server.log
+dev-server.stdin
+tsconfig.tsbuildinfo
+pnpm-debug.log*
+Thumbs.db
