@@ -558,3 +558,79 @@ function revalidateImportCleanup() {
   revalidatePath("/dashboard/admin/maintenance");
   revalidatePath("/dashboard/family");
 }
+
+export type DeleteImportActionResponse = {
+  success: boolean;
+  message: string;
+  result?: DeleteImportResult;
+};
+
+export async function deleteImportedStudentWithResult({ studentId }: { studentId: string }): Promise<DeleteImportActionResponse> {
+  const actor = await requireRole("superadmin");
+
+  if (!studentId) {
+    return { success: false, message: "Faltan datos para borrar el alumno." };
+  }
+
+  try {
+    const result = await deleteStudentWithFamilies({ actorId: actor.id, actorRole: actor.role, studentId });
+    revalidateImportCleanup();
+    return {
+      success: true,
+      message: result.preservedFamilies > 0 ? "Alumno eliminado. Se mantuvieron familias con otros hijos vinculados." : "Alumno eliminado correctamente.",
+      result
+    };
+  } catch {
+    return { success: false, message: "No se pudo eliminar el alumno. Intentalo de nuevo." };
+  }
+}
+
+export async function deleteImportedCourseWithResult({ courseId }: { courseId: string }): Promise<DeleteImportActionResponse> {
+  const actor = await requireRole("superadmin");
+
+  if (!courseId) {
+    return { success: false, message: "Selecciona un curso para borrar datos." };
+  }
+
+  try {
+    const supabaseAdmin = createAdminClient();
+    const { data: students, error } = await supabaseAdmin
+      .from("students")
+      .select("id")
+      .eq("course_id", courseId)
+      .returns<{ id: string }[]>();
+
+    if (error) {
+      return { success: false, message: "No se pudieron cargar los alumnos del curso." };
+    }
+
+    const total: DeleteImportResult = { deletedStudents: 0, deletedFamilies: 0, deletedRelations: 0, preservedFamilies: 0 };
+
+    for (const student of students ?? []) {
+      const result = await deleteStudentWithFamilies({ actorId: actor.id, actorRole: actor.role, studentId: student.id });
+      total.deletedStudents += result.deletedStudents;
+      total.deletedFamilies += result.deletedFamilies;
+      total.deletedRelations += result.deletedRelations;
+      total.preservedFamilies += result.preservedFamilies;
+    }
+
+    await logAuditAction({
+      actorUserId: actor.id,
+      actorRole: actor.role,
+      action: "bulk_course_deleted",
+      module: "admin_import_cleanup",
+      entityType: "course",
+      entityId: courseId,
+      afterData: total
+    });
+
+    revalidateImportCleanup();
+    return {
+      success: true,
+      message: total.preservedFamilies > 0 ? "Datos eliminados. Se mantuvieron familias con otros hijos vinculados." : "Datos eliminados correctamente.",
+      result: total
+    };
+  } catch {
+    return { success: false, message: "No se pudo eliminar el curso. Intentalo de nuevo." };
+  }
+}

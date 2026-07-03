@@ -11,14 +11,8 @@ import {
   type AdminStudent
 } from "@/lib/admin/admin";
 import { buildImportPreview, type ImportPreviewRow, type ImportPreviewStatus } from "@/lib/admin/import-preview";
-import {
-  confirmAdminImport,
-  deleteImportedCourse,
-  deleteImportedStudent,
-  loadAdminImportCleanup,
-  previewAdminImport
-} from "./actions";
-import { ConfirmImportButton, DeleteImportButton, PreviewSubmitButton } from "./import-buttons";
+import { confirmAdminImport, loadAdminImportCleanup, previewAdminImport } from "./actions";
+import { ConfirmImportButton, DeleteCourseActionButton, DeleteStudentActionButton, PreviewSubmitButton } from "./import-buttons";
 
 type AdminImportPageProps = {
   searchParams?: {
@@ -309,10 +303,7 @@ function CleanupTab({
             </p>
           </div>
           {rows.length > 0 ? (
-            <form action={deleteImportedCourse}>
-              <input type="hidden" name="cleanup_course_id" value={selectedCourseId} />
-              <DeleteImportButton label="Borrar curso completo" confirmTitle="Borrar curso completo" confirmMessage="Esta accion eliminara todos los alumnos del curso y posibles familias asociadas. No se puede deshacer." />
-            </form>
+            <DeleteCourseActionButton courseId={selectedCourseId} />
           ) : null}
         </div>
 
@@ -334,7 +325,7 @@ function CleanupTab({
                     <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">No hay alumnos cargados para borrar.</td>
                   </tr>
                 ) : (
-                  rows.map((row) => <CleanupTableRow key={row.student.id} row={row} courseId={selectedCourseId} />)
+                  rows.map((row) => <CleanupTableRow key={row.student.id} row={row} />)
                 )}
               </tbody>
             </table>
@@ -345,7 +336,7 @@ function CleanupTab({
   );
 }
 
-function CleanupTableRow({ row, courseId }: { row: CleanupRow; courseId: string }) {
+function CleanupTableRow({ row }: { row: CleanupRow }) {
   return (
     <tr>
       <td className="px-4 py-3 font-medium text-foreground">{getStudentDisplayName(row.student)}</td>
@@ -353,11 +344,7 @@ function CleanupTableRow({ row, courseId }: { row: CleanupRow; courseId: string 
       <td className="px-4 py-3 text-muted-foreground">{row.families.map((family) => family.email || "Sin email").join(", ") || "-"}</td>
       <td className="px-4 py-3 text-muted-foreground">{formatDate(row.student.created_at)}</td>
       <td className="px-4 py-3">
-        <form action={deleteImportedStudent}>
-          <input type="hidden" name="cleanup_course_id" value={courseId} />
-          <input type="hidden" name="student_id" value={row.student.id} />
-          <DeleteImportButton label="Borrar alumno" variant="outline" />
-        </form>
+        <DeleteStudentActionButton studentId={row.student.id} />
       </td>
     </tr>
   );
