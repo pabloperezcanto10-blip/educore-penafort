@@ -429,6 +429,89 @@ export async function createAdminTeacherAssignment(formData: FormData) {
   redirect(withToast("/dashboard/admin/subjects", "success", "Profesor asignado correctamente."));
 }
 
+export async function createAdminTeacherAssignmentsBulk(formData: FormData) {
+  await requireRole("superadmin");
+
+  const teacherId = requiredString(formData, "teacher_id");
+  const subjectIds = formData.getAll("subject_id").map((value) => String(value)).filter(Boolean);
+  const courseIds = formData.getAll("course_id").map((value) => String(value)).filter(Boolean);
+
+  if (!teacherId || subjectIds.length === 0 || courseIds.length === 0) {
+    redirect(withToast("/dashboard/admin/subjects", "error", "Faltan datos para crear asignaciones."));
+  }
+
+  let created = 0;
+  let existing = 0;
+
+  for (const subjectId of subjectIds) {
+    for (const courseId of courseIds) {
+      const didCreate = await ensureTeacherAssignmentWithResult({ teacherId, courseId, subjectId });
+      if (didCreate) {
+        created += 1;
+      } else {
+        existing += 1;
+      }
+    }
+  }
+
+  revalidatePath("/dashboard/admin/subjects");
+  revalidatePath("/dashboard/admin/maintenance");
+  redirect(
+    withToast(
+      `/dashboard/admin/subjects?assigned=1&created=${created}&existing=${existing}&errors=0`,
+      "success",
+      created > 0 ? "Asignaciones creadas correctamente." : "No se crearon duplicados."
+    )
+  );
+}
+
+export async function deleteAdminTeacherAssignment(formData: FormData) {
+  await requireRole("superadmin");
+
+  const id = requiredString(formData, "id");
+
+  if (!id) {
+    redirect(withToast("/dashboard/admin/subjects", "error", "No se pudo eliminar la asignacion."));
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("teacher_assignments").delete().eq("id", id);
+
+  if (error) {
+    redirect(withToast("/dashboard/admin/subjects", "error", "No se pudo eliminar la asignacion."));
+  }
+
+  revalidatePath("/dashboard/admin/subjects");
+  revalidatePath("/dashboard/admin/maintenance");
+  redirect(withToast("/dashboard/admin/subjects", "success", "Asignacion eliminada correctamente."));
+}
+
+export async function deleteAdminTeacherAssignmentGroup(formData: FormData) {
+  await requireRole("superadmin");
+
+  const teacherId = requiredString(formData, "teacher_id");
+  const subjectId = requiredString(formData, "subject_id");
+
+  if (!teacherId || !subjectId) {
+    redirect(withToast("/dashboard/admin/subjects", "error", "No se pudo eliminar el grupo de asignaciones."));
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("teacher_assignments")
+    .delete()
+    .eq("teacher_id", teacherId)
+    .eq("subject_id", subjectId);
+
+  if (error) {
+    redirect(withToast("/dashboard/admin/subjects", "error", "No se pudo eliminar el grupo de asignaciones."));
+  }
+
+  revalidatePath("/dashboard/admin/subjects");
+  revalidatePath("/dashboard/admin/maintenance");
+  redirect(withToast("/dashboard/admin/subjects", "success", "Grupo de asignaciones eliminado correctamente."));
+}
+
 export async function createAdminFamilyQuick(formData: FormData) {
   const actor = await requireRole("superadmin");
 
@@ -666,6 +749,43 @@ async function ensureTeacherAssignment({
   }
 
   await ensureCourseSubject({ courseId, subjectId });
+}
+
+async function ensureTeacherAssignmentWithResult({
+  teacherId,
+  courseId,
+  subjectId
+}: {
+  teacherId: string;
+  courseId: string;
+  subjectId: string;
+}) {
+  const supabase = await createClient();
+  const academicYearId = await requireActiveAcademicYearId();
+  const { data: existingAssignment } = await supabase
+    .from("teacher_assignments")
+    .select("id")
+    .eq("teacher_id", teacherId)
+    .eq("course_id", courseId)
+    .eq("subject_id", subjectId)
+    .eq("academic_year_id", academicYearId)
+    .maybeSingle<{ id: string }>();
+
+  if (existingAssignment) {
+    await ensureCourseSubject({ courseId, subjectId });
+    return false;
+  }
+
+  const payload: TeacherAssignmentInsert = {
+    teacher_id: teacherId,
+    course_id: courseId,
+    subject_id: subjectId,
+    academic_year_id: academicYearId
+  };
+
+  await supabase.from("teacher_assignments").insert(payload as never);
+  await ensureCourseSubject({ courseId, subjectId });
+  return true;
 }
 
 async function ensureCourseSubject({

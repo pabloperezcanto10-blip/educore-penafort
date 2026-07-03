@@ -76,6 +76,14 @@ export default async function AdminCreatePage({
               <p className="mt-2 text-emerald-700">
                 Al iniciar sesion sera redirigido a cambiar la contrasena.
               </p>
+              {searchParams.created === "teacher" ? (
+                <Link
+                  href="/dashboard/admin/subjects"
+                  className="mt-3 inline-flex h-9 items-center justify-center rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
+                >
+                  Asignar materias y cursos
+                </Link>
+              ) : null}
             </div>
           </div>
         </div>
@@ -140,9 +148,12 @@ export default async function AdminCreatePage({
           type="teacher"
           selectedType={selectedType}
           title="Crear profesor"
-          description="Alta de usuario docente y asignacion inicial de curso y materia."
+          description="Alta de usuario docente. La asignacion de materias y cursos se gestiona en un panel centralizado."
           icon={UserPlus}
         >
+          <div className="rounded-md border border-border bg-[#f8fafc] p-3 text-sm text-muted-foreground md:col-span-2">
+            Crea el docente y continua a <Link href="/dashboard/admin/subjects" className="font-semibold text-primary hover:underline">Asignacion docente</Link> para asignar varias materias y cursos a la vez.
+          </div>
           <form action={createAdminTeacherQuick} className="grid gap-3 md:grid-cols-2">
             <Input name="full_name" label="Nombre" required />
             <Input name="email" label="Email" type="email" required />
