@@ -99,6 +99,49 @@ export async function getStudentsForTutor(tutorId: string): Promise<{
   };
 }
 
+export async function getStudentsForCourseName(courseName: string): Promise<{
+  students: TutorStudent[];
+  errorMessage: string | null;
+}> {
+  const supabase = await createClient();
+  const { academicYear } = await getActiveAcademicYear();
+
+  if (!academicYear) {
+    return { students: [], errorMessage: "No hay curso escolar activo." };
+  }
+
+  const { data: course, error: courseError } = await supabase
+    .from("courses")
+    .select("id,name")
+    .eq("name", courseName)
+    .eq("academic_year_id", academicYear.id)
+    .maybeSingle<{ id: string; name: string }>();
+
+  if (courseError) {
+    return { students: [], errorMessage: courseError.message };
+  }
+
+  if (!course) {
+    return { students: [], errorMessage: null };
+  }
+
+  const { data, error } = await supabase
+    .from("students")
+    .select("id,name,last_name")
+    .eq("course_id", course.id)
+    .eq("academic_year_id", academicYear.id)
+    .eq("active", true)
+    .order("last_name", { ascending: true })
+    .order("name", { ascending: true })
+    .returns<TutorStudent[]>();
+
+  if (error) {
+    return { students: [], errorMessage: error.message };
+  }
+
+  return { students: data ?? [], errorMessage: null };
+}
+
 export async function getStudentsWithCourseForTutor(tutorId: string): Promise<{
   students: TutorStudentWithCourse[];
   errorMessage: string | null;

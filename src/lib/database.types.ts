@@ -214,6 +214,40 @@ export type Database = {
         };
         Relationships: [];
       };
+      teacher_schedule: {
+        Row: {
+          id: string;
+          teacher_id: string;
+          weekday: number;
+          start_time: string;
+          end_time: string;
+          course_name: string;
+          subject_name: string | null;
+          is_break: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          teacher_id: string;
+          weekday: number;
+          start_time: string;
+          end_time: string;
+          course_name: string;
+          subject_name?: string | null;
+          is_break?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          teacher_id?: string;
+          weekday?: number;
+          start_time?: string;
+          end_time?: string;
+          course_name?: string;
+          subject_name?: string | null;
+          is_break?: boolean;
+        };
+        Relationships: [];
+      };
       partial_grades: {
         Row: {
           id: string;

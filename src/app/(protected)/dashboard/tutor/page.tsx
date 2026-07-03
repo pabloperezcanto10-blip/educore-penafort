@@ -3,6 +3,7 @@ import { BookOpenCheck, CalendarDays, FileCheck2, Inbox, Layers3, Settings2, Use
 import { requireRole } from "@/lib/auth/session";
 import { getTutorUnreadCommunicationsCount } from "@/lib/communications/notifications";
 import { getSubjectCoursesForTeacher } from "@/lib/grades/grades";
+import { formatScheduleTime, getTeacherScheduleForToday, getWeekdayLabel, type TeacherScheduleSlot } from "@/lib/tutors/schedule";
 import { NotificationsPanel } from "@/components/dashboard/notifications-panel";
 import { CalendarSummaryCard } from "@/components/dashboard/calendar-summary-card";
 import { getDashboardNotifications } from "@/lib/internal-notifications";
@@ -14,7 +15,8 @@ export default async function TutorDashboardPage() {
   const [
     { items: subjectCourses, errorMessage: subjectsError },
     { count: unreadCommunications, errorMessage: communicationsError },
-    { notifications: dashboardNotifications, unreadCount, errorMessage: dashboardNotificationsError }
+    { notifications: dashboardNotifications, unreadCount, errorMessage: dashboardNotificationsError },
+    { slots: todaySchedule, weekday, errorMessage: scheduleError }
   ] = await Promise.all([
     getSubjectCoursesForTeacher(profile.id),
     getTutorUnreadCommunicationsCount(profile.id),
@@ -22,9 +24,10 @@ export default async function TutorDashboardPage() {
       userId: profile.id,
       role: "tutor",
       communicationHref: "/dashboard/tutor/communications"
-    })
+    }),
+    getTeacherScheduleForToday(profile.id)
   ]);
-  const errorMessage = subjectsError ?? communicationsError ?? dashboardNotificationsError;
+  const errorMessage = subjectsError ?? communicationsError ?? dashboardNotificationsError ?? scheduleError;
   const tutorName = profile.full_name ?? profile.email ?? "tutor";
 
   return (
@@ -45,23 +48,44 @@ export default async function TutorDashboardPage() {
       <NotificationsPanel notifications={dashboardNotifications} unreadCount={unreadCount} />
       <CalendarSummaryCard href="/dashboard/tutor/calendar" />
 
-      <section className="rounded-lg border border-dashed border-border bg-white p-5 shadow-sm">
+      <section className="rounded-lg border border-border bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted text-primary">
               <CalendarDays className="h-5 w-5" aria-hidden="true" />
             </span>
             <div>
-              <h2 className="text-sm font-semibold text-foreground">Horario docente</h2>
+              <h2 className="text-sm font-semibold text-foreground">Horario de hoy</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Consulta tus clases del dia y accede directamente a materia, grupo y asistencia.
+                {getWeekdayLabel(weekday)}. Accede directamente a cada clase para pasar lista.
               </p>
             </div>
           </div>
-          <span className="w-fit rounded-md border border-border bg-background px-3 py-2 text-xs font-semibold text-muted-foreground">
-            Proximamente
-          </span>
+          <Link
+            href="/dashboard/tutor/attendance"
+            className="inline-flex h-9 w-fit items-center justify-center rounded-md border border-border bg-white px-3 text-xs font-semibold text-foreground transition hover:bg-muted"
+          >
+            Abrir pasar lista
+          </Link>
         </div>
+
+        {todaySchedule.length === 0 ? (
+          <div className="mt-4 rounded-md border border-dashed border-border bg-[#f8fafc] p-4 text-sm text-muted-foreground">
+            <p>No hay clases programadas para hoy.</p>
+            <Link
+              href="/dashboard/tutor/schedule"
+              className="mt-3 inline-flex h-9 items-center justify-center rounded-md border border-border bg-white px-3 text-xs font-semibold text-foreground transition hover:bg-muted"
+            >
+              Ver horario completo
+            </Link>
+          </div>
+        ) : (
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {todaySchedule.map((slot) => (
+              <ScheduleSlotCard key={slot.id} slot={slot} />
+            ))}
+          </div>
+        )}
       </section>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -112,6 +136,13 @@ export default async function TutorDashboardPage() {
           action="Abrir bandeja"
         />
         <DashboardSection
+          title="Horario docente"
+          description="Consulta tu horario semanal y accede a pasar lista por clase."
+          href="/dashboard/tutor/schedule"
+          icon={CalendarDays}
+          action="Ver horario"
+        />
+        <DashboardSection
           title="Calendario / Fechas de interes"
           description="Consulta examenes, reuniones, salidas, evaluaciones y avisos importantes del centro."
           href="/dashboard/tutor/calendar"
@@ -121,6 +152,41 @@ export default async function TutorDashboardPage() {
       </div>
     </section>
   );
+}
+
+function ScheduleSlotCard({ slot }: { slot: TeacherScheduleSlot }) {
+  const href = slot.is_break
+    ? "/dashboard/tutor"
+    : `/dashboard/tutor/attendance?course_name=${encodeURIComponent(slot.course_name)}&subject_name=${encodeURIComponent(slot.subject_name ?? "")}&schedule_id=${encodeURIComponent(slot.id)}`;
+
+  const content = (
+    <article
+      className={`rounded-md border p-4 transition ${
+        slot.is_break
+          ? "border-dashed border-border bg-[#f8fafc]"
+          : "border-border bg-white shadow-sm hover:-translate-y-0.5 hover:shadow-md"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold text-primary">
+            {formatScheduleTime(slot.start_time)} - {formatScheduleTime(slot.end_time)}
+          </p>
+          <h3 className="mt-1 text-sm font-semibold text-foreground">{slot.course_name}</h3>
+          <p className="mt-1 text-sm text-muted-foreground">{slot.subject_name ?? "Sin materia"}</p>
+        </div>
+        <span className="rounded-full border border-border bg-[#f8fafc] px-2 py-1 text-[11px] font-semibold text-muted-foreground">
+          {slot.is_break ? "Descanso" : "Pasar lista"}
+        </span>
+      </div>
+    </article>
+  );
+
+  if (slot.is_break) {
+    return content;
+  }
+
+  return <Link href={href}>{content}</Link>;
 }
 
 function DashboardSection({

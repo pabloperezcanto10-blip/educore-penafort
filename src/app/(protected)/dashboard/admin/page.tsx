@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpenCheck, CalendarCheck, FileCheck2, FilePlus2, Inbox, ShieldCheck, Wrench } from "lucide-react";
+import { BookOpenCheck, CalendarCheck, FileCheck2, FilePlus2, Inbox, ShieldCheck, Upload, Wrench } from "lucide-react";
 import { requireRole } from "@/lib/auth/session";
 import { NotificationsPanel } from "@/components/dashboard/notifications-panel";
 import { getDashboardNotifications } from "@/lib/internal-notifications";
@@ -22,6 +22,12 @@ const adminSections = [
     description: "Crea perfiles, relaciones y estructuras del centro.",
     href: "/dashboard/admin/create",
     icon: FilePlus2
+  },
+  {
+    title: "Importación masiva",
+    description: "Importa alumnos y familias por clase automáticamente.",
+    href: "/dashboard/admin/import",
+    icon: Upload
   },
   {
     title: "Cuaderno de notas",

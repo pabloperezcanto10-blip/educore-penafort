@@ -17,7 +17,11 @@ export type AuditAction =
   | "communication_sent"
   | "communication_read"
   | "communication_closed"
-  | "communication_reopened";
+  | "communication_reopened"
+  | "student_imported"
+  | "family_created"
+  | "parent_student_linked"
+  | "bulk_import_completed";
 
 export async function logAuditAction({
   actorUserId,

@@ -5,6 +5,7 @@ import {
   ChevronRight,
   GraduationCap,
   Link2,
+  Upload,
   Users,
   UserRoundCog,
   Wrench
@@ -95,6 +96,18 @@ const modules = [
       { label: "Asignar materia", href: "/dashboard/admin/subjects" }
     ],
     metricKey: "teachers"
+  },
+  {
+    title: "Importación masiva",
+    description: "Importa alumnos y familias por clase automáticamente.",
+    href: "/dashboard/admin/import",
+    icon: Upload,
+    actions: [
+      { label: "Abrir importación", href: "/dashboard/admin/import" },
+      { label: "Vista previa", href: "/dashboard/admin/import" },
+      { label: "Importar alumnos", href: "/dashboard/admin/import" }
+    ],
+    metricKey: "students"
   },
   {
     title: "Usuarios",
