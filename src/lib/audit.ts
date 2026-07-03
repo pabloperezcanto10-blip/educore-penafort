@@ -18,6 +18,8 @@ export type AuditAction =
   | "communication_read"
   | "communication_closed"
   | "communication_reopened"
+  | "attendance_created"
+  | "attendance_updated"
   | "student_imported"
   | "family_created"
   | "parent_student_linked"

@@ -248,6 +248,46 @@ export type Database = {
         };
         Relationships: [];
       };
+      attendance_records: {
+        Row: {
+          id: string;
+          student_id: string;
+          teacher_id: string;
+          course_id: string;
+          subject_id: string | null;
+          schedule_id: string | null;
+          attendance_date: string;
+          status: "present" | "absent" | "late" | "justified";
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          student_id: string;
+          teacher_id: string;
+          course_id: string;
+          subject_id?: string | null;
+          schedule_id?: string | null;
+          attendance_date: string;
+          status: "present" | "absent" | "late" | "justified";
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          student_id?: string;
+          teacher_id?: string;
+          course_id?: string;
+          subject_id?: string | null;
+          schedule_id?: string | null;
+          attendance_date?: string;
+          status?: "present" | "absent" | "late" | "justified";
+          notes?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       partial_grades: {
         Row: {
           id: string;

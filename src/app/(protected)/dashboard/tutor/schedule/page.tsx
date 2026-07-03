@@ -8,10 +8,15 @@ import {
   teacherScheduleWeekdays,
   type TeacherScheduleSlot
 } from "@/lib/tutors/schedule";
+import { getRegisteredScheduleIdsForDate } from "@/lib/attendance/session-attendance";
 
 export default async function TutorSchedulePage() {
   const profile = await requireRole("tutor");
   const { slots, errorMessage } = await getTeacherScheduleForWeek(profile.id);
+  const { registeredScheduleIds, errorMessage: registrationError } = await getRegisteredScheduleIdsForDate({
+    teacherId: profile.id,
+    scheduleIds: slots.filter((slot) => !slot.is_break).map((slot) => slot.id)
+  });
   const slotsByWeekday = new Map<number, TeacherScheduleSlot[]>();
 
   slots.forEach((slot) => {
@@ -36,9 +41,9 @@ export default async function TutorSchedulePage() {
         </Link>
       </div>
 
-      {errorMessage ? (
+      {errorMessage || registrationError ? (
         <div className="rounded-lg border border-red-200 bg-red-50 p-5 text-sm text-red-700">
-          No se pudo cargar el horario: {errorMessage}
+          No se pudo cargar el horario: {errorMessage ?? registrationError}
         </div>
       ) : slots.length === 0 ? (
         <div className="rounded-lg border border-dashed border-border bg-white p-6 text-sm text-muted-foreground">
@@ -61,7 +66,9 @@ export default async function TutorSchedulePage() {
                     No hay clases programadas.
                   </p>
                 ) : (
-                  (slotsByWeekday.get(weekday) ?? []).map((slot) => <ScheduleSlot key={slot.id} slot={slot} />)
+                  (slotsByWeekday.get(weekday) ?? []).map((slot) => (
+                    <ScheduleSlot key={slot.id} slot={slot} registered={registeredScheduleIds.has(slot.id)} />
+                  ))
                 )}
               </div>
             </section>
@@ -72,7 +79,7 @@ export default async function TutorSchedulePage() {
   );
 }
 
-function ScheduleSlot({ slot }: { slot: TeacherScheduleSlot }) {
+function ScheduleSlot({ slot, registered }: { slot: TeacherScheduleSlot; registered: boolean }) {
   const content = (
     <article
       className={`rounded-md border p-4 transition ${
@@ -90,7 +97,7 @@ function ScheduleSlot({ slot }: { slot: TeacherScheduleSlot }) {
           <p className="mt-1 text-sm text-muted-foreground">{slot.subject_name ?? "Sin materia"}</p>
         </div>
         <span className="rounded-full border border-border bg-[#f8fafc] px-2 py-1 text-[11px] font-semibold text-muted-foreground">
-          {slot.is_break ? "Descanso" : "Pasar lista"}
+          {slot.is_break ? "Descanso" : registered ? "Asistencia registrada" : "Pendiente"}
         </span>
       </div>
     </article>
@@ -101,9 +108,7 @@ function ScheduleSlot({ slot }: { slot: TeacherScheduleSlot }) {
   }
 
   return (
-    <Link
-      href={`/dashboard/tutor/attendance?course_name=${encodeURIComponent(slot.course_name)}&subject_name=${encodeURIComponent(slot.subject_name ?? "")}&schedule_id=${encodeURIComponent(slot.id)}`}
-    >
+    <Link href={`/dashboard/tutor/attendance/${slot.id}`}>
       {content}
     </Link>
   );

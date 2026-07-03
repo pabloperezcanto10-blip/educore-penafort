@@ -7,6 +7,7 @@ import { formatScheduleTime, getTeacherScheduleForToday, getWeekdayLabel, type T
 import { NotificationsPanel } from "@/components/dashboard/notifications-panel";
 import { CalendarSummaryCard } from "@/components/dashboard/calendar-summary-card";
 import { getDashboardNotifications } from "@/lib/internal-notifications";
+import { getRegisteredScheduleIdsForDate } from "@/lib/attendance/session-attendance";
 
 type DashboardIcon = typeof Layers3;
 
@@ -27,7 +28,11 @@ export default async function TutorDashboardPage() {
     }),
     getTeacherScheduleForToday(profile.id)
   ]);
-  const errorMessage = subjectsError ?? communicationsError ?? dashboardNotificationsError ?? scheduleError;
+  const { registeredScheduleIds, errorMessage: scheduleRegistrationError } = await getRegisteredScheduleIdsForDate({
+    teacherId: profile.id,
+    scheduleIds: todaySchedule.filter((slot) => !slot.is_break).map((slot) => slot.id)
+  });
+  const errorMessage = subjectsError ?? communicationsError ?? dashboardNotificationsError ?? scheduleError ?? scheduleRegistrationError;
   const tutorName = profile.full_name ?? profile.email ?? "tutor";
 
   return (
@@ -82,7 +87,7 @@ export default async function TutorDashboardPage() {
         ) : (
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             {todaySchedule.map((slot) => (
-              <ScheduleSlotCard key={slot.id} slot={slot} />
+              <ScheduleSlotCard key={slot.id} slot={slot} registered={registeredScheduleIds.has(slot.id)} />
             ))}
           </div>
         )}
@@ -154,10 +159,8 @@ export default async function TutorDashboardPage() {
   );
 }
 
-function ScheduleSlotCard({ slot }: { slot: TeacherScheduleSlot }) {
-  const href = slot.is_break
-    ? "/dashboard/tutor"
-    : `/dashboard/tutor/attendance?course_name=${encodeURIComponent(slot.course_name)}&subject_name=${encodeURIComponent(slot.subject_name ?? "")}&schedule_id=${encodeURIComponent(slot.id)}`;
+function ScheduleSlotCard({ slot, registered }: { slot: TeacherScheduleSlot; registered: boolean }) {
+  const href = slot.is_break ? "/dashboard/tutor" : `/dashboard/tutor/attendance/${slot.id}`;
 
   const content = (
     <article
@@ -176,7 +179,7 @@ function ScheduleSlotCard({ slot }: { slot: TeacherScheduleSlot }) {
           <p className="mt-1 text-sm text-muted-foreground">{slot.subject_name ?? "Sin materia"}</p>
         </div>
         <span className="rounded-full border border-border bg-[#f8fafc] px-2 py-1 text-[11px] font-semibold text-muted-foreground">
-          {slot.is_break ? "Descanso" : "Pasar lista"}
+          {slot.is_break ? "Descanso" : registered ? "Asistencia registrada" : "Pendiente"}
         </span>
       </div>
     </article>
