@@ -18,6 +18,7 @@ type ImportResult = {
   importedStudents: number;
   createdFamilies: number;
   linkedRelations: number;
+  errors: string[];
 };
 
 export async function previewAdminImport(formData: FormData) {
@@ -49,8 +50,10 @@ export async function confirmAdminImport(formData: FormData) {
     redirect(withToast("/dashboard/admin/import", "error", "Faltan datos para importar."));
   }
 
+  let result: ImportResult;
+
   try {
-    await runImport({
+    result = await runImport({
       actorId: actor.id,
       actorRole: actor.role,
       courseId,
@@ -58,14 +61,27 @@ export async function confirmAdminImport(formData: FormData) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "No se pudo completar la importacion.";
-    redirect(withToast("/dashboard/admin/import", "error", message));
+    redirect(withToast(buildImportHref({ courseId, rawList, preview: true }), "error", message));
   }
 
   revalidatePath("/dashboard/admin/import");
   revalidatePath("/dashboard/admin/students");
   revalidatePath("/dashboard/admin/families");
   revalidatePath("/dashboard/family");
-  redirect(withToast("/dashboard/admin/import", "success", "Importación completada correctamente."));
+  redirect(
+    withToast(
+      buildImportHref({
+        result: {
+          importedStudents: result.importedStudents,
+          createdFamilies: result.createdFamilies,
+          linkedRelations: result.linkedRelations,
+          errors: result.errors.length
+        }
+      }),
+      "success",
+      "Importacion completada correctamente."
+    )
+  );
 }
 
 async function runImport({
@@ -102,6 +118,7 @@ async function runImport({
   let importedStudents = 0;
   let createdFamilies = 0;
   let linkedRelations = 0;
+  const errors: string[] = [];
 
   for (const row of validRows) {
     const studentPayload: StudentInsert = {
@@ -192,7 +209,41 @@ async function runImport({
     }
   });
 
-  return { importedStudents, createdFamilies, linkedRelations };
+  return { importedStudents, createdFamilies, linkedRelations, errors };
+}
+
+function buildImportHref({
+  courseId,
+  rawList,
+  preview,
+  result
+}: {
+  courseId?: string;
+  rawList?: string;
+  preview?: boolean;
+  result?: {
+    importedStudents: number;
+    createdFamilies: number;
+    linkedRelations: number;
+    errors: number;
+  };
+}) {
+  const params = new URLSearchParams();
+
+  if (courseId) params.set("course_id", courseId);
+  if (rawList) params.set("raw_list", rawList);
+  if (preview) params.set("preview", "1");
+
+  if (result) {
+    params.set("imported", "1");
+    params.set("students", String(result.importedStudents));
+    params.set("families", String(result.createdFamilies));
+    params.set("relations", String(result.linkedRelations));
+    params.set("errors", String(result.errors));
+  }
+
+  const query = params.toString();
+  return query ? "/dashboard/admin/import?" + query : "/dashboard/admin/import";
 }
 
 async function createFamilyUserWithAvailableEmail({

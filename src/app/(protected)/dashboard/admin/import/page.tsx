@@ -1,15 +1,21 @@
 import Link from "next/link";
-import { FileSpreadsheet, Upload } from "lucide-react";
+import { CheckCircle2, FileSpreadsheet, Upload } from "lucide-react";
 import { requireRole } from "@/lib/auth/session";
 import { getAdminCourses } from "@/lib/admin/admin";
 import { buildImportPreview, type ImportPreviewRow, type ImportPreviewStatus } from "@/lib/admin/import-preview";
 import { confirmAdminImport, previewAdminImport } from "./actions";
+import { ConfirmImportButton, PreviewSubmitButton } from "./import-buttons";
 
 type AdminImportPageProps = {
   searchParams?: {
     course_id?: string;
     raw_list?: string;
     preview?: string;
+    imported?: string;
+    students?: string;
+    families?: string;
+    relations?: string;
+    errors?: string;
   };
 };
 
@@ -35,14 +41,22 @@ export default async function AdminImportPage({ searchParams }: AdminImportPageP
   const selectedCourse = courses.find((course) => course.id === selectedCourseId);
   const pageError = coursesError ?? preview.errorMessage;
   const hasNewRows = preview.rows.some((row) => row.status === "nuevo");
+  const importResult = searchParams?.imported === "1"
+    ? {
+        students: parseSummaryValue(searchParams.students),
+        families: parseSummaryValue(searchParams.families),
+        relations: parseSummaryValue(searchParams.relations),
+        errors: parseSummaryValue(searchParams.errors)
+      }
+    : null;
 
   return (
     <section className="space-y-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-normal text-foreground">Importación masiva</h1>
+          <h1 className="text-2xl font-semibold tracking-normal text-foreground">Importaci&oacute;n masiva</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Importa alumnos y familias por clase de forma automática.
+            Importa alumnos y familias por clase de forma autom&aacute;tica.
           </p>
         </div>
         <Link
@@ -55,8 +69,28 @@ export default async function AdminImportPage({ searchParams }: AdminImportPageP
 
       {pageError ? (
         <div className="rounded-lg border border-red-200 bg-red-50 p-5 text-sm text-red-700">
-          No se pudo preparar la importación: {pageError}
+          No se pudo preparar la importaci&oacute;n: {pageError}
         </div>
+      ) : null}
+
+      {importResult ? (
+        <section className="rounded-lg border border-emerald-200 bg-emerald-50 p-5 text-emerald-900 shadow-sm">
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-emerald-600 text-white">
+              <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
+            </span>
+            <div>
+              <h2 className="text-sm font-semibold">Importaci&oacute;n completada correctamente.</h2>
+              <p className="mt-1 text-sm">Los datos se han guardado en Supabase y el formulario se ha limpiado para evitar duplicados.</p>
+              <div className="mt-4 grid gap-2 text-sm sm:grid-cols-4">
+                <ResultMetric label="Alumnos creados" value={importResult.students} />
+                <ResultMetric label="Familias creadas" value={importResult.families} />
+                <ResultMetric label="Relaciones creadas" value={importResult.relations} />
+                <ResultMetric label="Errores" value={importResult.errors} />
+              </div>
+            </div>
+          </div>
+        </section>
       ) : null}
 
       <section className="rounded-lg border border-border bg-white p-5 shadow-sm">
@@ -65,9 +99,9 @@ export default async function AdminImportPage({ searchParams }: AdminImportPageP
             <Upload className="h-5 w-5" aria-hidden="true" />
           </span>
           <div>
-            <h2 className="text-sm font-semibold text-foreground">Preparar importación</h2>
+            <h2 className="text-sm font-semibold text-foreground">Preparar importaci&oacute;n</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Pega una línea por alumno. La vista previa no guarda datos en Supabase.
+              Pega una l&iacute;nea por alumno. La vista previa no guarda datos en Supabase.
             </p>
           </div>
         </div>
@@ -100,32 +134,21 @@ export default async function AdminImportPage({ searchParams }: AdminImportPageP
                 required
                 rows={9}
                 defaultValue={rawList}
-                placeholder={"Pablo García López\nLucía Martínez Pérez\nMarcos Ruiz Sánchez"}
+                placeholder={"Pablo Garcia Lopez\nLucia Martinez Perez\nMarcos Ruiz Sanchez"}
                 className="min-h-56 rounded-md border border-border bg-white px-3 py-3 text-sm outline-none transition placeholder:text-muted-foreground/70 focus:border-primary focus:ring-2 focus:ring-primary/15"
               />
             </label>
           </div>
 
           <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-end">
-            <button
-              type="submit"
-              className="inline-flex h-10 items-center justify-center rounded-md border border-border bg-white px-4 text-sm font-semibold text-foreground transition hover:bg-muted"
-            >
-              Vista previa
-            </button>
+            <PreviewSubmitButton />
           </div>
         </form>
 
         <form action={confirmAdminImport} className="mt-3 flex justify-end">
           <input type="hidden" name="course_id" value={selectedCourseId} />
           <input type="hidden" name="raw_list" value={rawList} />
-          <button
-            type="submit"
-            disabled={!hasNewRows}
-            className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Confirmar importación
-          </button>
+          <ConfirmImportButton disabled={!hasNewRows} />
         </form>
       </section>
 
@@ -140,7 +163,7 @@ export default async function AdminImportPage({ searchParams }: AdminImportPageP
               <p className="mt-1 text-sm text-muted-foreground">
                 {preview.rows.length > 0
                   ? `Curso seleccionado: ${selectedCourse?.name ?? "Curso"}`
-                  : "Todavía no hay datos cargados. Genera una vista previa para revisar la importación."}
+                  : "Todavia no hay datos cargados. Genera una vista previa para revisar la importacion."}
               </p>
             </div>
           </div>
@@ -160,7 +183,7 @@ export default async function AdminImportPage({ searchParams }: AdminImportPageP
                   <th className="px-4 py-3">Alumno</th>
                   <th className="px-4 py-3">Curso</th>
                   <th className="px-4 py-3">Email familiar</th>
-                  <th className="px-4 py-3">Contraseña</th>
+                  <th className="px-4 py-3">Contrase&ntilde;a</th>
                   <th className="px-4 py-3">Estado</th>
                 </tr>
               </thead>
@@ -168,7 +191,7 @@ export default async function AdminImportPage({ searchParams }: AdminImportPageP
                 {preview.rows.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
-                      Tabla preparada para mostrar la vista previa de importación.
+                      Tabla preparada para mostrar la vista previa de importaci&oacute;n.
                     </td>
                   </tr>
                 ) : (
@@ -211,4 +234,18 @@ function PreviewTableRow({ row, courseName }: { row: ImportPreviewRow; courseNam
       </td>
     </tr>
   );
+}
+
+function ResultMetric({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-md border border-emerald-200 bg-white/70 px-3 py-2">
+      <p className="text-lg font-semibold">{value}</p>
+      <p className="text-xs font-medium text-emerald-800">{label}</p>
+    </div>
+  );
+}
+
+function parseSummaryValue(value: string | undefined) {
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }
