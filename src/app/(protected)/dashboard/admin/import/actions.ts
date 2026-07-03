@@ -321,3 +321,240 @@ async function resolveTutorTeacherIdForCourse({
 
   return data?.teacher_id ?? fallbackUserId;
 }
+
+type DeleteImportResult = {
+  deletedStudents: number;
+  deletedFamilies: number;
+  deletedRelations: number;
+  preservedFamilies: number;
+};
+
+export async function loadAdminImportCleanup(formData: FormData) {
+  await requireRole("superadmin");
+  const courseId = String(formData.get("cleanup_course_id") ?? "").trim();
+
+  if (!courseId) {
+    redirect(withToast("/dashboard/admin/import?tab=cleanup", "error", "Selecciona un curso para cargar alumnos."));
+  }
+
+  redirect(`/dashboard/admin/import?tab=cleanup&cleanup_course_id=${encodeURIComponent(courseId)}&cleanup=1`);
+}
+
+export async function deleteImportedStudent(formData: FormData) {
+  const actor = await requireRole("superadmin");
+  const studentId = String(formData.get("student_id") ?? "").trim();
+  const courseId = String(formData.get("cleanup_course_id") ?? "").trim();
+
+  if (!studentId || !courseId) {
+    redirect(withToast(buildCleanupHref({ courseId }), "error", "Faltan datos para borrar el alumno."));
+  }
+
+  try {
+    const result = await deleteStudentWithFamilies({ actorId: actor.id, actorRole: actor.role, studentId });
+    revalidateImportCleanup();
+    redirect(withToast(buildCleanupHref({ courseId, result }), result.preservedFamilies > 0 ? "warning" : "success", result.preservedFamilies > 0 ? "Datos eliminados. Se mantuvieron familias con otros hijos vinculados." : "Datos eliminados correctamente."));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "No se pudo borrar el alumno.";
+    redirect(withToast(buildCleanupHref({ courseId }), "error", message));
+  }
+}
+
+export async function deleteImportedCourse(formData: FormData) {
+  const actor = await requireRole("superadmin");
+  const courseId = String(formData.get("cleanup_course_id") ?? "").trim();
+
+  if (!courseId) {
+    redirect(withToast("/dashboard/admin/import?tab=cleanup", "error", "Selecciona un curso para borrar datos."));
+  }
+
+  try {
+    const supabaseAdmin = createAdminClient();
+    const { data: students, error } = await supabaseAdmin
+      .from("students")
+      .select("id")
+      .eq("course_id", courseId)
+      .returns<{ id: string }[]>();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const total: DeleteImportResult = { deletedStudents: 0, deletedFamilies: 0, deletedRelations: 0, preservedFamilies: 0 };
+
+    for (const student of students ?? []) {
+      const result = await deleteStudentWithFamilies({ actorId: actor.id, actorRole: actor.role, studentId: student.id });
+      total.deletedStudents += result.deletedStudents;
+      total.deletedFamilies += result.deletedFamilies;
+      total.deletedRelations += result.deletedRelations;
+      total.preservedFamilies += result.preservedFamilies;
+    }
+
+    await logAuditAction({
+      actorUserId: actor.id,
+      actorRole: actor.role,
+      action: "bulk_course_deleted",
+      module: "admin_import_cleanup",
+      entityType: "course",
+      entityId: courseId,
+      afterData: total
+    });
+
+    revalidateImportCleanup();
+    redirect(withToast(buildCleanupHref({ courseId, result: total }), total.preservedFamilies > 0 ? "warning" : "success", total.preservedFamilies > 0 ? "Datos eliminados. Se mantuvieron familias con otros hijos vinculados." : "Datos eliminados correctamente."));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "No se pudo borrar el curso.";
+    redirect(withToast(buildCleanupHref({ courseId }), "error", message));
+  }
+}
+
+async function deleteStudentWithFamilies({
+  actorId,
+  actorRole,
+  studentId
+}: {
+  actorId: string;
+  actorRole: string;
+  studentId: string;
+}): Promise<DeleteImportResult> {
+  const supabaseAdmin = createAdminClient();
+  const { data: student, error: studentError } = await supabaseAdmin
+    .from("students")
+    .select("id,name,last_name,course_id")
+    .eq("id", studentId)
+    .maybeSingle<{ id: string; name: string; last_name: string; course_id: string }>();
+
+  if (studentError) {
+    throw new Error(studentError.message);
+  }
+
+  if (!student) {
+    throw new Error("No se encontro el alumno seleccionado.");
+  }
+
+  const { data: relations, error: relationsError } = await supabaseAdmin
+    .from("parent_students")
+    .select("parent_id,student_id")
+    .eq("student_id", studentId)
+    .returns<{ parent_id: string; student_id: string }[]>();
+
+  if (relationsError) {
+    throw new Error(relationsError.message);
+  }
+
+  const result: DeleteImportResult = { deletedStudents: 0, deletedFamilies: 0, deletedRelations: 0, preservedFamilies: 0 };
+  const parentIds = Array.from(new Set((relations ?? []).map((relation) => relation.parent_id)));
+
+  if (parentIds.length > 0) {
+    const { error: relationDeleteError } = await supabaseAdmin.from("parent_students").delete().eq("student_id", studentId);
+
+    if (relationDeleteError) {
+      throw new Error(relationDeleteError.message);
+    }
+
+    result.deletedRelations += relations?.length ?? 0;
+    await logAuditAction({
+      actorUserId: actorId,
+      actorRole,
+      action: "parent_student_deleted",
+      module: "admin_import_cleanup",
+      entityType: "student",
+      entityId: studentId,
+      beforeData: relations ?? [],
+      afterData: { deleted: true }
+    });
+  }
+
+  for (const parentId of parentIds) {
+    const { count, error: countError } = await supabaseAdmin
+      .from("parent_students")
+      .select("student_id", { count: "exact", head: true })
+      .eq("parent_id", parentId);
+
+    if (countError) {
+      throw new Error(countError.message);
+    }
+
+    if ((count ?? 0) > 0) {
+      result.preservedFamilies += 1;
+      continue;
+    }
+
+    const { data: beforeFamily } = await supabaseAdmin
+      .from("profiles")
+      .select("id,email,full_name,role,active")
+      .eq("id", parentId)
+      .maybeSingle();
+
+    const { error: profileDeleteError } = await supabaseAdmin.from("profiles").delete().eq("id", parentId);
+
+    if (profileDeleteError) {
+      throw new Error(profileDeleteError.message);
+    }
+
+    const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(parentId);
+
+    if (authDeleteError) {
+      throw new Error("Se borro el perfil familiar, pero no se pudo borrar el acceso Auth.");
+    }
+
+    result.deletedFamilies += 1;
+    await logAuditAction({
+      actorUserId: actorId,
+      actorRole,
+      action: "family_deleted",
+      module: "admin_import_cleanup",
+      entityType: "profile",
+      entityId: parentId,
+      beforeData: beforeFamily ?? null,
+      afterData: { deleted: true }
+    });
+  }
+
+  const { error: studentDeleteError } = await supabaseAdmin.from("students").delete().eq("id", studentId);
+
+  if (studentDeleteError) {
+    throw new Error(studentDeleteError.message);
+  }
+
+  result.deletedStudents += 1;
+  await logAuditAction({
+    actorUserId: actorId,
+    actorRole,
+    action: "student_deleted",
+    module: "admin_import_cleanup",
+    entityType: "student",
+    entityId: studentId,
+    beforeData: student,
+    afterData: { deleted: true }
+  });
+
+  return result;
+}
+
+function buildCleanupHref({ courseId, result }: { courseId?: string; result?: DeleteImportResult }) {
+  const params = new URLSearchParams({ tab: "cleanup" });
+
+  if (courseId) {
+    params.set("cleanup_course_id", courseId);
+    params.set("cleanup", "1");
+  }
+
+  if (result) {
+    params.set("deleted", "1");
+    params.set("students", String(result.deletedStudents));
+    params.set("families", String(result.deletedFamilies));
+    params.set("relations", String(result.deletedRelations));
+    params.set("preserved", String(result.preservedFamilies));
+  }
+
+  return `/dashboard/admin/import?${params.toString()}`;
+}
+
+function revalidateImportCleanup() {
+  revalidatePath("/dashboard/admin/import");
+  revalidatePath("/dashboard/admin/students");
+  revalidatePath("/dashboard/admin/families");
+  revalidatePath("/dashboard/admin/users");
+  revalidatePath("/dashboard/admin/maintenance");
+  revalidatePath("/dashboard/family");
+}
