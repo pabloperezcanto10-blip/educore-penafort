@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -55,6 +55,7 @@ export function EduCoreAssistantButton({ userName, role }: { userName: string | 
 
   const recentMessages = useMemo(() => messages.slice(-8), [messages]);
   const remainingCharacters = maxMessageLength - input.length;
+  const hasConversationContent = messages.length > 0 || input.trim().length > 0 || Boolean(error);
 
   async function sendMessage(text: string) {
     const trimmed = text.trim();
@@ -119,12 +120,19 @@ export function EduCoreAssistantButton({ userName, role }: { userName: string | 
     window.setTimeout(() => setCopiedId(null), 1800);
   }
 
+  function resetConversation() {
+    setMessages([]);
+    setInput("");
+    setError(null);
+    setCopiedId(null);
+  }
+
   return (
     <>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-5 right-5 z-40 inline-flex h-12 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-lg transition hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-primary/30"
+        className="fixed bottom-5 right-5 z-40 inline-flex h-11 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/15 transition hover:-translate-y-0.5 hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-primary/30"
         aria-label="Abrir EduCore AI"
       >
         <Bot className="h-5 w-5" aria-hidden="true" />
@@ -132,16 +140,16 @@ export function EduCoreAssistantButton({ userName, role }: { userName: string | 
       </button>
 
       {open ? (
-        <div className="fixed inset-0 z-50 bg-slate-950/25 backdrop-blur-[1px]" role="dialog" aria-modal="true">
-          <aside className="ml-auto flex h-full w-full max-w-xl flex-col border-l border-border bg-white shadow-2xl">
-            <header className="flex items-start justify-between gap-4 border-b border-border p-5">
+        <div className="fixed inset-0 z-50 bg-slate-950/20 backdrop-blur-[1px]" role="dialog" aria-modal="true">
+          <aside className="ml-auto flex h-full w-full max-w-[460px] flex-col border-l border-border bg-white shadow-2xl sm:w-[min(460px,calc(100vw-32px))]">
+            <header className="flex items-start justify-between gap-4 border-b border-primary/15 bg-white px-5 py-4">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-sm">
                     <Bot className="h-5 w-5" aria-hidden="true" />
                   </span>
                   <div>
-                    <h2 className="text-base font-semibold text-foreground">EduCore Assistant</h2>
+                    <h2 className="text-base font-semibold text-foreground">Asistente EduCore</h2>
                     <p className="text-xs text-muted-foreground">{role} - {userName ?? "Usuario"}</p>
                   </div>
                 </div>
@@ -152,16 +160,27 @@ export function EduCoreAssistantButton({ userName, role }: { userName: string | 
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-white transition hover:bg-muted"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-white transition hover:bg-muted"
                 aria-label="Cerrar asistente"
               >
                 <X className="h-4 w-4" aria-hidden="true" />
               </button>
             </header>
 
-            <div className="border-b border-border p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Sugerencias rapidas</p>
-              <div className="mt-2 flex flex-wrap gap-2">
+            <div className="border-b border-border bg-[#f8fafc] px-5 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Sugerencias rapidas</p>
+                {hasConversationContent ? (
+                  <button
+                    type="button"
+                    onClick={resetConversation}
+                    className="rounded-md border border-border bg-white px-2.5 py-1 text-xs font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                  >
+                    Nueva conversacion
+                  </button>
+                ) : null}
+              </div>
+              <div className="mt-2 flex max-h-24 flex-wrap gap-1.5 overflow-y-auto pr-1">
                 {suggestions.map((suggestion) => (
                   <button
                     key={suggestion.label}
@@ -170,7 +189,7 @@ export function EduCoreAssistantButton({ userName, role }: { userName: string | 
                       setInput(suggestion.prompt);
                       setError(null);
                     }}
-                    className="rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
+                    className="rounded-full border border-border bg-white px-2.5 py-1 text-xs font-medium text-muted-foreground transition hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
                   >
                     {suggestion.label}
                   </button>
@@ -178,9 +197,9 @@ export function EduCoreAssistantButton({ userName, role }: { userName: string | 
               </div>
             </div>
 
-            <div className="flex-1 space-y-4 overflow-y-auto bg-[#f8fafc] p-5">
+            <div className="flex-1 space-y-4 overflow-y-auto bg-[#f8fafc] px-5 py-4">
               {messages.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-border bg-white p-5 text-sm text-muted-foreground">
+                <div className="rounded-lg border border-dashed border-border bg-white p-4 text-sm text-muted-foreground shadow-sm">
                   <p className="font-semibold text-foreground">{"\u00bfEn qu\u00e9 te ayudo?"}</p>
                   <p className="mt-2">
                     Escribe una peticion o usa una sugerencia. En esta version no se cargan datos de alumnos, notas, incidencias ni comunicaciones automaticamente.
@@ -189,7 +208,7 @@ export function EduCoreAssistantButton({ userName, role }: { userName: string | 
               ) : null}
               {messages.map((message) => (
                 <article key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[85%] rounded-2xl border px-4 py-3 text-sm shadow-sm ${message.role === "user" ? "border-primary/25 bg-primary/5" : "border-border bg-white"}`}>
+                  <div className={`max-w-[86%] rounded-2xl border px-4 py-3 text-sm shadow-sm ${message.role === "user" ? "border-primary/25 bg-primary/10 text-foreground" : "border-border bg-white text-foreground"}`}>
                     <div className="mb-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
                       <span className="font-semibold text-foreground">{message.role === "user" ? "Tu" : "EduCore AI"}</span>
                       {message.role === "assistant" ? (
@@ -219,7 +238,7 @@ export function EduCoreAssistantButton({ userName, role }: { userName: string | 
             </div>
 
             <form
-              className="border-t border-border bg-white p-4"
+              className="border-t border-border bg-white px-5 py-4 shadow-[0_-8px_18px_rgba(15,23,42,0.04)]"
               onSubmit={(event) => {
                 event.preventDefault();
                 void sendMessage(input);
@@ -236,8 +255,9 @@ export function EduCoreAssistantButton({ userName, role }: { userName: string | 
                 maxLength={maxMessageLength + 1}
                 rows={3}
                 placeholder="Escribe tu peticion..."
-                className="w-full resize-none rounded-md border border-border bg-white px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+                className="w-full resize-none rounded-md border border-border bg-white px-3 py-2 text-sm leading-relaxed outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
               />
+              <p className="mt-2 text-xs text-muted-foreground">La conversacion solo se conserva en esta sesion y no se guarda.</p>
               <div className="mt-2 flex items-center justify-between gap-3">
                 <p className={`text-xs ${remainingCharacters < 0 ? "text-red-600" : "text-muted-foreground"}`}>
                   {remainingCharacters < 0 ? `Sobran ${Math.abs(remainingCharacters)} caracteres` : `${remainingCharacters} caracteres restantes`}
@@ -245,7 +265,7 @@ export function EduCoreAssistantButton({ userName, role }: { userName: string | 
                 <button
                   type="submit"
                   disabled={loading || input.trim().length === 0 || input.trim().length > maxMessageLength}
-                  className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Send className="h-4 w-4" aria-hidden="true" />
                   Enviar
