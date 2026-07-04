@@ -167,12 +167,12 @@ export default async function TutorCommunicationsPage({ searchParams = {} }: Tut
             />
             <Select
               name="category"
-              label="Categoria"
+              label="Categoría"
               value={searchParams.category ?? ""}
               options={[
                 { value: "incidencia", label: "Incidencia" },
-                { value: "acadÃ©mico", label: "Academico" },
-                { value: "tutorÃ­a", label: "Tutoria" },
+                { value: "académico", label: "Académico" },
+                { value: "tutoría", label: "Tutoría" },
                 { value: "general", label: "General" }
               ]}
             />

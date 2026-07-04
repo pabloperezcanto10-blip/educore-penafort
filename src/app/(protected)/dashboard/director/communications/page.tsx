@@ -53,8 +53,8 @@ type Conversation = {
 
 const categories = [
   { value: "incidencia", label: "Incidencia" },
-  { value: "acadÃƒÂ©mico", label: "Academico" },
-  { value: "tutorÃƒÂ­a", label: "Tutoria" },
+  { value: "académico", label: "Académico" },
+  { value: "tutoría", label: "Tutoría" },
   { value: "general", label: "General" }
 ];
 
