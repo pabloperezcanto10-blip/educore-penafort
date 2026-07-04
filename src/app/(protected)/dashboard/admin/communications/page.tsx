@@ -282,10 +282,11 @@ function ConversationListItem({
         <time className="shrink-0 text-xs text-muted-foreground">{formatShortDate(conversation.lastMessage.created_at)}</time>
       </div>
       <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{conversation.lastMessage.message}</p>
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {conversation.tags.slice(0, 5).map((tag) => (
-          <Badge key={tag}>{tag}</Badge>
-        ))}
+      <div className="mt-3 flex flex-wrap items-center gap-1.5">
+        <Badge>{getCategoryLabel(conversation.lastMessage.category)}</Badge>
+        {conversation.lastMessage.courseName !== "Sin curso" ? <Badge>{conversation.lastMessage.courseName}</Badge> : null}
+        {conversation.isClosed ? <Badge>Cerrada</Badge> : null}
+        {conversation.unreadCount > 0 ? <span className="h-2 w-2 rounded-full bg-primary" aria-label="No leida" /> : null}
       </div>
     </Link>
   );
@@ -330,10 +331,10 @@ function ConversationDetail({
               <Info label="Curso" value={latest.courseName} />
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
-              {conversation.tags.map((tag) => (
-                <Badge key={tag}>{tag}</Badge>
-              ))}
+              <Badge>{getCategoryLabel(latest.category)}</Badge>
+              {latest.courseName !== "Sin curso" ? <Badge>{latest.courseName}</Badge> : null}
               <Badge>{conversation.isClosed ? "Cerrada" : "Abierta"}</Badge>
+              {conversation.unreadCount > 0 ? <Badge>{`${conversation.unreadCount} sin leer`}</Badge> : null}
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -434,7 +435,7 @@ function ConversationDetail({
 function MessageBubble({ message }: { message: LabeledCommunication }) {
   return (
     <article className="flex justify-start">
-      <div className="max-w-2xl rounded-lg border border-border bg-white p-4">
+      <div className="max-w-2xl rounded-2xl border border-border bg-white px-4 py-3 shadow-sm">
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <span className="font-semibold text-foreground">{message.senderName}</span>
           <span>para</span>

@@ -94,96 +94,99 @@ export default async function TutorCommunicationsPage({ searchParams = {} }: Tut
         </div>
       ) : null}
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <MetricCard label="Enviados" value={String(sentCount)} />
-        <MetricCard label="Recibidos" value={String(receivedCount)} />
-        <MetricCard label="No leidos" value={String(unreadCount)} />
-      </div>
+      <SummaryChips sentCount={sentCount} receivedCount={receivedCount} unreadCount={unreadCount} />
 
-      <form className="grid gap-3 rounded-lg border border-border bg-white p-5 lg:grid-cols-6">
-        <label className="space-y-2 lg:col-span-2">
-          <span className="block text-sm font-medium text-foreground">Buscar</span>
-          <input
-            name="q"
-            defaultValue={searchParams.q ?? ""}
-            placeholder="Familia, alumno o asunto"
-            className="h-10 w-full rounded-md border border-border bg-white px-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+      <form className="rounded-lg border border-border bg-white p-4">
+        <div className="grid gap-3 lg:grid-cols-[2fr_1fr_1fr_auto]">
+          <label className="space-y-2">
+            <span className="block text-sm font-medium text-foreground">Buscar</span>
+            <input
+              name="q"
+              defaultValue={searchParams.q ?? ""}
+              placeholder="Familia, alumno o asunto"
+              className="h-10 w-full rounded-md border border-border bg-white px-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+            />
+          </label>
+          <Select
+            name="direction"
+            label="Bandeja"
+            value={searchParams.direction ?? ""}
+            options={[
+              { value: "sent", label: "Enviados" },
+              { value: "received", label: "Recibidos" }
+            ]}
           />
-        </label>
-        <Select
-          name="direction"
-          label="Bandeja"
-          value={searchParams.direction ?? ""}
-          options={[
-            { value: "sent", label: "Enviados" },
-            { value: "received", label: "Recibidos" }
-          ]}
-        />
-        <Select
-          name="student_id"
-          label="Alumno"
-          value={searchParams.student_id ?? ""}
-          options={students.map((student) => ({
-            value: student.id,
-            label: `${student.name} ${student.last_name}`
-          }))}
-        />
-        <Select
-          name="family_id"
-          label="Familia / interlocutor"
-          value={searchParams.family_id ?? ""}
-          options={participants.map(([value, label]) => ({ value, label }))}
-        />
-        <Select
-          name="course_id"
-          label="Curso"
-          value={searchParams.course_id ?? ""}
-          options={courses.map((course) => ({ value: course.id, label: course.name }))}
-        />
-        <Select
-          name="category"
-          label="Categoria"
-          value={searchParams.category ?? ""}
-          options={[
-            { value: "incidencia", label: "Incidencia" },
-            { value: "académico", label: "Academico" },
-            { value: "tutoría", label: "Tutoria" },
-            { value: "general", label: "General" }
-          ]}
-        />
-        <Select
-          name="status"
-          label="Estado"
-          value={searchParams.status ?? ""}
-          options={[
-            { value: "unread", label: "No leidos" },
-            { value: "read", label: "Leidos" }
-          ]}
-        />
-        <Select
-          name="conversation_status"
-          label="Conversacion"
-          value={searchParams.conversation_status ?? ""}
-          options={[
-            { value: "open", label: "Abiertas" },
-            { value: "closed", label: "Cerradas" }
-          ]}
-        />
-        <div className="flex items-end gap-2 lg:col-span-6">
-          <button
-            type="submit"
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
-          >
-            <Search className="h-4 w-4" aria-hidden="true" />
-            Filtrar
-          </button>
-          <Link
-            href="/dashboard/tutor/communications"
-            className="inline-flex h-10 items-center justify-center rounded-md border border-border bg-white px-3 text-sm font-medium transition hover:bg-muted"
-          >
-            Limpiar
-          </Link>
+          <Select
+            name="status"
+            label="Estado"
+            value={searchParams.status ?? ""}
+            options={[
+              { value: "unread", label: "No leidos" },
+              { value: "read", label: "Leidos" }
+            ]}
+          />
+          <div className="flex items-end gap-2">
+            <button
+              type="submit"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
+            >
+              <Search className="h-4 w-4" aria-hidden="true" />
+              Filtrar
+            </button>
+            <Link
+              href="/dashboard/tutor/communications"
+              className="inline-flex h-10 items-center justify-center rounded-md border border-border bg-white px-3 text-sm font-medium transition hover:bg-muted"
+            >
+              Limpiar
+            </Link>
+          </div>
         </div>
+        <details className="mt-3 rounded-md border border-border bg-secondary/30 p-3">
+          <summary className="cursor-pointer text-sm font-semibold text-foreground">Mas filtros</summary>
+          <div className="mt-3 grid gap-3 lg:grid-cols-5">
+            <Select
+              name="student_id"
+              label="Alumno"
+              value={searchParams.student_id ?? ""}
+              options={students.map((student) => ({
+                value: student.id,
+                label: `${student.name} ${student.last_name}`
+              }))}
+            />
+            <Select
+              name="family_id"
+              label="Familia / interlocutor"
+              value={searchParams.family_id ?? ""}
+              options={participants.map(([value, label]) => ({ value, label }))}
+            />
+            <Select
+              name="course_id"
+              label="Curso"
+              value={searchParams.course_id ?? ""}
+              options={courses.map((course) => ({ value: course.id, label: course.name }))}
+            />
+            <Select
+              name="category"
+              label="Categoria"
+              value={searchParams.category ?? ""}
+              options={[
+                { value: "incidencia", label: "Incidencia" },
+                { value: "acadÃ©mico", label: "Academico" },
+                { value: "tutorÃ­a", label: "Tutoria" },
+                { value: "general", label: "General" }
+              ]}
+            />
+            <Select
+              name="conversation_status"
+              label="Conversacion"
+              value={searchParams.conversation_status ?? ""}
+              options={[
+                { value: "open", label: "Abiertas" },
+                { value: "closed", label: "Cerradas" }
+              ]}
+            />
+          </div>
+        </details>
       </form>
 
       {conversations.length === 0 ? (
@@ -240,13 +243,11 @@ function ConversationListItem({
         <time className="shrink-0 text-xs text-muted-foreground">{formatShortDate(latest.created_at)}</time>
       </div>
       <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{latest.message}</p>
-      <div className="mt-3 flex flex-wrap gap-1.5">
+      <div className="mt-3 flex flex-wrap items-center gap-1.5">
         <Badge>{latest.category}</Badge>
-        {latest.studentName !== "Sin alumno" ? <Badge>{latest.studentName}</Badge> : null}
         {latest.courseName !== "Sin curso" ? <Badge>{latest.courseName}</Badge> : null}
-        <Badge>{conversation.messages.length} mensajes</Badge>
-        <Badge>{conversation.isClosed ? "Cerrada" : "Abierta"}</Badge>
-        {conversation.unreadCount > 0 ? <Badge>{conversation.unreadCount} no leidos</Badge> : <Badge>Leida</Badge>}
+        {conversation.isClosed ? <Badge>Cerrada</Badge> : null}
+        {conversation.unreadCount > 0 ? <span className="h-2 w-2 rounded-full bg-primary" aria-label="No leida" /> : null}
       </div>
     </Link>
   );
@@ -278,10 +279,8 @@ function ConversationDetail({ conversation }: { conversation: TutorConversation 
           <div className="flex flex-wrap items-center gap-2">
             <Inbox className="h-4 w-4 text-primary" aria-hidden="true" />
             <Badge>{latest.category}</Badge>
-            <Badge>{latest.courseName}</Badge>
-            <Badge>{conversation.unreadCount > 0 ? `${conversation.unreadCount} sin leer` : "Leida"}</Badge>
             <Badge>{conversation.isClosed ? "Cerrada" : "Abierta"}</Badge>
-            <Badge>{conversation.messages.length} mensajes</Badge>
+            {conversation.unreadCount > 0 ? <Badge>{`${conversation.unreadCount} sin leer`}</Badge> : null}
           </div>
           <h2 className="mt-3 text-base font-semibold text-foreground">{conversation.subject}</h2>
           <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{latest.message}</p>
@@ -327,7 +326,7 @@ function ConversationDetail({ conversation }: { conversation: TutorConversation 
         </div>
       </div>
 
-      <div className="mt-5 space-y-3 rounded-md bg-background p-3">
+      <div className="mt-5 space-y-4 rounded-md bg-background p-4">
         {sortedMessages.map((message) => (
           <MessageBubble key={message.id} message={message} />
         ))}
@@ -360,7 +359,7 @@ function MessageBubble({ message }: { message: TutorCommunication }) {
 
   return (
     <div className={`flex ${sent ? "justify-end" : "justify-start"}`}>
-      <div className={`max-w-2xl rounded-lg border p-4 ${sent ? "border-primary/30 bg-primary/5" : "border-border bg-white"}`}>
+      <div className={`max-w-2xl rounded-2xl border px-4 py-3 shadow-sm ${sent ? "border-primary/25 bg-primary/5" : "border-border bg-white"}`}>
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           {sent ? <Send className="h-3.5 w-3.5 text-primary" aria-hidden="true" /> : <Inbox className="h-3.5 w-3.5 text-primary" aria-hidden="true" />}
           <span className="font-semibold text-foreground">{sent ? "Tu mensaje" : message.senderName}</span>
@@ -403,11 +402,12 @@ function Select({
   );
 }
 
-function MetricCard({ label, value }: { label: string; value: string }) {
+function SummaryChips({ sentCount, receivedCount, unreadCount }: { sentCount: number; receivedCount: number; unreadCount: number }) {
   return (
-    <div className="rounded-lg border border-border bg-white p-4">
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-foreground">{value}</p>
+    <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+      <span className="rounded-full border border-border bg-white px-3 py-1">Enviados: <strong className="text-foreground">{sentCount}</strong></span>
+      <span className="rounded-full border border-border bg-white px-3 py-1">Recibidos: <strong className="text-foreground">{receivedCount}</strong></span>
+      <span className="rounded-full border border-border bg-white px-3 py-1">No leidos: <strong className="text-foreground">{unreadCount}</strong></span>
     </div>
   );
 }

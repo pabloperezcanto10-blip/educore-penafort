@@ -4,6 +4,7 @@ import type { Profile } from "@/lib/auth/session";
 import { getDashboardPathForRole } from "@/lib/auth/roles";
 import { platformSettings, schoolSettings } from "@/lib/settings";
 import { SchoolLogo } from "@/components/branding/school-logo";
+import { EduCoreAssistantButton } from "@/components/ai/educore-assistant-button";
 
 type AppShellProps = {
   profile: Profile;
@@ -12,6 +13,8 @@ type AppShellProps = {
 };
 
 export function AppShell({ profile, academicYearName, children }: AppShellProps) {
+  const assistantEnabled = process.env.AI_ASSISTANT_ENABLED === "true";
+  const showAssistant = assistantEnabled && (profile.role === "tutor" || profile.role === "director" || profile.role === "superadmin");
   return (
     <div className="min-h-screen bg-[#f8fafc]">
       <header className="border-b border-primary/25 bg-white shadow-sm">
@@ -46,6 +49,7 @@ export function AppShell({ profile, academicYearName, children }: AppShellProps)
       </header>
 
       <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>
+      {showAssistant ? <EduCoreAssistantButton userName={profile.full_name ?? profile.email} role={profile.role} /> : null}
     </div>
   );
 }

@@ -94,11 +94,7 @@ export default async function FamilyCommunicationsPage({ searchParams = {} }: Pa
         </div>
       ) : null}
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <MetricCard label="Recibidos" value={String(receivedCount)} />
-        <MetricCard label="Enviados" value={String(sentCount)} />
-        <MetricCard label="No leidos" value={String(unreadCount)} />
-      </div>
+      <SummaryChips sentCount={sentCount} receivedCount={receivedCount} unreadCount={unreadCount} />
 
       <details className="rounded-lg border border-border bg-white p-5">
         <summary className="flex cursor-pointer list-none items-center gap-3">
@@ -333,13 +329,11 @@ function ConversationListItem({
         <time className="shrink-0 text-xs text-muted-foreground">{formatShortDate(latest.created_at)}</time>
       </div>
       <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{latest.message}</p>
-      <div className="mt-3 flex flex-wrap gap-1.5">
+      <div className="mt-3 flex flex-wrap items-center gap-1.5">
         <Badge>{latest.category}</Badge>
-        {latest.studentName !== "Sin alumno" ? <Badge>{latest.studentName}</Badge> : null}
         {latest.courseName !== "Sin curso" ? <Badge>{latest.courseName}</Badge> : null}
-        <Badge>{conversation.messages.length} mensajes</Badge>
-        <Badge>{conversation.isClosed ? "Cerrada" : "Abierta"}</Badge>
-        {conversation.unreadCount > 0 ? <Badge>{conversation.unreadCount} no leidos</Badge> : <Badge>Leida</Badge>}
+        {conversation.isClosed ? <Badge>Cerrada</Badge> : null}
+        {conversation.unreadCount > 0 ? <span className="h-2 w-2 rounded-full bg-primary" aria-label="No leida" /> : null}
       </div>
     </Link>
   );
@@ -377,10 +371,8 @@ function ConversationDetail({
           <div className="flex flex-wrap items-center gap-2">
             <Inbox className="h-4 w-4 text-primary" aria-hidden="true" />
             <Badge>{latest.category}</Badge>
-            <Badge>{latest.courseName}</Badge>
-            <Badge>{conversation.unreadCount > 0 ? `${conversation.unreadCount} sin leer` : "Leida"}</Badge>
             <Badge>{conversation.isClosed ? "Cerrada" : "Abierta"}</Badge>
-            <Badge>{conversation.messages.length} mensajes</Badge>
+            {conversation.unreadCount > 0 ? <Badge>{`${conversation.unreadCount} sin leer`}</Badge> : null}
           </div>
           <h2 className="mt-3 text-base font-semibold text-foreground">{conversation.subject}</h2>
           <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{latest.message}</p>
@@ -424,7 +416,7 @@ function ConversationDetail({
         )}
       </div>
 
-      <div className="mt-5 space-y-3 rounded-md bg-background p-3">
+      <div className="mt-5 space-y-4 rounded-md bg-background p-4">
         {sortedMessages.map((message) => (
           <MessageBubble key={message.id} message={message} />
         ))}
@@ -477,7 +469,7 @@ function MessageBubble({ message }: { message: FamilyCommunication }) {
 
   return (
     <div className={`flex ${sent ? "justify-end" : "justify-start"}`}>
-      <div className={`max-w-2xl rounded-lg border p-4 ${sent ? "border-primary/30 bg-primary/5" : "border-border bg-white"}`}>
+      <div className={`max-w-2xl rounded-2xl border px-4 py-3 shadow-sm ${sent ? "border-primary/25 bg-primary/5" : "border-border bg-white"}`}>
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           {sent ? <Send className="h-3.5 w-3.5 text-primary" aria-hidden="true" /> : <Inbox className="h-3.5 w-3.5 text-primary" aria-hidden="true" />}
           <span className="font-semibold text-foreground">{sent ? "Tu mensaje" : message.senderName}</span>
@@ -520,11 +512,12 @@ function Select({
   );
 }
 
-function MetricCard({ label, value }: { label: string; value: string }) {
+function SummaryChips({ sentCount, receivedCount, unreadCount }: { sentCount: number; receivedCount: number; unreadCount: number }) {
   return (
-    <div className="rounded-lg border border-border bg-white p-4">
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-foreground">{value}</p>
+    <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+      <span className="rounded-full border border-border bg-white px-3 py-1">Enviados: <strong className="text-foreground">{sentCount}</strong></span>
+      <span className="rounded-full border border-border bg-white px-3 py-1">Recibidos: <strong className="text-foreground">{receivedCount}</strong></span>
+      <span className="rounded-full border border-border bg-white px-3 py-1">No leidos: <strong className="text-foreground">{unreadCount}</strong></span>
     </div>
   );
 }

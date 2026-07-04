@@ -576,8 +576,8 @@ export async function createAdminTeacherQuick(formData: FormData) {
   const fullName = requiredString(formData, "full_name");
   const email = requiredString(formData, "email").toLowerCase();
   const requestedRole = requiredString(formData, "role");
-  const courseId = optionalString(formData, "course_id");
-  const subjectId = optionalString(formData, "subject_id");
+  const courseIds = formData.getAll("course_id").map((value) => String(value)).filter(Boolean);
+  const subjectIds = formData.getAll("subject_id").map((value) => String(value)).filter(Boolean);
   const temporaryPassword = optionalString(formData, "temporary_password") ?? defaultTemporaryPassword;
   const role: Role = requestedRole === "director" || requestedRole === "superadmin" ? requestedRole : "tutor";
 
@@ -606,16 +606,32 @@ export async function createAdminTeacherQuick(formData: FormData) {
     }
   });
 
-  if (courseId && subjectId) {
-    await ensureTeacherAssignment({
-      teacherId: userId,
-      courseId,
-      subjectId
-    });
+  let createdAssignments = 0;
+
+  if (courseIds.length > 0 && subjectIds.length > 0) {
+    for (const subjectId of subjectIds) {
+      for (const courseId of courseIds) {
+        const didCreate = await ensureTeacherAssignmentWithResult({
+          teacherId: userId,
+          courseId,
+          subjectId
+        });
+
+        if (didCreate) {
+          createdAssignments += 1;
+        }
+      }
+    }
   }
 
   revalidateAdminCreatePaths();
-  redirect(withToast(`/dashboard/admin/create?type=teacher&created=teacher&email=${encodeURIComponent(email)}`, "success", "Usuario creado correctamente."));
+  redirect(
+    withToast(
+      `/dashboard/admin/create?type=teacher&created=teacher&email=${encodeURIComponent(email)}&assignments=${createdAssignments}`,
+      "success",
+      `Profesor creado correctamente. Se han creado ${createdAssignments} asignaciones.`
+    )
+  );
 }
 
 export async function createAdminSubjectQuick(formData: FormData) {

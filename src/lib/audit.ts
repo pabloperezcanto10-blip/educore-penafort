@@ -27,7 +27,8 @@ export type AuditAction =
   | "student_deleted"
   | "family_deleted"
   | "bulk_import_completed"
-  | "bulk_course_deleted";
+  | "bulk_course_deleted"
+  | "ai_assistant_used";
 
 export async function logAuditAction({
   actorUserId,

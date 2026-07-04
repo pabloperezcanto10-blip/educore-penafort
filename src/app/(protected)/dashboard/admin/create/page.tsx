@@ -24,7 +24,7 @@ const createTypes = new Set<CreateType>(["student", "family", "teacher", "subjec
 export default async function AdminCreatePage({
   searchParams
 }: {
-  searchParams: { type?: string; created?: string; email?: string };
+  searchParams: { type?: string; created?: string; email?: string; assignments?: string };
 }) {
   await requireRole("superadmin");
   const selectedType = createTypes.has(searchParams.type as CreateType) ? (searchParams.type as CreateType) : null;
@@ -70,9 +70,16 @@ export default async function AdminCreatePage({
           <div className="flex items-start gap-3">
             <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700" aria-hidden="true" />
             <div>
-              <p className="font-semibold">Usuario creado</p>
+              <p className="font-semibold">
+                {searchParams.created === "teacher" ? "Profesor creado correctamente" : "Usuario creado"}
+              </p>
               <p className="mt-1">correo: {searchParams.email}</p>
               <p>contrasena temporal: ********</p>
+              {searchParams.created === "teacher" ? (
+                <p className="mt-2 text-emerald-700">
+                  Se han creado {Number(searchParams.assignments ?? 0)} asignaciones.
+                </p>
+              ) : null}
               <p className="mt-2 text-emerald-700">
                 Al iniciar sesion sera redirigido a cambiar la contrasena.
               </p>
@@ -81,7 +88,7 @@ export default async function AdminCreatePage({
                   href="/dashboard/admin/subjects"
                   className="mt-3 inline-flex h-9 items-center justify-center rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
                 >
-                  Asignar materias y cursos
+                  Ir a Asignacion docente
                 </Link>
               ) : null}
             </div>
@@ -152,7 +159,7 @@ export default async function AdminCreatePage({
           icon={UserPlus}
         >
           <div className="rounded-md border border-border bg-[#f8fafc] p-3 text-sm text-muted-foreground md:col-span-2">
-            Crea el docente y continua a <Link href="/dashboard/admin/subjects" className="font-semibold text-primary hover:underline">Asignacion docente</Link> para asignar varias materias y cursos a la vez.
+            Selecciona varias materias y cursos si quieres crear las asignaciones ahora. Si los dejas vacios, podras asignar materias y cursos despues desde <Link href="/dashboard/admin/subjects" className="font-semibold text-primary hover:underline">Asignacion docente</Link>.
           </div>
           <form action={createAdminTeacherQuick} className="grid gap-3 md:grid-cols-2">
             <Input name="full_name" label="Nombre" required />
@@ -174,17 +181,19 @@ export default async function AdminCreatePage({
               ]}
               required
             />
-            <Select
+            <MultiSelect
               name="course_id"
-              label="Curso"
+              label="Cursos"
               options={courses.map((course) => ({ value: course.id, label: course.name }))}
             />
-            <Select
+            <MultiSelect
               name="subject_id"
-              label="Materia"
+              label="Materias"
               options={subjects.map((subject) => ({ value: subject.id, label: subject.name }))}
-              className="md:col-span-2"
             />
+            <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 md:col-span-2">
+              Podras asignar materias y cursos despues desde Asignacion docente.
+            </p>
             <SubmitButton label="Crear profesor" />
           </form>
         </CreateCard>
@@ -346,6 +355,36 @@ function Select({
           </option>
         ))}
       </select>
+    </label>
+  );
+}
+
+function MultiSelect({
+  name,
+  label,
+  options,
+  className = ""
+}: {
+  name: string;
+  label: string;
+  options: { value: string; label: string }[];
+  className?: string;
+}) {
+  return (
+    <label className={`space-y-2 ${className}`}>
+      <span className="block text-sm font-medium text-foreground">{label}</span>
+      <select
+        name={name}
+        multiple
+        className="min-h-36 w-full rounded-md border border-border bg-white px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      <span className="block text-xs text-muted-foreground">Mantén Ctrl pulsado para seleccionar varias opciones.</span>
     </label>
   );
 }

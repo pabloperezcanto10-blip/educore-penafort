@@ -287,10 +287,11 @@ function ConversationListItem({
         <time className="shrink-0 text-xs text-muted-foreground">{formatShortDate(conversation.lastMessage.created_at)}</time>
       </div>
       <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{conversation.lastMessage.message}</p>
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {conversation.tags.slice(0, 4).map((tag) => (
-          <Badge key={tag}>{tag}</Badge>
-        ))}
+      <div className="mt-3 flex flex-wrap items-center gap-1.5">
+        <Badge>{getCategoryLabel(conversation.lastMessage.category)}</Badge>
+        {conversation.lastMessage.courseName !== "Sin curso" ? <Badge>{conversation.lastMessage.courseName}</Badge> : null}
+        {conversation.isClosed ? <Badge>Cerrada</Badge> : null}
+        {conversation.unreadCount > 0 ? <span className="h-2 w-2 rounded-full bg-primary" aria-label="No leida" /> : null}
       </div>
     </Link>
   );
@@ -337,10 +338,10 @@ function ConversationDetail({
             <h2 className="text-lg font-semibold text-foreground">{conversation.title}</h2>
             <p className="mt-1 text-sm text-muted-foreground">{conversation.subtitle}</p>
             <div className="mt-3 flex flex-wrap gap-2">
-              {conversation.tags.map((tag) => (
-                <Badge key={tag}>{tag}</Badge>
-              ))}
+              <Badge>{getCategoryLabel(latest.category)}</Badge>
+              {latest.courseName !== "Sin curso" ? <Badge>{latest.courseName}</Badge> : null}
               <Badge>{conversation.isClosed ? "Cerrada" : "Abierta"}</Badge>
+              {conversation.unreadCount > 0 ? <Badge>{`${conversation.unreadCount} sin leer`}</Badge> : null}
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -438,7 +439,7 @@ function MessageBubble({ message, directorId }: { message: DirectorCommunication
 
   return (
     <article className={`flex ${fromDirector ? "justify-end" : "justify-start"}`}>
-      <div className={`max-w-2xl rounded-lg border p-4 ${fromDirector ? "border-primary/30 bg-primary/5" : "border-border bg-white"}`}>
+      <div className={`max-w-2xl rounded-2xl border px-4 py-3 shadow-sm ${fromDirector ? "border-primary/25 bg-primary/5" : "border-border bg-white"}`}>
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <span className="font-semibold text-foreground">{message.senderName}</span>
           <span>para</span>
@@ -447,9 +448,8 @@ function MessageBubble({ message, directorId }: { message: DirectorCommunication
         </div>
         <div className="mt-2 flex flex-wrap gap-2">
           <Badge>{getCategoryLabel(message.category)}</Badge>
-          <Badge>{message.read ? "Leido" : "No leido"}</Badge>
-          <Badge>{message.status === "closed" ? "Cerrada" : "Abierta"}</Badge>
-          {message.studentName !== "Sin alumno" ? <Badge>{message.studentName}</Badge> : null}
+          {!message.read ? <Badge>No leido</Badge> : null}
+          {message.status === "closed" ? <Badge>Cerrada</Badge> : null}
         </div>
         <h3 className="mt-3 text-sm font-semibold text-foreground">{message.title}</h3>
         <p className="mt-2 whitespace-pre-line text-sm text-muted-foreground">{message.message}</p>
