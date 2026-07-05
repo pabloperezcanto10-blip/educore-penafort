@@ -72,22 +72,22 @@ export default async function TutorStudentsPage({ searchParams = {} }: TutorStud
       (!searchParams.course_id || student.course_id === searchParams.course_id)
     );
   });
+  const showTutorGroup = searchParams.view === "tutoria";
+  const hasTeachingGroupSelection = Boolean(searchParams.course_id && searchParams.subject_id);
   const selectedTeachingGroup =
-    searchParams.view === "tutoria"
-      ? null
-      : filteredTeachingGroups.find((group) => group.subject.id === searchParams.subject_id && group.course.id === searchParams.course_id) ??
-        filteredTeachingGroups[0] ??
-        null;
-  const showTutorGroup = searchParams.view === "tutoria" || (!selectedTeachingGroup && filteredTutorStudents.length > 0);
+    !showTutorGroup && hasTeachingGroupSelection
+      ? filteredTeachingGroups.find((group) => group.subject.id === searchParams.subject_id && group.course.id === searchParams.course_id) ?? null
+      : null;
+  const showOverview = !showTutorGroup && !selectedTeachingGroup;
   const selectedTitle = showTutorGroup
     ? "Tutoría"
     : selectedTeachingGroup
       ? `${selectedTeachingGroup.subject.name} · ${selectedTeachingGroup.course.name}`
-      : "Selecciona una clase";
+      : "Vista general";
   const selectedStudents = showTutorGroup ? filteredTutorStudents : selectedTeachingGroup?.students ?? [];
   const selectedCourseName = showTutorGroup
-    ? "Alumnos asignados a tu tutoría"
-    : selectedTeachingGroup?.course.name ?? "Sin grupo seleccionado";
+    ? "Seguimiento integral de tus alumnos asignados."
+    : selectedTeachingGroup?.course.name ?? "Selecciona una clase o tutoría para ver sus alumnos.";
   const courses = Array.from(
     new Map(
       [
@@ -130,9 +130,9 @@ export default async function TutorStudentsPage({ searchParams = {} }: TutorStud
         <aside className="rounded-lg border border-border bg-white p-4 shadow-sm">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h2 className="text-sm font-semibold text-foreground">Clases</h2>
+              <h2 className="text-sm font-semibold text-foreground">Grupos</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                {filteredTeachingGroups.length} grupo{filteredTeachingGroups.length === 1 ? "" : "s"} de docencia.
+                Elige una clase, revisa tu tutoría o vuelve a la vista general.
               </p>
             </div>
             <span className="rounded-md border border-border bg-[#f8fafc] px-2 py-1 text-xs font-semibold text-muted-foreground">
@@ -141,6 +141,17 @@ export default async function TutorStudentsPage({ searchParams = {} }: TutorStud
           </div>
 
           <div className="mt-4 space-y-2">
+            <OverviewLink
+              active={showOverview}
+              totalGroups={filteredTeachingGroups.length}
+              totalTeachingStudents={totalTeachingStudents}
+              searchParams={searchParams}
+            />
+          </div>
+
+          <div className="mt-4 border-t border-border pt-4">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Grupos de docencia</p>
+            <div className="space-y-2">
             {filteredTeachingGroups.length === 0 ? (
               <EmptyState text="No hay clases de docencia para los filtros seleccionados." compact />
             ) : (
@@ -153,9 +164,11 @@ export default async function TutorStudentsPage({ searchParams = {} }: TutorStud
                 />
               ))
             )}
+            </div>
           </div>
 
           <div className="mt-4 border-t border-border pt-4">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Seguimiento tutorial</p>
             <TutorGroupLink
               active={showTutorGroup}
               count={filteredTutorStudents.length}
@@ -184,7 +197,13 @@ export default async function TutorStudentsPage({ searchParams = {} }: TutorStud
             ) : null}
           </header>
 
-          {selectedStudents.length === 0 ? (
+          {showOverview ? (
+            <OverviewPanel
+              teachingGroupCount={filteredTeachingGroups.length}
+              teachingStudentCount={totalTeachingStudents}
+              tutorStudentCount={filteredTutorStudents.length}
+            />
+          ) : selectedStudents.length === 0 ? (
             <div className="p-4">
               <EmptyState text="No hay alumnos activos en esta seleccion." />
             </div>
@@ -251,6 +270,39 @@ function FilterForm({
   );
 }
 
+function OverviewLink({
+  active,
+  totalGroups,
+  totalTeachingStudents,
+  searchParams
+}: {
+  active: boolean;
+  totalGroups: number;
+  totalTeachingStudents: number;
+  searchParams: TutorStudentsPageProps["searchParams"];
+}) {
+  return (
+    <Link
+      href={hrefWith(searchParams, { course_id: undefined, subject_id: undefined, view: undefined })}
+      className={`block rounded-md border px-3 py-3 transition ${
+        active ? "border-primary bg-primary/5" : "border-border bg-white hover:bg-muted"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-foreground">Vista general</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {totalGroups} grupo{totalGroups === 1 ? "" : "s"} · {totalTeachingStudents} alumno{totalTeachingStudents === 1 ? "" : "s"}.
+          </p>
+        </div>
+        <span className="shrink-0 rounded-full border border-border bg-[#f8fafc] px-2 py-1 text-[11px] font-semibold text-muted-foreground">
+          Ver todos
+        </span>
+      </div>
+    </Link>
+  );
+}
+
 function GroupLink({
   group,
   active,
@@ -299,19 +351,70 @@ function TutorGroupLink({
     <Link
       href={hrefWith(searchParams, { view: "tutoria", subject_id: undefined })}
       className={`block rounded-md border px-3 py-3 transition ${
-        active ? "border-primary bg-primary/5" : "border-border bg-[#f8fafc] hover:bg-muted"
+        active ? "border-primary bg-primary/5" : "border-primary/20 bg-primary/5 hover:bg-primary/10"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-foreground">Tutoría</p>
-          <p className="mt-1 text-sm text-muted-foreground">Alumnos de tu tutoría.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Seguimiento integral de tus alumnos.</p>
         </div>
         <span className="shrink-0 rounded-full border border-border bg-white px-2 py-1 text-[11px] font-semibold text-muted-foreground">
           {count}
         </span>
       </div>
     </Link>
+  );
+}
+
+function OverviewPanel({
+  teachingGroupCount,
+  teachingStudentCount,
+  tutorStudentCount
+}: {
+  teachingGroupCount: number;
+  teachingStudentCount: number;
+  tutorStudentCount: number;
+}) {
+  return (
+    <div className="grid gap-4 p-4 md:grid-cols-3">
+      <SummaryTile
+        title="Grupos de docencia"
+        value={teachingGroupCount}
+        description="Clases por materia y curso."
+      />
+      <SummaryTile
+        title="Alumnos en docencia"
+        value={teachingStudentCount}
+        description="Alumnos localizables por grupo."
+      />
+      <SummaryTile
+        title="Tutoría"
+        value={tutorStudentCount}
+        description="Seguimiento integral asignado."
+      />
+      <div className="rounded-lg border border-dashed border-border bg-[#f8fafc] p-4 text-sm text-muted-foreground md:col-span-3">
+        Selecciona un grupo de docencia para trabajar una clase concreta o abre Tutoría para revisar a tus alumnos asignados.
+      </div>
+    </div>
+  );
+}
+
+function SummaryTile({
+  title,
+  value,
+  description
+}: {
+  title: string;
+  value: number;
+  description: string;
+}) {
+  return (
+    <article className="rounded-lg border border-border bg-[#f8fafc] p-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
+      <p className="mt-2 text-2xl font-semibold text-foreground">{value}</p>
+      <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+    </article>
   );
 }
 
