@@ -53,6 +53,12 @@ type ActivityItem = {
   meta: string;
 };
 
+type StatusItem = {
+  label: string;
+  value: number;
+  caption: string;
+};
+
 export default async function TutorStudentDetailPage({
   params,
   searchParams = {}
@@ -149,10 +155,10 @@ export default async function TutorStudentDetailPage({
 
         <nav className="mt-6 space-y-1 border-t border-border pt-4" aria-label="Navegación del alumno">
           <SidebarNavLink href="#resumen" icon={ShieldCheck} label="Resumen" active />
-          <SidebarNavLink href="#actividad" icon={Bell} label="Actividad" />
-          <SidebarNavLink href="#academico" icon={BookOpenCheck} label="Académico" />
+          <SidebarNavLink href="#actividad" icon={Bell} label="Actividad reciente" />
+          <SidebarNavLink href="#academico" icon={BookOpenCheck} label="Información académica" />
           <SidebarNavLink href="#notas-tutor" icon={MessageSquarePlus} label="Notas privadas" />
-          <SidebarNavLink href="#acciones-seguimiento" icon={AlertCircle} label="Acciones" />
+          <SidebarNavLink href="#historial-completo" icon={ClipboardList} label="Historial completo" />
         </nav>
       </aside>
 
@@ -165,12 +171,12 @@ export default async function TutorStudentDetailPage({
           <SummaryCard title="Estado del alumno">
             <StatusSummary
               items={[
-                { label: "Faltas", value: attendanceSummary.absences },
-                { label: "Retrasos", value: attendanceSummary.lates },
-                { label: "Incidencias", value: incidents.length },
-                { label: "Observaciones", value: observations.length },
-                { label: "Comunicaciones", value: communications.length },
-                { label: "Pendientes", value: pendingFollowUps }
+                { label: "Faltas", value: attendanceSummary.absences, caption: "30 días" },
+                { label: "Retrasos", value: attendanceSummary.lates, caption: "30 días" },
+                { label: "Incidencias", value: incidents.length, caption: "activas" },
+                { label: "Observaciones", value: observations.length, caption: "internas" },
+                { label: "Comunicaciones", value: communications.length, caption: "recientes" },
+                { label: "Pendientes", value: pendingFollowUps, caption: "por revisar" }
               ]}
             />
           </SummaryCard>
@@ -205,7 +211,15 @@ export default async function TutorStudentDetailPage({
           </SummaryCard>
         </section>
 
-        <section id="acciones-seguimiento" className="grid gap-4 xl:grid-cols-2" aria-label="Paneles bajo demanda">
+        <FamilySummary
+          recipientsCount={recipients.length}
+          absences={attendanceSummary.absences}
+          lates={attendanceSummary.lates}
+          latestCommunication={communications[0]?.title ?? "Sin comunicaciones"}
+          latestTutoring={observations[0] ? formatDate(observations[0].created_at) : "No registrada"}
+        />
+
+        <section id="historial-completo" className="grid gap-4 xl:grid-cols-2" aria-label="Historial completo bajo demanda">
           {communications.length > 0 ? (
           <WorkspacePanel id="comunicaciones" title="Comunicaciones" icon={Bell} description="Últimos mensajes relacionados con este alumno.">
             <CommunicationList communications={communications.slice(0, 5)} />
@@ -393,8 +407,8 @@ function ActionForms({
   recipientsErrorMessage: string | null;
 }) {
   return (
-    <section className="grid gap-4 xl:col-span-2 xl:grid-cols-3">
-      <details id="enviar-aviso" className="rounded-lg border border-border bg-white p-5">
+    <section id="acciones-seguimiento" className="grid scroll-mt-24 gap-4 xl:col-span-2 xl:grid-cols-3">
+      <details id="enviar-aviso" className="scroll-mt-24 rounded-lg border border-border bg-white p-5">
         <summary className="cursor-pointer list-none">
           <FormHeader icon={Bell} title="Enviar comunicación" description="Aviso interno visible para la familia." />
         </summary>
@@ -423,7 +437,7 @@ function ActionForms({
         )}
       </details>
 
-      <details id="registrar-incidencia" className="rounded-lg border border-border bg-white p-5">
+      <details id="registrar-incidencia" className="scroll-mt-24 rounded-lg border border-border bg-white p-5">
         <summary className="cursor-pointer list-none">
           <FormHeader icon={AlertCircle} title="Añadir incidencia" description="Registro vinculado a tu tutoría." />
         </summary>
@@ -445,7 +459,7 @@ function ActionForms({
         </form>
       </details>
 
-      <details id="observacion-interna" className="rounded-lg border border-border bg-white p-5">
+      <details id="observacion-interna" className="scroll-mt-24 rounded-lg border border-border bg-white p-5">
         <summary className="cursor-pointer list-none">
           <FormHeader icon={MessageSquarePlus} title="Añadir observación interna" description="Seguimiento privado, no visible para familias." />
         </summary>
@@ -652,7 +666,7 @@ function WorkspacePanel({
   children: React.ReactNode;
 }) {
   return (
-    <details id={id} className="rounded-lg border border-border bg-white p-5 shadow-sm">
+    <details id={id} className="scroll-mt-24 rounded-lg border border-border bg-white p-5 shadow-sm">
       <summary className="cursor-pointer list-none">
         <div className="flex items-start gap-3">
           <Icon className="mt-0.5 h-5 w-5 text-primary" aria-hidden="true" />
@@ -667,13 +681,15 @@ function WorkspacePanel({
   );
 }
 
-function StatusSummary({ items }: { items: { label: string; value: number }[] }) {
+function StatusSummary({ items }: { items: StatusItem[] }) {
   return (
-    <div className="grid grid-cols-2 divide-x divide-y divide-border overflow-hidden rounded-md border border-border bg-background sm:grid-cols-3 lg:grid-cols-6 lg:divide-y-0">
+    <div className="grid grid-cols-2 overflow-hidden rounded-md border border-border bg-background sm:grid-cols-3 lg:grid-cols-6">
       {items.map((item) => (
-        <div key={item.label} className="min-w-0 px-3 py-3">
+        <div key={item.label} className="min-w-0 border-b border-r border-border px-3 py-3 last:border-r-0 lg:border-b-0">
+          <span className="mb-2 block h-2.5 w-2.5 rounded-full bg-primary/70" aria-hidden="true" />
           <p className="truncate text-xs font-medium text-muted-foreground">{item.label}</p>
-          <p className="mt-1 text-lg font-semibold text-foreground">{item.value}</p>
+          <p className="mt-1 text-lg font-semibold leading-none text-foreground">{item.value}</p>
+          <p className="mt-1 truncate text-[11px] text-muted-foreground">{item.caption}</p>
         </div>
       ))}
     </div>
@@ -703,10 +719,54 @@ function ActivityTimeline({ items }: { items: ActivityItem[] }) {
 
 function SummaryCard({ id, title, children, className = "" }: { id?: string; title: string; children: React.ReactNode; className?: string }) {
   return (
-    <section id={id} className={`rounded-lg border border-border bg-white p-5 ${className}`}>
+    <section id={id} className={`scroll-mt-24 rounded-lg border border-border bg-white p-5 ${className}`}>
       <h2 className="text-sm font-semibold text-foreground">{title}</h2>
       <div className="mt-4">{children}</div>
     </section>
+  );
+}
+
+function FamilySummary({
+  recipientsCount,
+  absences,
+  lates,
+  latestCommunication,
+  latestTutoring
+}: {
+  recipientsCount: number;
+  absences: number;
+  lates: number;
+  latestCommunication: string;
+  latestTutoring: string;
+}) {
+  return (
+    <section className="scroll-mt-24 rounded-lg border border-border bg-white p-4">
+      <div className="grid gap-4 md:grid-cols-[1.4fr_repeat(4,minmax(0,1fr))] md:items-center">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-foreground">Familia vinculada</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {recipientsCount > 0
+              ? `${recipientsCount} familiar${recipientsCount === 1 ? "" : "es"} asociado${recipientsCount === 1 ? "" : "s"} para comunicaciones.`
+              : "Sin familia vinculada todavía."}
+          </p>
+        </div>
+        <CompactStat label="Faltas" value={String(absences)} />
+        <CompactStat label="Retrasos" value={String(lates)} />
+        <CompactStat label="Última comunicación" value={latestCommunication} />
+        <CompactStat label="Última tutoría" value={latestTutoring} />
+      </div>
+    </section>
+  );
+}
+
+function CompactStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 border-border md:border-l md:pl-4">
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p className="mt-1 truncate text-sm font-semibold text-foreground" title={value}>
+        {value}
+      </p>
+    </div>
   );
 }
 
