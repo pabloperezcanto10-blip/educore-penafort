@@ -68,7 +68,7 @@ export default async function TutorStudentDetailPage({
         <BackLink />
         <div className="rounded-lg border border-border bg-white p-6">
           <h1 className="text-xl font-semibold text-foreground">No tienes acceso a este alumno</h1>
-          <p className="mt-2 text-sm text-muted-foreground">La ficha solicitada no pertenece a tu tutoria o no existe.</p>
+          <p className="mt-2 text-sm text-muted-foreground">La ficha solicitada no pertenece a tu tutoría o no existe.</p>
         </div>
       </section>
     );
@@ -119,39 +119,42 @@ export default async function TutorStudentDetailPage({
   ].filter((item): item is { id: string; title: string; meta: string } => Boolean(item));
 
   return (
-    <section className="space-y-5">
-      <header className="rounded-lg border border-border bg-white p-5 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <BackLink />
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-semibold tracking-normal text-foreground">
-                {student.name} {student.last_name}
-              </h1>
-              <span className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-2 py-1 text-xs font-medium">
-                <ShieldCheck className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
-                {student.active ? "Activo" : "Inactivo"}
-              </span>
-            </div>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {student.courses?.name ?? student.course_id} · Tutor: {profile.full_name ?? profile.email ?? profile.id}
-            </p>
-          </div>
-          <div className="grid gap-2 sm:grid-cols-2 lg:min-w-[360px]">
-            <Metric label="Faltas" value={attendanceSummary.absences} />
-            <Metric label="Retrasos" value={attendanceSummary.lates} />
+    <section className="grid gap-4 xl:grid-cols-[300px_1fr]">
+      <aside className="rounded-lg border border-border bg-white p-5 shadow-sm xl:sticky xl:top-24 xl:self-start">
+        <BackLink />
+        <div className="mt-5 flex items-start gap-4">
+          <StudentAvatar name={`${student.name} ${student.last_name}`} />
+          <div className="min-w-0">
+            <h1 className="text-lg font-semibold leading-tight text-foreground">
+              {student.name} {student.last_name}
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground">{student.courses?.name ?? student.course_id}</p>
+            <p className="mt-1 text-xs text-muted-foreground">Tutor: {profile.full_name ?? profile.email ?? profile.id}</p>
+            <span className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1 text-xs font-semibold text-foreground">
+              <ShieldCheck className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+              {student.active ? "Activo" : "Inactivo"}
+            </span>
           </div>
         </div>
-      </header>
 
-      <QuickActions studentId={student.id} courseId={student.course_id} />
+        <nav className="mt-6 space-y-1 border-t border-border pt-4" aria-label="Navegación del alumno">
+          <SidebarNavLink href="#resumen" icon={ShieldCheck} label="Resumen" active />
+          <SidebarNavLink href="#comunicaciones" icon={Bell} label="Comunicaciones" />
+          <SidebarNavLink href="#incidencias" icon={AlertCircle} label="Incidencias" />
+          <SidebarNavLink href="#observaciones" icon={MessageSquarePlus} label="Observaciones" />
+          <SidebarNavLink href="#asistencia" icon={CalendarDays} label="Asistencia" />
+          <SidebarNavLink href="#calificaciones" icon={ClipboardList} label="Calificaciones" />
+        </nav>
+      </aside>
 
-      {pageError ? <ErrorBox message={`Parte de la ficha no se pudo cargar: ${pageError}`} /> : null}
+      <main className="space-y-4">
+        <QuickActions studentId={student.id} courseId={student.course_id} />
 
-      <section className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
-        <div className="space-y-4">
+        {pageError ? <ErrorBox message={`Parte de la ficha no se pudo cargar: ${pageError}`} /> : null}
+
+        <section id="resumen" className="grid gap-4 2xl:grid-cols-[1fr_420px]">
           <SummaryCard title="Resumen actual">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               <Metric label="Faltas" value={attendanceSummary.absences} />
               <Metric label="Retrasos" value={attendanceSummary.lates} />
               <Metric label="Incidencias" value={incidents.length} />
@@ -164,18 +167,18 @@ export default async function TutorStudentDetailPage({
           <SummaryCard title="Última actividad">
             <CompactList items={latestActivityItems} empty="Sin actividad reciente." />
           </SummaryCard>
-        </div>
+        </section>
 
-        <div className="space-y-4">
+        <section className="grid gap-4 2xl:grid-cols-[1fr_420px]">
           <SummaryCard title="Información académica">
-            <div className="space-y-3">
+            <div className="grid gap-3 md:grid-cols-3">
               <Info label="Curso" value={student.courses?.name ?? student.course_id} />
               <Info label="Tutor" value={profile.full_name ?? profile.email ?? profile.id} />
               <Info label="Grupo" value={student.courses?.name ?? "Sin grupo asignado"} />
             </div>
           </SummaryCard>
 
-          <SummaryCard title="Notas del tutor">
+          <SummaryCard title="Notas privadas del tutor">
             {observations[0] ? (
               <div className="rounded-md border border-border bg-background p-3">
                 <p className="text-sm font-semibold text-foreground">{observations[0].title}</p>
@@ -186,104 +189,89 @@ export default async function TutorStudentDetailPage({
               <EmptyBox text="No hay notas privadas recientes." />
             )}
             <Link href="#observacion-interna" className="mt-3 inline-flex text-sm font-semibold text-primary transition hover:text-primary/80">
-              Añadir observación interna
+              Añadir nota privada
             </Link>
           </SummaryCard>
-        </div>
-      </section>
+        </section>
 
-      <section id="calificaciones" className="rounded-lg border border-border bg-white p-5">
-        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <div className="flex items-start gap-3">
-            <BookOpenCheck className="mt-0.5 h-5 w-5 text-primary" aria-hidden="true" />
-            <div>
-              <h2 className="text-sm font-semibold text-foreground">Calificaciones</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Consulta filtrable. La introducción masiva de notas se realiza desde el cuaderno.
-              </p>
+        <section className="grid gap-4 xl:grid-cols-2" aria-label="Paneles bajo demanda">
+          <WorkspacePanel id="comunicaciones" title="Comunicaciones" icon={Bell} description="Últimos mensajes relacionados con este alumno.">
+            <CommunicationList communications={communications.slice(0, 5)} />
+          </WorkspacePanel>
+
+          <WorkspacePanel id="incidencias" title="Incidencias" icon={AlertCircle} description="Registros recientes de seguimiento.">
+            <IncidentList incidents={incidents.slice(0, 5)} />
+          </WorkspacePanel>
+
+          <WorkspacePanel id="observaciones" title="Observaciones internas" icon={MessageSquarePlus} description="Seguimiento privado del tutor.">
+            {observationsErrorMessage ? (
+              <ErrorBox message={`No se pudieron cargar las observaciones: ${observationsErrorMessage}`} />
+            ) : (
+              <ObservationList observations={observations.slice(0, 5)} />
+            )}
+          </WorkspacePanel>
+
+          <WorkspacePanel id="asistencia" title="Asistencia" icon={CalendarDays} description="Faltas y retrasos recientes.">
+            {recentAttendance.length === 0 ? (
+              <EmptyBox text="Sin faltas ni retrasos recientes." />
+            ) : (
+              <CompactList
+                items={recentAttendance.map((record) => ({
+                  id: record.id,
+                  title: `${record.date} · ${getAttendanceLabel(record.status)}`,
+                  meta: record.justified ? "Justificado" : "Pendiente de justificar"
+                }))}
+                empty="Sin asistencia reciente."
+              />
+            )}
+          </WorkspacePanel>
+
+          <WorkspacePanel id="calificaciones" title="Calificaciones" icon={BookOpenCheck} description="Consulta filtrable de notas y cierres.">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <p className="text-sm text-muted-foreground">La introducción masiva de notas se realiza desde el cuaderno.</p>
+              <Link
+                href={`/dashboard/tutor/gradebook?course_id=${student.course_id}`}
+                className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
+              >
+                Abrir cuaderno
+                <ExternalLink className="h-4 w-4" aria-hidden="true" />
+              </Link>
             </div>
-          </div>
-          <Link
-            href={`/dashboard/tutor/gradebook?course_id=${student.course_id}`}
-            className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
-          >
-            Abrir cuaderno
-            <ExternalLink className="h-4 w-4" aria-hidden="true" />
-          </Link>
-        </div>
 
-        <GradeFilters
-          studentId={student.id}
-          subjectOptions={subjectOptions}
-          grades={grades}
-          searchParams={searchParams}
-        />
-
-        {gradesErrorMessage || termGradesErrorMessage ? (
-          <ErrorBox message={`No se pudieron cargar las calificaciones: ${gradesErrorMessage ?? termGradesErrorMessage}`} />
-        ) : gradeGroups.length === 0 ? (
-          <EmptyBox text="No hay calificaciones para los filtros seleccionados." />
-        ) : (
-          <div className="mt-5 space-y-4">
-            {gradeGroups.map((subjectGroup) => (
-              <article key={subjectGroup.subjectId} className="rounded-lg border border-border bg-background p-4">
-                <h3 className="text-sm font-semibold text-foreground">{subjectGroup.subjectName}</h3>
-                <div className="mt-3 grid gap-3 lg:grid-cols-3">
-                  {Array.from(subjectGroup.terms.values()).map((termGroup) => (
-                    <GradeTermCard key={termGroup.term} termGroup={termGroup} />
-                  ))}
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="grid gap-4 xl:grid-cols-3">
-        <CompactSection id="asistencia" title="Asistencia reciente" icon={CalendarDays}>
-          {recentAttendance.length === 0 ? (
-            <EmptyBox text="Sin faltas ni retrasos recientes." />
-          ) : (
-            <CompactList
-              items={recentAttendance.map((record) => ({
-                id: record.id,
-                title: `${record.date} · ${getAttendanceLabel(record.status)}`,
-                meta: record.justified ? "Justificado" : "Pendiente de justificar"
-              }))}
-              empty="Sin asistencia reciente."
+            <GradeFilters
+              studentId={student.id}
+              subjectOptions={subjectOptions}
+              grades={grades}
+              searchParams={searchParams}
             />
-          )}
-        </CompactSection>
 
-        <CompactSection id="historial" title="Incidencias recientes" icon={AlertCircle}>
-          <IncidentList incidents={incidents.slice(0, 5)} />
-        </CompactSection>
+            {gradesErrorMessage || termGradesErrorMessage ? (
+              <ErrorBox message={`No se pudieron cargar las calificaciones: ${gradesErrorMessage ?? termGradesErrorMessage}`} />
+            ) : gradeGroups.length === 0 ? (
+              <EmptyBox text="No hay calificaciones para los filtros seleccionados." />
+            ) : (
+              <div className="mt-5 space-y-4">
+                {gradeGroups.map((subjectGroup) => (
+                  <article key={subjectGroup.subjectId} className="rounded-lg border border-border bg-background p-4">
+                    <h3 className="text-sm font-semibold text-foreground">{subjectGroup.subjectName}</h3>
+                    <div className="mt-3 grid gap-3 lg:grid-cols-3">
+                      {Array.from(subjectGroup.terms.values()).map((termGroup) => (
+                        <GradeTermCard key={termGroup.term} termGroup={termGroup} />
+                      ))}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </WorkspacePanel>
 
-        <CompactSection title="Comunicaciones recientes" icon={Bell}>
-          <CommunicationList communications={communications.slice(0, 5)} />
-        </CompactSection>
-      </section>
-
-      <ActionForms
-        studentId={student.id}
-        recipients={recipients}
-        recipientsErrorMessage={recipientsErrorMessage}
-      />
-
-      <section id="observaciones" className="rounded-lg border border-border bg-white p-5">
-        <div className="flex items-start gap-3">
-          <MessageSquarePlus className="mt-0.5 h-5 w-5 text-primary" aria-hidden="true" />
-          <div>
-            <h2 className="text-sm font-semibold text-foreground">Observaciones internas recientes</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Vista compacta de seguimiento privado.</p>
-          </div>
-        </div>
-        {observationsErrorMessage ? (
-          <ErrorBox message={`No se pudieron cargar las observaciones: ${observationsErrorMessage}`} />
-        ) : (
-          <ObservationList observations={observations.slice(0, 5)} />
-        )}
-      </section>
+          <ActionForms
+            studentId={student.id}
+            recipients={recipients}
+            recipientsErrorMessage={recipientsErrorMessage}
+          />
+        </section>
+      </main>
     </section>
   );
 }
@@ -388,7 +376,7 @@ function ActionForms({
   recipientsErrorMessage: string | null;
 }) {
   return (
-    <section className="grid gap-4 xl:grid-cols-3">
+    <section className="grid gap-4 xl:col-span-2 xl:grid-cols-3">
       <details id="enviar-aviso" className="rounded-lg border border-border bg-white p-5">
         <summary className="cursor-pointer list-none">
           <FormHeader icon={Bell} title="Enviar comunicación" description="Aviso interno visible para la familia." />
@@ -515,7 +503,7 @@ function GradeTermCard({ termGroup }: { termGroup: GradeTermGroup }) {
                 <span className="rounded-md bg-white px-2 py-1 text-sm font-semibold text-foreground">{grade.grade}</span>
               </div>
               {grade.comment ? <p className="mt-2 text-xs text-muted-foreground">Comentario: {grade.comment}</p> : null}
-              {grade.recommendation ? <p className="mt-1 text-xs text-muted-foreground">Recomendacion: {grade.recommendation}</p> : null}
+              {grade.recommendation ? <p className="mt-1 text-xs text-muted-foreground">Recomendación: {grade.recommendation}</p> : null}
             </article>
           ))
         )}
@@ -593,32 +581,78 @@ function BackLink() {
   );
 }
 
-function SummaryCard({ title, children, className = "" }: { title: string; children: React.ReactNode; className?: string }) {
+function StudentAvatar({ name }: { name: string }) {
+  const initials = name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+
   return (
-    <section className={`rounded-lg border border-border bg-white p-5 ${className}`}>
-      <h2 className="text-sm font-semibold text-foreground">{title}</h2>
-      <div className="mt-4">{children}</div>
-    </section>
+    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-lg font-semibold text-primary">
+      {initials || "AL"}
+    </div>
   );
 }
 
-function CompactSection({
+function SidebarNavLink({
+  href,
+  icon: Icon,
+  label,
+  active = false
+}: {
+  href: string;
+  icon: typeof Bell;
+  label: string;
+  active?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition ${
+        active ? "bg-primary/10 text-primary" : "text-foreground hover:bg-muted"
+      }`}
+    >
+      <Icon className="h-4 w-4" aria-hidden="true" />
+      {label}
+    </Link>
+  );
+}
+
+function WorkspacePanel({
   id,
   title,
+  description,
   icon: Icon,
   children
 }: {
   id?: string;
   title: string;
+  description: string;
   icon: typeof Bell;
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="rounded-lg border border-border bg-white p-5">
-      <div className="flex items-start gap-3">
-        <Icon className="mt-0.5 h-5 w-5 text-primary" aria-hidden="true" />
-        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
-      </div>
+    <details id={id} className="rounded-lg border border-border bg-white p-5 shadow-sm">
+      <summary className="cursor-pointer list-none">
+        <div className="flex items-start gap-3">
+          <Icon className="mt-0.5 h-5 w-5 text-primary" aria-hidden="true" />
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+          </div>
+        </div>
+      </summary>
+      <div className="mt-4 border-t border-border pt-4">{children}</div>
+    </details>
+  );
+}
+
+function SummaryCard({ title, children, className = "" }: { title: string; children: React.ReactNode; className?: string }) {
+  return (
+    <section className={`rounded-lg border border-border bg-white p-5 ${className}`}>
+      <h2 className="text-sm font-semibold text-foreground">{title}</h2>
       <div className="mt-4">{children}</div>
     </section>
   );
