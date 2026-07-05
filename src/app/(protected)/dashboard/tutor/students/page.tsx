@@ -10,10 +10,12 @@ type TutorStudentsPageProps = {
     q?: string;
     course_id?: string;
     subject_id?: string;
+    view?: string;
   };
 };
 
 type TeachingGroup = {
+  id: string;
   subject: Subject;
   course: GradebookCourse;
   students: TutorStudentWithCourse[];
@@ -47,13 +49,15 @@ export default async function TutorStudentsPage({ searchParams = {} }: TutorStud
     })
   );
   const studentsByCourse = new Map(studentsByCourseEntries);
-  const teachingGroups: TeachingGroup[] = subjectCourses.flatMap((item) =>
+  const allTeachingGroups: TeachingGroup[] = subjectCourses.flatMap((item) =>
     item.courses.map((course) => ({
+      id: `${item.subject.id}:${course.id}`,
       subject: item.subject,
       course,
       students: filterStudents(studentsByCourse.get(course.id) ?? [], searchParams.q)
     }))
-  ).filter((group) => {
+  );
+  const filteredTeachingGroups = allTeachingGroups.filter((group) => {
     return (
       (!searchParams.course_id || group.course.id === searchParams.course_id) &&
       (!searchParams.subject_id || group.subject.id === searchParams.subject_id)
@@ -68,6 +72,22 @@ export default async function TutorStudentsPage({ searchParams = {} }: TutorStud
       (!searchParams.course_id || student.course_id === searchParams.course_id)
     );
   });
+  const selectedTeachingGroup =
+    searchParams.view === "tutoria"
+      ? null
+      : filteredTeachingGroups.find((group) => group.subject.id === searchParams.subject_id && group.course.id === searchParams.course_id) ??
+        filteredTeachingGroups[0] ??
+        null;
+  const showTutorGroup = searchParams.view === "tutoria" || (!selectedTeachingGroup && filteredTutorStudents.length > 0);
+  const selectedTitle = showTutorGroup
+    ? "Tutoría"
+    : selectedTeachingGroup
+      ? `${selectedTeachingGroup.subject.name} · ${selectedTeachingGroup.course.name}`
+      : "Selecciona una clase";
+  const selectedStudents = showTutorGroup ? filteredTutorStudents : selectedTeachingGroup?.students ?? [];
+  const selectedCourseName = showTutorGroup
+    ? "Alumnos asignados a tu tutoría"
+    : selectedTeachingGroup?.course.name ?? "Sin grupo seleccionado";
   const courses = Array.from(
     new Map(
       [
@@ -78,6 +98,7 @@ export default async function TutorStudentsPage({ searchParams = {} }: TutorStud
     ).values()
   ).sort((a, b) => a.name.localeCompare(b.name, "es"));
   const subjects = subjectCourses.map((item) => item.subject).sort((a, b) => a.name.localeCompare(b.name, "es"));
+  const totalTeachingStudents = filteredTeachingGroups.reduce((total, group) => total + group.students.length, 0);
   const errorMessage = tutorStudentsError ?? subjectsError ?? coursesError;
 
   return (
@@ -86,7 +107,7 @@ export default async function TutorStudentsPage({ searchParams = {} }: TutorStud
         <div>
           <h1 className="text-2xl font-semibold tracking-normal text-foreground">Mis alumnos</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Diferencia entre alumnos que tienes como profesor y alumnos de tu tutoria.
+            Localiza una clase, revisa sus alumnos y accede rapido a ficha, comunicacion o cuaderno.
           </p>
         </div>
         <Link
@@ -105,40 +126,72 @@ export default async function TutorStudentsPage({ searchParams = {} }: TutorStud
 
       <FilterForm courses={courses} subjects={subjects} searchParams={searchParams} />
 
-      <section className="space-y-4">
-        <SectionHeader
-          title="Como profesor"
-          description="Alumnos por materia y curso asignado para docencia."
-          count={teachingGroups.reduce((total, group) => total + group.students.length, 0)}
-        />
-
-        {teachingGroups.length === 0 ? (
-          <EmptyState text="No hay alumnos de docencia para los filtros seleccionados." />
-        ) : (
-          <div className="space-y-4">
-            {teachingGroups.map((group) => (
-              <TeachingGroupCard key={`${group.subject.id}:${group.course.id}`} group={group} />
-            ))}
+      <section className="grid gap-4 xl:grid-cols-[360px_1fr]">
+        <aside className="rounded-lg border border-border bg-white p-4 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">Clases</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {filteredTeachingGroups.length} grupo{filteredTeachingGroups.length === 1 ? "" : "s"} de docencia.
+              </p>
+            </div>
+            <span className="rounded-md border border-border bg-[#f8fafc] px-2 py-1 text-xs font-semibold text-muted-foreground">
+              {totalTeachingStudents} alumnos
+            </span>
           </div>
-        )}
-      </section>
 
-      <section className="space-y-4">
-        <SectionHeader
-          title="Como tutor"
-          description="Alumnos asignados a tu tutoria."
-          count={filteredTutorStudents.length}
-        />
-
-        {filteredTutorStudents.length === 0 ? (
-          <EmptyState text="No hay alumnos de tutoria para los filtros seleccionados." />
-        ) : (
-          <div className="grid gap-3 lg:grid-cols-2">
-            {filteredTutorStudents.map((student) => (
-              <StudentCard key={student.id} student={student} />
-            ))}
+          <div className="mt-4 space-y-2">
+            {filteredTeachingGroups.length === 0 ? (
+              <EmptyState text="No hay clases de docencia para los filtros seleccionados." compact />
+            ) : (
+              filteredTeachingGroups.map((group) => (
+                <GroupLink
+                  key={group.id}
+                  group={group}
+                  active={!showTutorGroup && selectedTeachingGroup?.id === group.id}
+                  searchParams={searchParams}
+                />
+              ))
+            )}
           </div>
-        )}
+
+          <div className="mt-4 border-t border-border pt-4">
+            <TutorGroupLink
+              active={showTutorGroup}
+              count={filteredTutorStudents.length}
+              searchParams={searchParams}
+            />
+          </div>
+        </aside>
+
+        <main className="rounded-lg border border-border bg-white shadow-sm">
+          <header className="flex flex-col gap-3 border-b border-border p-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase text-primary">{showTutorGroup ? "Como tutor" : "Como profesor"}</p>
+              <h2 className="mt-1 text-lg font-semibold text-foreground">{selectedTitle}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {selectedCourseName} · {selectedStudents.length} alumno{selectedStudents.length === 1 ? "" : "s"}
+              </p>
+            </div>
+            {!showTutorGroup && selectedTeachingGroup ? (
+              <Link
+                href={getGradebookHref(selectedTeachingGroup)}
+                className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
+              >
+                <BookOpenCheck className="h-4 w-4" aria-hidden="true" />
+                Abrir cuaderno
+              </Link>
+            ) : null}
+          </header>
+
+          {selectedStudents.length === 0 ? (
+            <div className="p-4">
+              <EmptyState text="No hay alumnos activos en esta seleccion." />
+            </div>
+          ) : (
+            <StudentList students={selectedStudents} />
+          )}
+        </main>
       </section>
     </section>
   );
@@ -154,112 +207,149 @@ function FilterForm({
   searchParams: TutorStudentsPageProps["searchParams"];
 }) {
   return (
-    <form className="grid gap-3 rounded-lg border border-border bg-white p-5 lg:grid-cols-[1fr_240px_240px_auto_auto]">
-      <label className="space-y-2">
-        <span className="block text-sm font-medium text-foreground">Buscar</span>
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-          <input
-            name="q"
-            defaultValue={searchParams?.q ?? ""}
-            placeholder="Nombre o apellidos"
-            className="h-11 w-full rounded-md border border-border bg-white pl-9 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
-          />
+    <form className="rounded-lg border border-border bg-white p-3 shadow-sm">
+      <div className="grid gap-3 lg:grid-cols-[1fr_210px_210px_auto_auto]">
+        <label className="space-y-1">
+          <span className="block text-xs font-semibold text-muted-foreground">Buscar</span>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+            <input
+              name="q"
+              defaultValue={searchParams?.q ?? ""}
+              placeholder="Nombre o apellidos"
+              className="h-10 w-full rounded-md border border-border bg-white pl-9 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+            />
+          </div>
+        </label>
+        <Select
+          name="course_id"
+          label="Curso"
+          value={searchParams?.course_id ?? ""}
+          options={courses.map((course) => ({ value: course.id, label: course.name }))}
+        />
+        <Select
+          name="subject_id"
+          label="Materia"
+          value={searchParams?.subject_id ?? ""}
+          options={subjects.map((subject) => ({ value: subject.id, label: subject.name }))}
+        />
+        <div className="flex items-end">
+          <button className="h-10 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-95">
+            Filtrar
+          </button>
         </div>
-      </label>
-      <Select
-        name="course_id"
-        label="Curso"
-        value={searchParams?.course_id ?? ""}
-        options={courses.map((course) => ({ value: course.id, label: course.name }))}
-      />
-      <Select
-        name="subject_id"
-        label="Materia"
-        value={searchParams?.subject_id ?? ""}
-        options={subjects.map((subject) => ({ value: subject.id, label: subject.name }))}
-      />
-      <div className="flex items-end">
-        <button className="h-11 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-95">
-          Filtrar
-        </button>
-      </div>
-      <div className="flex items-end">
-        <Link
-          href="/dashboard/tutor/students"
-          className="inline-flex h-11 items-center justify-center rounded-md border border-border bg-white px-4 text-sm font-medium transition hover:bg-muted"
-        >
-          Limpiar
-        </Link>
+        <div className="flex items-end">
+          <Link
+            href="/dashboard/tutor/students"
+            className="inline-flex h-10 items-center justify-center rounded-md border border-border bg-white px-4 text-sm font-medium transition hover:bg-muted"
+          >
+            Limpiar
+          </Link>
+        </div>
       </div>
     </form>
   );
 }
 
-function TeachingGroupCard({ group }: { group: TeachingGroup }) {
-  const gradebookHref = `/dashboard/tutor/gradebook?course_id=${group.course.id}&subject_id=${group.subject.id}&term=1&assessment_type=parcial&assessment_name=Parcial%201`;
+function GroupLink({
+  group,
+  active,
+  searchParams
+}: {
+  group: TeachingGroup;
+  active: boolean;
+  searchParams: TutorStudentsPageProps["searchParams"];
+}) {
+  const href = hrefWith(searchParams, {
+    course_id: group.course.id,
+    subject_id: group.subject.id,
+    view: undefined
+  });
 
   return (
-    <article className="rounded-lg border border-border bg-white p-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h3 className="text-sm font-semibold text-foreground">{group.subject.name}</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {group.course.name} · {group.students.length} alumno{group.students.length === 1 ? "" : "s"}
-          </p>
+    <Link
+      href={href}
+      className={`block rounded-md border px-3 py-3 transition ${
+        active ? "border-primary bg-primary/5" : "border-border bg-white hover:bg-muted"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-foreground">{group.subject.name}</p>
+          <p className="mt-1 truncate text-sm text-muted-foreground">{group.course.name}</p>
         </div>
-        <Link
-          href={gradebookHref}
-          className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
-        >
-          <BookOpenCheck className="h-4 w-4" aria-hidden="true" />
-          Cuaderno
-        </Link>
+        <span className="shrink-0 rounded-full border border-border bg-[#f8fafc] px-2 py-1 text-[11px] font-semibold text-muted-foreground">
+          {group.students.length}
+        </span>
       </div>
+    </Link>
+  );
+}
 
-      {group.students.length === 0 ? (
-        <p className="mt-4 text-sm text-muted-foreground">No hay alumnos activos en este curso.</p>
-      ) : (
-        <div className="mt-4 grid gap-3 lg:grid-cols-2">
-          {group.students.map((student) => (
-            <StudentCard key={student.id} student={student} />
+function TutorGroupLink({
+  active,
+  count,
+  searchParams
+}: {
+  active: boolean;
+  count: number;
+  searchParams: TutorStudentsPageProps["searchParams"];
+}) {
+  return (
+    <Link
+      href={hrefWith(searchParams, { view: "tutoria", subject_id: undefined })}
+      className={`block rounded-md border px-3 py-3 transition ${
+        active ? "border-primary bg-primary/5" : "border-border bg-[#f8fafc] hover:bg-muted"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-foreground">Tutoría</p>
+          <p className="mt-1 text-sm text-muted-foreground">Alumnos de tu tutoría.</p>
+        </div>
+        <span className="shrink-0 rounded-full border border-border bg-white px-2 py-1 text-[11px] font-semibold text-muted-foreground">
+          {count}
+        </span>
+      </div>
+    </Link>
+  );
+}
+
+function StudentList({ students }: { students: TutorStudentWithCourse[] }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[680px] text-left text-sm">
+        <thead className="bg-[#f8fafc] text-xs uppercase text-muted-foreground">
+          <tr>
+            <th className="px-4 py-3">Alumno</th>
+            <th className="px-4 py-3">Curso</th>
+            <th className="px-4 py-3 text-right">Acciones</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {students.map((student) => (
+            <tr key={student.id} className="bg-white">
+              <td className="px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted text-primary">
+                    <Users className="h-4 w-4" aria-hidden="true" />
+                  </span>
+                  <span className="font-semibold text-foreground">
+                    {student.name} {student.last_name}
+                  </span>
+                </div>
+              </td>
+              <td className="px-4 py-3 text-muted-foreground">{student.courses?.name ?? "Sin curso"}</td>
+              <td className="px-4 py-3">
+                <div className="flex justify-end gap-2">
+                  <ActionLink href={`/dashboard/tutor/students/${student.id}`} icon={UserRound} label="Ficha" />
+                  <ActionLink href={`/dashboard/tutor/students/${student.id}#enviar-aviso`} icon={MessageSquarePlus} label="Comunicar" />
+                </div>
+              </td>
+            </tr>
           ))}
-        </div>
-      )}
-    </article>
-  );
-}
-
-function StudentCard({ student }: { student: TutorStudentWithCourse }) {
-  return (
-    <article className="rounded-lg border border-border bg-white p-4">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h3 className="text-sm font-semibold text-foreground">
-            {student.name} {student.last_name}
-          </h3>
-          <p className="mt-1 text-sm text-muted-foreground">{student.courses?.name ?? "Sin curso"}</p>
-        </div>
-        <Users className="h-5 w-5 text-primary" aria-hidden="true" />
-      </div>
-      <div className="mt-4 flex flex-wrap gap-2">
-        <ActionLink href={`/dashboard/tutor/students/${student.id}`} icon={UserRound} label="Ficha" />
-        <ActionLink href={`/dashboard/tutor/students/${student.id}#enviar-aviso`} icon={MessageSquarePlus} label="Comunicar" />
-      </div>
-    </article>
-  );
-}
-
-function SectionHeader({ title, description, count }: { title: string; description: string; count: number }) {
-  return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <h2 className="text-base font-semibold text-foreground">{title}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-      </div>
-      <span className="w-fit rounded-md border border-border bg-white px-3 py-2 text-xs font-semibold text-muted-foreground">
-        {count} alumno{count === 1 ? "" : "s"}
-      </span>
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -276,12 +366,12 @@ function Select({
   options: { value: string; label: string }[];
 }) {
   return (
-    <label className="space-y-2">
-      <span className="block text-sm font-medium text-foreground">{label}</span>
+    <label className="space-y-1">
+      <span className="block text-xs font-semibold text-muted-foreground">{label}</span>
       <select
         name={name}
         defaultValue={value}
-        className="h-11 w-full rounded-md border border-border bg-white px-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+        className="h-10 w-full rounded-md border border-border bg-white px-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
       >
         <option value="">Todos</option>
         {options.map((option) => (
@@ -306,17 +396,17 @@ function ActionLink({
   return (
     <Link
       href={href}
-      className="inline-flex h-9 w-fit items-center justify-center gap-2 rounded-md border border-border bg-white px-3 text-sm font-semibold text-foreground transition hover:bg-muted"
+      className="inline-flex h-8 w-fit items-center justify-center gap-1.5 rounded-md border border-border bg-white px-2.5 text-xs font-semibold text-foreground transition hover:bg-muted"
     >
-      <Icon className="h-4 w-4" aria-hidden="true" />
+      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
       {label}
     </Link>
   );
 }
 
-function EmptyState({ text }: { text: string }) {
+function EmptyState({ text, compact = false }: { text: string; compact?: boolean }) {
   return (
-    <div className="rounded-lg border border-dashed border-border bg-white p-6 text-sm text-muted-foreground">
+    <div className={`rounded-lg border border-dashed border-border bg-white text-sm text-muted-foreground ${compact ? "p-4" : "p-6"}`}>
       {text}
     </div>
   );
@@ -330,4 +420,33 @@ function filterStudents(students: TutorStudentWithCourse[], queryValue: string |
   }
 
   return students.filter((student) => `${student.name} ${student.last_name}`.toLocaleLowerCase("es").includes(query));
+}
+
+function getGradebookHref(group: TeachingGroup) {
+  return `/dashboard/tutor/gradebook?course_id=${group.course.id}&subject_id=${group.subject.id}&term=1&assessment_type=parcial&assessment_name=Parcial%201`;
+}
+
+function hrefWith(
+  searchParams: TutorStudentsPageProps["searchParams"],
+  updates: Record<string, string | undefined>
+) {
+  const params = new URLSearchParams();
+
+  Object.entries(searchParams ?? {}).forEach(([key, value]) => {
+    if (value) {
+      params.set(key, value);
+    }
+  });
+
+  Object.entries(updates).forEach(([key, value]) => {
+    if (value) {
+      params.set(key, value);
+    } else {
+      params.delete(key);
+    }
+  });
+
+  const query = params.toString();
+
+  return query ? `/dashboard/tutor/students?${query}` : "/dashboard/tutor/students";
 }
