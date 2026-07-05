@@ -72,14 +72,15 @@ export default async function TutorStudentsPage({ searchParams = {} }: TutorStud
       (!searchParams.course_id || student.course_id === searchParams.course_id)
     );
   });
+  const isNeutralSelection = searchParams.view === "none";
   const requestedTeachingGroup =
-    searchParams.view === "tutoria" || !searchParams.course_id || !searchParams.subject_id
+    isNeutralSelection || searchParams.view === "tutoria" || !searchParams.course_id || !searchParams.subject_id
       ? null
       : filteredTeachingGroups.find((group) => group.subject.id === searchParams.subject_id && group.course.id === searchParams.course_id) ?? null;
   const fallbackTeachingGroup = filteredTeachingGroups.find((group) => group.students.length > 0) ?? filteredTeachingGroups[0] ?? null;
   const hasTutorStudents = filteredTutorStudents.length > 0;
-  const showTutorGroup = searchParams.view === "tutoria" ? hasTutorStudents : !requestedTeachingGroup && hasTutorStudents;
-  const selectedTeachingGroup = showTutorGroup ? null : requestedTeachingGroup ?? fallbackTeachingGroup;
+  const showTutorGroup = isNeutralSelection ? false : searchParams.view === "tutoria" ? hasTutorStudents : !requestedTeachingGroup && hasTutorStudents;
+  const selectedTeachingGroup = isNeutralSelection || showTutorGroup ? null : requestedTeachingGroup ?? fallbackTeachingGroup;
   const hasSelection = showTutorGroup || Boolean(selectedTeachingGroup);
   const selectedTitle = showTutorGroup
     ? "Tutoría"
@@ -138,6 +139,15 @@ export default async function TutorStudentsPage({ searchParams = {} }: TutorStud
             </div>
           </div>
 
+          {hasSelection ? (
+            <Link
+              href={hrefWith(searchParams, { course_id: undefined, subject_id: undefined, view: "none" })}
+              className="mt-4 inline-flex text-sm font-medium text-primary transition hover:text-primary/80"
+            >
+              ← Restablecer selección
+            </Link>
+          ) : null}
+
           <div className="mt-4">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Grupos de docencia</p>
             <div className="space-y-2">
@@ -169,35 +179,39 @@ export default async function TutorStudentsPage({ searchParams = {} }: TutorStud
         </aside>
 
         <main className="rounded-lg border border-border bg-white shadow-sm">
-          <header className="flex flex-col gap-3 border-b border-border p-4 md:flex-row md:items-start md:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase text-primary">{showTutorGroup ? "Como tutor" : "Como profesor"}</p>
-              <h2 className="mt-1 text-lg font-semibold text-foreground">{selectedTitle}</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {selectedCourseName} · {selectedStudents.length} alumno{selectedStudents.length === 1 ? "" : "s"}
-              </p>
-            </div>
-            {!showTutorGroup && selectedTeachingGroup ? (
-              <Link
-                href={getGradebookHref(selectedTeachingGroup)}
-                className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
-              >
-                <BookOpenCheck className="h-4 w-4" aria-hidden="true" />
-                Abrir cuaderno
-              </Link>
-            ) : null}
-          </header>
-
           {!hasSelection ? (
             <div className="p-4">
-              <EmptyState text="No hay grupos ni alumnos de tutoría para los filtros seleccionados." />
-            </div>
-          ) : selectedStudents.length === 0 ? (
-            <div className="p-4">
-              <EmptyState text="No hay alumnos activos en esta selección." />
+              <EmptyState text="Selecciona un grupo de docencia o Tutoría para comenzar." />
             </div>
           ) : (
-            <StudentList students={selectedStudents} />
+            <>
+              <header className="flex flex-col gap-3 border-b border-border p-4 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase text-primary">{showTutorGroup ? "Como tutor" : "Como profesor"}</p>
+                  <h2 className="mt-1 text-lg font-semibold text-foreground">{selectedTitle}</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {selectedCourseName} · {selectedStudents.length} alumno{selectedStudents.length === 1 ? "" : "s"}
+                  </p>
+                </div>
+                {!showTutorGroup && selectedTeachingGroup ? (
+                  <Link
+                    href={getGradebookHref(selectedTeachingGroup)}
+                    className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
+                  >
+                    <BookOpenCheck className="h-4 w-4" aria-hidden="true" />
+                    Abrir cuaderno
+                  </Link>
+                ) : null}
+              </header>
+
+              {selectedStudents.length === 0 ? (
+                <div className="p-4">
+                  <EmptyState text="No hay alumnos activos en esta selección." />
+                </div>
+              ) : (
+                <StudentList students={selectedStudents} />
+              )}
+            </>
           )}
         </main>
       </section>
