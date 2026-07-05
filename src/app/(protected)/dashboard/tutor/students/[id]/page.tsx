@@ -5,10 +5,18 @@ import {
   Bell,
   BookOpenCheck,
   CalendarDays,
+  CheckCircle2,
   ClipboardList,
+  Clock3,
   ExternalLink,
+  GraduationCap,
+  ListChecks,
   MessageSquarePlus,
-  ShieldCheck
+  NotebookPen,
+  Send,
+  ShieldCheck,
+  Users,
+  Zap
 } from "lucide-react";
 import { getAttendanceLabel, getStudentAttendanceSummary } from "@/lib/attendance/attendance";
 import { requireRole } from "@/lib/auth/session";
@@ -57,6 +65,8 @@ type StatusItem = {
   label: string;
   value: number;
   caption: string;
+  icon: typeof Bell;
+  tone: "green" | "amber" | "red" | "blue" | "purple" | "slate";
 };
 
 export default async function TutorStudentDetailPage({
@@ -135,19 +145,19 @@ export default async function TutorStudentDetailPage({
   const pendingFollowUps = recentAttendance.filter((record) => !record.justified).length;
 
   return (
-    <section className="grid gap-4 xl:grid-cols-[300px_1fr]">
-      <aside className="rounded-lg border border-border bg-white p-5 shadow-sm xl:sticky xl:top-24 xl:self-start">
+    <section className="grid gap-5 xl:grid-cols-[320px_1fr]">
+      <aside className="rounded-xl border border-border bg-white p-5 shadow-sm xl:sticky xl:top-24 xl:self-start">
         <BackLink />
-        <div className="mt-5 flex items-start gap-4">
+        <div className="mt-6 flex flex-col items-center text-center">
           <StudentAvatar name={`${student.name} ${student.last_name}`} />
-          <div className="min-w-0">
-            <h1 className="text-lg font-semibold leading-tight text-foreground">
+          <div className="mt-4 min-w-0">
+            <h1 className="text-2xl font-semibold leading-tight text-foreground">
               {student.name} {student.last_name}
             </h1>
-            <p className="mt-2 text-sm text-muted-foreground">{student.courses?.name ?? student.course_id}</p>
+            <p className="mt-3 text-sm font-medium text-muted-foreground">{student.courses?.name ?? student.course_id}</p>
             <p className="mt-1 text-xs text-muted-foreground">Tutor: {profile.full_name ?? profile.email ?? profile.id}</p>
-            <span className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1 text-xs font-semibold text-foreground">
-              <ShieldCheck className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+            <span className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+              <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
               {student.active ? "Activo" : "Inactivo"}
             </span>
           </div>
@@ -168,26 +178,26 @@ export default async function TutorStudentDetailPage({
         {pageError ? <ErrorBox message={`Parte de la ficha no se pudo cargar: ${pageError}`} /> : null}
 
         <section id="resumen" className="grid gap-4 2xl:grid-cols-[1fr_380px]">
-          <SummaryCard title="Estado del alumno">
+          <SummaryCard title="Estado del alumno" description="Resumen general de su situación actual" icon={ListChecks}>
             <StatusSummary
               items={[
-                { label: "Faltas", value: attendanceSummary.absences, caption: "30 días" },
-                { label: "Retrasos", value: attendanceSummary.lates, caption: "30 días" },
-                { label: "Incidencias", value: incidents.length, caption: "activas" },
-                { label: "Observaciones", value: observations.length, caption: "internas" },
-                { label: "Comunicaciones", value: communications.length, caption: "recientes" },
-                { label: "Pendientes", value: pendingFollowUps, caption: "por revisar" }
+                { label: "Faltas", value: attendanceSummary.absences, caption: "30 días", icon: CheckCircle2, tone: "green" },
+                { label: "Retrasos", value: attendanceSummary.lates, caption: "30 días", icon: Clock3, tone: "amber" },
+                { label: "Incidencias", value: incidents.length, caption: "activas", icon: AlertCircle, tone: "red" },
+                { label: "Observaciones", value: observations.length, caption: "internas", icon: NotebookPen, tone: "green" },
+                { label: "Comunicaciones", value: communications.length, caption: "recientes", icon: Send, tone: "blue" },
+                { label: "Pendientes", value: pendingFollowUps, caption: "por revisar", icon: ClipboardList, tone: "purple" }
               ]}
             />
           </SummaryCard>
 
-          <SummaryCard title="Última actividad" className="2xl:row-span-2" id="actividad">
+          <SummaryCard title="Última actividad" description="Lo más reciente relacionado con este alumno" icon={Clock3} className="2xl:row-span-2" id="actividad">
             <ActivityTimeline items={latestActivityItems} />
           </SummaryCard>
         </section>
 
         <section className="grid gap-4 2xl:grid-cols-[1fr_380px]">
-          <SummaryCard title="Información académica" id="academico">
+          <SummaryCard title="Información académica" icon={GraduationCap} id="academico">
             <div className="grid gap-3 md:grid-cols-3">
               <Info label="Curso" value={student.courses?.name ?? student.course_id} />
               <Info label="Tutor" value={profile.full_name ?? profile.email ?? profile.id} />
@@ -195,7 +205,7 @@ export default async function TutorStudentDetailPage({
             </div>
           </SummaryCard>
 
-          <SummaryCard title="Notas privadas del tutor" id="notas-tutor">
+          <SummaryCard title="Notas privadas del tutor" description="Notas internas para seguimiento del alumno" icon={MessageSquarePlus} id="notas-tutor">
             {observations[0] ? (
               <div className="rounded-md border border-border bg-background p-3">
                 <p className="text-sm font-semibold text-foreground">{observations[0].title}</p>
@@ -318,8 +328,11 @@ function QuickActions({ studentId, courseId }: { studentId: string; courseId: st
   ];
 
   return (
-    <section className="rounded-lg border border-border bg-white p-5">
-      <h2 className="text-sm font-semibold text-foreground">Acciones rápidas</h2>
+    <section className="rounded-xl border border-border bg-white p-5 shadow-sm">
+      <div className="flex items-center gap-2">
+        <Zap className="h-4 w-4 text-primary" aria-hidden="true" />
+        <h2 className="text-sm font-semibold text-foreground">Acciones rápidas</h2>
+      </div>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
         {actions.map((action) => {
           const Icon = action.icon;
@@ -328,10 +341,10 @@ function QuickActions({ studentId, courseId }: { studentId: string; courseId: st
             <Link
               key={action.label}
               href={action.href}
-              className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium transition ${
+              className={`inline-flex min-h-14 items-center justify-center gap-2 rounded-lg px-3 text-sm font-semibold transition ${
                 action.primary
-                  ? "bg-primary text-primary-foreground hover:opacity-95"
-                  : "border border-border bg-white hover:bg-muted"
+                  ? "bg-primary text-primary-foreground shadow-sm hover:opacity-95"
+                  : "border border-border bg-white hover:border-primary/30 hover:bg-primary/5"
               }`}
             >
               <Icon className="h-4 w-4" aria-hidden="true" />
@@ -622,8 +635,11 @@ function StudentAvatar({ name }: { name: string }) {
     .join("");
 
   return (
-    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-lg font-semibold text-primary">
-      {initials || "AL"}
+    <div className="relative">
+      <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-primary/10 text-2xl font-semibold text-primary">
+        {initials || "AL"}
+      </div>
+      <span className="absolute bottom-1 right-1 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-500" aria-hidden="true" />
     </div>
   );
 }
@@ -642,8 +658,8 @@ function SidebarNavLink({
   return (
     <Link
       href={href}
-      className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition ${
-        active ? "bg-primary/10 text-primary" : "text-foreground hover:bg-muted"
+      className={`flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold transition ${
+        active ? "bg-primary/10 text-primary shadow-sm" : "text-foreground hover:bg-muted"
       }`}
     >
       <Icon className="h-4 w-4" aria-hidden="true" />
@@ -683,17 +699,41 @@ function WorkspacePanel({
 
 function StatusSummary({ items }: { items: StatusItem[] }) {
   return (
-    <div className="grid grid-cols-2 overflow-hidden rounded-md border border-border bg-background sm:grid-cols-3 lg:grid-cols-6">
-      {items.map((item) => (
-        <div key={item.label} className="min-w-0 border-b border-r border-border px-3 py-3 last:border-r-0 lg:border-b-0">
-          <span className="mb-2 block h-2.5 w-2.5 rounded-full bg-primary/70" aria-hidden="true" />
-          <p className="truncate text-xs font-medium text-muted-foreground">{item.label}</p>
-          <p className="mt-1 text-lg font-semibold leading-none text-foreground">{item.value}</p>
-          <p className="mt-1 truncate text-[11px] text-muted-foreground">{item.caption}</p>
-        </div>
-      ))}
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+      {items.map((item) => {
+        const Icon = item.icon;
+        const tone = statusToneClass(item.tone);
+
+        return (
+          <div key={item.label} className="min-w-0 rounded-xl border border-border bg-background px-3 py-3">
+            <span className={`mb-3 flex h-10 w-10 items-center justify-center rounded-full ${tone.bg} ${tone.text}`} aria-hidden="true">
+              <Icon className="h-4 w-4" />
+            </span>
+            <p className="truncate text-xs font-medium text-muted-foreground">{item.label}</p>
+            <p className="mt-1 text-xl font-semibold leading-none text-foreground">{item.value}</p>
+            <p className="mt-1 truncate text-[11px] text-muted-foreground">{item.caption}</p>
+          </div>
+        );
+      })}
     </div>
   );
+}
+
+function statusToneClass(tone: StatusItem["tone"]) {
+  switch (tone) {
+    case "green":
+      return { bg: "bg-emerald-50", text: "text-emerald-700" };
+    case "amber":
+      return { bg: "bg-amber-50", text: "text-amber-700" };
+    case "red":
+      return { bg: "bg-rose-50", text: "text-rose-700" };
+    case "blue":
+      return { bg: "bg-sky-50", text: "text-sky-700" };
+    case "purple":
+      return { bg: "bg-violet-50", text: "text-violet-700" };
+    default:
+      return { bg: "bg-slate-100", text: "text-slate-700" };
+  }
 }
 
 function ActivityTimeline({ items }: { items: ActivityItem[] }) {
@@ -702,25 +742,64 @@ function ActivityTimeline({ items }: { items: ActivityItem[] }) {
   }
 
   return (
-    <ol className="space-y-3">
-      {items.map((item) => (
-        <li key={item.id} className="flex gap-3">
-          <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" aria-hidden="true" />
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-foreground">{item.title}</p>
-            <p className="mt-0.5 truncate text-sm text-muted-foreground">{item.detail}</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">{item.meta}</p>
-          </div>
-        </li>
-      ))}
+    <ol className="relative space-y-4 before:absolute before:left-4 before:top-4 before:h-[calc(100%-2rem)] before:w-px before:bg-border">
+      {items.map((item) => {
+        const activity = activityStyle(item.title);
+        const Icon = activity.icon;
+
+        return (
+          <li key={item.id} className="relative flex gap-3">
+            <span className={`z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${activity.bg} ${activity.text}`} aria-hidden="true">
+              <Icon className="h-4 w-4" />
+            </span>
+            <div className="min-w-0 pb-1">
+              <p className="text-sm font-semibold text-foreground">{item.title}</p>
+              <p className="mt-0.5 truncate text-sm text-muted-foreground">{item.detail}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{item.meta}</p>
+            </div>
+          </li>
+        );
+      })}
     </ol>
   );
 }
 
-function SummaryCard({ id, title, children, className = "" }: { id?: string; title: string; children: React.ReactNode; className?: string }) {
+function activityStyle(title: string) {
+  if (title.includes("Comunicación")) return { icon: Bell, bg: "bg-sky-50", text: "text-sky-700" };
+  if (title.includes("Incidencia")) return { icon: AlertCircle, bg: "bg-rose-50", text: "text-rose-700" };
+  if (title.includes("Observación")) return { icon: MessageSquarePlus, bg: "bg-emerald-50", text: "text-emerald-700" };
+  if (title.includes("Asistencia")) return { icon: CalendarDays, bg: "bg-amber-50", text: "text-amber-700" };
+  return { icon: ClipboardList, bg: "bg-violet-50", text: "text-violet-700" };
+}
+
+function SummaryCard({
+  id,
+  title,
+  description,
+  icon: Icon,
+  children,
+  className = ""
+}: {
+  id?: string;
+  title: string;
+  description?: string;
+  icon?: typeof Bell;
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <section id={id} className={`scroll-mt-24 rounded-lg border border-border bg-white p-5 ${className}`}>
-      <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+    <section id={id} className={`scroll-mt-24 rounded-xl border border-border bg-white p-5 shadow-sm ${className}`}>
+      <div className="flex items-start gap-3">
+        {Icon ? (
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary" aria-hidden="true">
+            <Icon className="h-4 w-4" />
+          </span>
+        ) : null}
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+          {description ? <p className="mt-1 text-xs text-muted-foreground">{description}</p> : null}
+        </div>
+      </div>
       <div className="mt-4">{children}</div>
     </section>
   );
@@ -740,15 +819,20 @@ function FamilySummary({
   latestTutoring: string;
 }) {
   return (
-    <section className="scroll-mt-24 rounded-lg border border-border bg-white p-4">
+    <section className="scroll-mt-24 rounded-xl border border-border bg-white p-4 shadow-sm">
       <div className="grid gap-4 md:grid-cols-[1.4fr_repeat(4,minmax(0,1fr))] md:items-center">
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-foreground">Familia vinculada</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {recipientsCount > 0
-              ? `${recipientsCount} familiar${recipientsCount === 1 ? "" : "es"} asociado${recipientsCount === 1 ? "" : "s"} para comunicaciones.`
-              : "Sin familia vinculada todavía."}
-          </p>
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary" aria-hidden="true">
+            <Users className="h-4 w-4" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-foreground">Familia vinculada</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {recipientsCount > 0
+                ? `${recipientsCount} familiar${recipientsCount === 1 ? "" : "es"} asociado${recipientsCount === 1 ? "" : "s"} para comunicaciones.`
+                : "Sin familia vinculada todavía."}
+            </p>
+          </div>
         </div>
         <CompactStat label="Faltas" value={String(absences)} />
         <CompactStat label="Retrasos" value={String(lates)} />
