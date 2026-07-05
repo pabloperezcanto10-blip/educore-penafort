@@ -72,22 +72,24 @@ export default async function TutorStudentsPage({ searchParams = {} }: TutorStud
       (!searchParams.course_id || student.course_id === searchParams.course_id)
     );
   });
-  const showTutorGroup = searchParams.view === "tutoria";
-  const hasTeachingGroupSelection = Boolean(searchParams.course_id && searchParams.subject_id);
-  const selectedTeachingGroup =
-    !showTutorGroup && hasTeachingGroupSelection
-      ? filteredTeachingGroups.find((group) => group.subject.id === searchParams.subject_id && group.course.id === searchParams.course_id) ?? null
-      : null;
-  const showOverview = !showTutorGroup && !selectedTeachingGroup;
+  const requestedTeachingGroup =
+    searchParams.view === "tutoria" || !searchParams.course_id || !searchParams.subject_id
+      ? null
+      : filteredTeachingGroups.find((group) => group.subject.id === searchParams.subject_id && group.course.id === searchParams.course_id) ?? null;
+  const fallbackTeachingGroup = filteredTeachingGroups.find((group) => group.students.length > 0) ?? filteredTeachingGroups[0] ?? null;
+  const hasTutorStudents = filteredTutorStudents.length > 0;
+  const showTutorGroup = searchParams.view === "tutoria" ? hasTutorStudents : !requestedTeachingGroup && hasTutorStudents;
+  const selectedTeachingGroup = showTutorGroup ? null : requestedTeachingGroup ?? fallbackTeachingGroup;
+  const hasSelection = showTutorGroup || Boolean(selectedTeachingGroup);
   const selectedTitle = showTutorGroup
     ? "Tutoría"
     : selectedTeachingGroup
       ? `${selectedTeachingGroup.subject.name} · ${selectedTeachingGroup.course.name}`
-      : "Vista general";
+      : "Sin grupos disponibles";
   const selectedStudents = showTutorGroup ? filteredTutorStudents : selectedTeachingGroup?.students ?? [];
   const selectedCourseName = showTutorGroup
     ? "Seguimiento integral de tus alumnos asignados."
-    : selectedTeachingGroup?.course.name ?? "Selecciona una clase o tutoría para ver sus alumnos.";
+    : selectedTeachingGroup?.course.name ?? "No hay grupos disponibles para los filtros seleccionados.";
   const courses = Array.from(
     new Map(
       [
@@ -98,7 +100,6 @@ export default async function TutorStudentsPage({ searchParams = {} }: TutorStud
     ).values()
   ).sort((a, b) => a.name.localeCompare(b.name, "es"));
   const subjects = subjectCourses.map((item) => item.subject).sort((a, b) => a.name.localeCompare(b.name, "es"));
-  const totalTeachingStudents = filteredTeachingGroups.reduce((total, group) => total + group.students.length, 0);
   const errorMessage = tutorStudentsError ?? subjectsError ?? coursesError;
 
   return (
@@ -132,24 +133,12 @@ export default async function TutorStudentsPage({ searchParams = {} }: TutorStud
             <div>
               <h2 className="text-sm font-semibold text-foreground">Grupos</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Elige una clase, revisa tu tutoría o vuelve a la vista general.
+                Elige una clase o abre tu tutoría para trabajar con alumnos concretos.
               </p>
             </div>
-            <span className="rounded-md border border-border bg-[#f8fafc] px-2 py-1 text-xs font-semibold text-muted-foreground">
-              {totalTeachingStudents} alumnos
-            </span>
           </div>
 
-          <div className="mt-4 space-y-2">
-            <OverviewLink
-              active={showOverview}
-              totalGroups={filteredTeachingGroups.length}
-              totalTeachingStudents={totalTeachingStudents}
-              searchParams={searchParams}
-            />
-          </div>
-
-          <div className="mt-4 border-t border-border pt-4">
+          <div className="mt-4">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Grupos de docencia</p>
             <div className="space-y-2">
             {filteredTeachingGroups.length === 0 ? (
@@ -167,14 +156,16 @@ export default async function TutorStudentsPage({ searchParams = {} }: TutorStud
             </div>
           </div>
 
-          <div className="mt-4 border-t border-border pt-4">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Seguimiento tutorial</p>
-            <TutorGroupLink
-              active={showTutorGroup}
-              count={filteredTutorStudents.length}
-              searchParams={searchParams}
-            />
-          </div>
+          {hasTutorStudents ? (
+            <div className="mt-4 border-t border-border pt-4">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Seguimiento tutorial</p>
+              <TutorGroupLink
+                active={showTutorGroup}
+                count={filteredTutorStudents.length}
+                searchParams={searchParams}
+              />
+            </div>
+          ) : null}
         </aside>
 
         <main className="rounded-lg border border-border bg-white shadow-sm">
@@ -197,15 +188,13 @@ export default async function TutorStudentsPage({ searchParams = {} }: TutorStud
             ) : null}
           </header>
 
-          {showOverview ? (
-            <OverviewPanel
-              teachingGroupCount={filteredTeachingGroups.length}
-              teachingStudentCount={totalTeachingStudents}
-              tutorStudentCount={filteredTutorStudents.length}
-            />
+          {!hasSelection ? (
+            <div className="p-4">
+              <EmptyState text="No hay grupos ni alumnos de tutoría para los filtros seleccionados." />
+            </div>
           ) : selectedStudents.length === 0 ? (
             <div className="p-4">
-              <EmptyState text="No hay alumnos activos en esta seleccion." />
+              <EmptyState text="No hay alumnos activos en esta selección." />
             </div>
           ) : (
             <StudentList students={selectedStudents} />
@@ -270,39 +259,6 @@ function FilterForm({
   );
 }
 
-function OverviewLink({
-  active,
-  totalGroups,
-  totalTeachingStudents,
-  searchParams
-}: {
-  active: boolean;
-  totalGroups: number;
-  totalTeachingStudents: number;
-  searchParams: TutorStudentsPageProps["searchParams"];
-}) {
-  return (
-    <Link
-      href={hrefWith(searchParams, { course_id: undefined, subject_id: undefined, view: undefined })}
-      className={`block rounded-md border px-3 py-3 transition ${
-        active ? "border-primary bg-primary/5" : "border-border bg-white hover:bg-muted"
-      }`}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-foreground">Vista general</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {totalGroups} grupo{totalGroups === 1 ? "" : "s"} · {totalTeachingStudents} alumno{totalTeachingStudents === 1 ? "" : "s"}.
-          </p>
-        </div>
-        <span className="shrink-0 rounded-full border border-border bg-[#f8fafc] px-2 py-1 text-[11px] font-semibold text-muted-foreground">
-          Ver todos
-        </span>
-      </div>
-    </Link>
-  );
-}
-
 function GroupLink({
   group,
   active,
@@ -364,57 +320,6 @@ function TutorGroupLink({
         </span>
       </div>
     </Link>
-  );
-}
-
-function OverviewPanel({
-  teachingGroupCount,
-  teachingStudentCount,
-  tutorStudentCount
-}: {
-  teachingGroupCount: number;
-  teachingStudentCount: number;
-  tutorStudentCount: number;
-}) {
-  return (
-    <div className="grid gap-4 p-4 md:grid-cols-3">
-      <SummaryTile
-        title="Grupos de docencia"
-        value={teachingGroupCount}
-        description="Clases por materia y curso."
-      />
-      <SummaryTile
-        title="Alumnos en docencia"
-        value={teachingStudentCount}
-        description="Alumnos localizables por grupo."
-      />
-      <SummaryTile
-        title="Tutoría"
-        value={tutorStudentCount}
-        description="Seguimiento integral asignado."
-      />
-      <div className="rounded-lg border border-dashed border-border bg-[#f8fafc] p-4 text-sm text-muted-foreground md:col-span-3">
-        Selecciona un grupo de docencia para trabajar una clase concreta o abre Tutoría para revisar a tus alumnos asignados.
-      </div>
-    </div>
-  );
-}
-
-function SummaryTile({
-  title,
-  value,
-  description
-}: {
-  title: string;
-  value: number;
-  description: string;
-}) {
-  return (
-    <article className="rounded-lg border border-border bg-[#f8fafc] p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
-      <p className="mt-2 text-2xl font-semibold text-foreground">{value}</p>
-      <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-    </article>
   );
 }
 
