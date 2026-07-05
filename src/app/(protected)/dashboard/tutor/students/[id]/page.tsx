@@ -112,14 +112,18 @@ export default async function TutorStudentDetailPage({
     gradesErrorMessage ??
     termGradesErrorMessage ??
     communicationsErrorMessage;
+  const latestActivityItems = [
+    latestItem("communication", communications[0]?.id, communications[0]?.title, communications[0] ? `Comunicación · ${formatDate(communications[0].created_at)}` : null),
+    latestItem("incident", incidents[0]?.id, incidents[0]?.type, incidents[0] ? `Incidencia · ${formatDate(incidents[0].created_at)}` : null),
+    latestItem("observation", observations[0]?.id, observations[0]?.title, observations[0] ? `Observación · ${formatDate(observations[0].created_at)}` : null)
+  ].filter((item): item is { id: string; title: string; meta: string } => Boolean(item));
 
   return (
-    <section className="space-y-6">
-      <BackLink />
-
-      <header className="rounded-lg border border-border bg-white p-5">
+    <section className="space-y-5">
+      <header className="rounded-lg border border-border bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
+            <BackLink />
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-semibold tracking-normal text-foreground">
                 {student.name} {student.last_name}
@@ -144,35 +148,48 @@ export default async function TutorStudentDetailPage({
 
       {pageError ? <ErrorBox message={`Parte de la ficha no se pudo cargar: ${pageError}`} /> : null}
 
-      <section className="grid gap-4 xl:grid-cols-3">
-        <SummaryCard title="Resumen compacto" className="xl:col-span-2">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Info label="Curso" value={student.courses?.name ?? student.course_id} />
-            <Info label="Tutor" value={profile.full_name ?? profile.email ?? profile.id} />
-            <Info label="Ultima incidencia" value={incidents[0]?.type ?? "Sin incidencias"} />
-            <Info label="Ultima observacion interna" value={observations[0]?.title ?? "Sin observaciones"} />
-            <Info label="Ultima comunicacion" value={communications[0]?.title ?? "Sin comunicaciones"} />
-            <Info label="Ultima calificacion" value={grades[0] ? `${grades[0].subjectName}: ${grades[0].grade}` : "Sin calificaciones"} />
-          </div>
-        </SummaryCard>
+      <section className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
+        <div className="space-y-4">
+          <SummaryCard title="Resumen actual">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <Metric label="Faltas" value={attendanceSummary.absences} />
+              <Metric label="Retrasos" value={attendanceSummary.lates} />
+              <Metric label="Incidencias" value={incidents.length} />
+              <Metric label="Observaciones" value={observations.length} />
+              <Metric label="Comunicaciones" value={communications.length} />
+              <Metric label="Calificaciones" value={grades.length} />
+            </div>
+          </SummaryCard>
 
-        <SummaryCard title="Seguimiento reciente">
-          <CompactList
-            items={[
-              ...incidents.slice(0, 2).map((incident) => ({
-                id: `incident-${incident.id}`,
-                title: incident.type,
-                meta: `Incidencia · ${formatDate(incident.created_at)}`
-              })),
-              ...observations.slice(0, 2).map((observation) => ({
-                id: `observation-${observation.id}`,
-                title: observation.title,
-                meta: `Observacion · ${formatDate(observation.created_at)}`
-              }))
-            ]}
-            empty="Sin seguimiento reciente."
-          />
-        </SummaryCard>
+          <SummaryCard title="Última actividad">
+            <CompactList items={latestActivityItems} empty="Sin actividad reciente." />
+          </SummaryCard>
+        </div>
+
+        <div className="space-y-4">
+          <SummaryCard title="Información académica">
+            <div className="space-y-3">
+              <Info label="Curso" value={student.courses?.name ?? student.course_id} />
+              <Info label="Tutor" value={profile.full_name ?? profile.email ?? profile.id} />
+              <Info label="Grupo" value={student.courses?.name ?? "Sin grupo asignado"} />
+            </div>
+          </SummaryCard>
+
+          <SummaryCard title="Notas del tutor">
+            {observations[0] ? (
+              <div className="rounded-md border border-border bg-background p-3">
+                <p className="text-sm font-semibold text-foreground">{observations[0].title}</p>
+                <p className="mt-1 line-clamp-3 text-sm text-muted-foreground">{observations[0].content}</p>
+                <p className="mt-2 text-xs text-muted-foreground">{observations[0].type} · {formatDate(observations[0].created_at)}</p>
+              </div>
+            ) : (
+              <EmptyBox text="No hay notas privadas recientes." />
+            )}
+            <Link href="#observacion-interna" className="mt-3 inline-flex text-sm font-semibold text-primary transition hover:text-primary/80">
+              Añadir observación interna
+            </Link>
+          </SummaryCard>
+        </div>
       </section>
 
       <section id="calificaciones" className="rounded-lg border border-border bg-white p-5">
@@ -182,7 +199,7 @@ export default async function TutorStudentDetailPage({
             <div>
               <h2 className="text-sm font-semibold text-foreground">Calificaciones</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Consulta filtrable. La introduccion masiva de notas se realiza desde el cuaderno.
+                Consulta filtrable. La introducción masiva de notas se realiza desde el cuaderno.
               </p>
             </div>
           </div>
@@ -273,9 +290,9 @@ export default async function TutorStudentDetailPage({
 
 function QuickActions({ studentId, courseId }: { studentId: string; courseId: string }) {
   const actions = [
-    { label: "Enviar comunicacion", href: "#enviar-aviso", icon: Bell, primary: true },
-    { label: "Anadir incidencia", href: "#registrar-incidencia", icon: AlertCircle },
-    { label: "Anadir observacion interna", href: "#observacion-interna", icon: MessageSquarePlus },
+    { label: "Enviar comunicación", href: "#enviar-aviso", icon: Bell, primary: true },
+    { label: "Añadir incidencia", href: "#registrar-incidencia", icon: AlertCircle },
+    { label: "Añadir observación", href: "#observacion-interna", icon: MessageSquarePlus },
     { label: "Ver asistencia", href: "#asistencia", icon: CalendarDays },
     { label: "Abrir cuaderno", href: `/dashboard/tutor/gradebook?course_id=${courseId}`, icon: BookOpenCheck },
     { label: "Ver calificaciones", href: `/dashboard/tutor/students/${studentId}#calificaciones`, icon: ClipboardList }
@@ -283,7 +300,7 @@ function QuickActions({ studentId, courseId }: { studentId: string; courseId: st
 
   return (
     <section className="rounded-lg border border-border bg-white p-5">
-      <h2 className="text-sm font-semibold text-foreground">Acciones rapidas</h2>
+      <h2 className="text-sm font-semibold text-foreground">Acciones rápidas</h2>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
         {actions.map((action) => {
           const Icon = action.icon;
@@ -372,24 +389,26 @@ function ActionForms({
 }) {
   return (
     <section className="grid gap-4 xl:grid-cols-3">
-      <section id="enviar-aviso" className="rounded-lg border border-border bg-white p-5">
-        <FormHeader icon={Bell} title="Enviar comunicacion" description="Aviso interno visible para la familia." />
+      <details id="enviar-aviso" className="rounded-lg border border-border bg-white p-5">
+        <summary className="cursor-pointer list-none">
+          <FormHeader icon={Bell} title="Enviar comunicación" description="Aviso interno visible para la familia." />
+        </summary>
         {recipientsErrorMessage ? (
           <ErrorBox message={`No se pudo comprobar la familia asociada: ${recipientsErrorMessage}`} />
         ) : recipients.length === 0 ? (
-          <EmptyBox text="Este alumno todavia no tiene familia asociada." />
+          <EmptyBox text="Este alumno todavía no tiene familia asociada." />
         ) : (
           <form action={createFamilyNotification} className="mt-4 space-y-3">
             <input type="hidden" name="student_id" value={studentId} />
-            <Input name="title" label="Titulo" required />
+            <Input name="title" label="Título" required />
             <Select
               name="category"
               value="general"
               emptyLabel={null}
               options={[
                 { value: "incidencia", label: "Incidencia" },
-                { value: "académico", label: "Academico" },
-                { value: "tutoría", label: "Tutoria" },
+                { value: "académico", label: "Académico" },
+                { value: "tutoría", label: "Tutoría" },
                 { value: "general", label: "General" }
               ]}
             />
@@ -397,10 +416,12 @@ function ActionForms({
             <Submit label="Enviar aviso" icon={Bell} />
           </form>
         )}
-      </section>
+      </details>
 
-      <section id="registrar-incidencia" className="rounded-lg border border-border bg-white p-5">
-        <FormHeader icon={AlertCircle} title="Anadir incidencia" description="Registro vinculado a tu tutoria." />
+      <details id="registrar-incidencia" className="rounded-lg border border-border bg-white p-5">
+        <summary className="cursor-pointer list-none">
+          <FormHeader icon={AlertCircle} title="Añadir incidencia" description="Registro vinculado a tu tutoría." />
+        </summary>
         <form action={createStudentIncident} className="mt-4 space-y-3">
           <input type="hidden" name="student_id" value={studentId} />
           <Input name="type" label="Tipo" placeholder="Conducta, material, convivencia..." required />
@@ -414,13 +435,15 @@ function ActionForms({
               { value: "grave", label: "Grave" }
             ]}
           />
-          <Textarea name="description" label="Descripcion" required rows={4} />
+          <Textarea name="description" label="Descripción" required rows={4} />
           <Submit label="Guardar incidencia" icon={AlertCircle} />
         </form>
-      </section>
+      </details>
 
-      <section id="observacion-interna" className="rounded-lg border border-border bg-white p-5">
-        <FormHeader icon={MessageSquarePlus} title="Anadir observacion interna" description="Seguimiento privado, no visible para familias." />
+      <details id="observacion-interna" className="rounded-lg border border-border bg-white p-5">
+        <summary className="cursor-pointer list-none">
+          <FormHeader icon={MessageSquarePlus} title="Añadir observación interna" description="Seguimiento privado, no visible para familias." />
+        </summary>
         <form action={createStudentObservation} className="mt-4 space-y-3">
           <input type="hidden" name="student_id" value={studentId} />
           <Select
@@ -428,12 +451,12 @@ function ActionForms({
             value="académica"
             emptyLabel={null}
             options={[
-              { value: "académica", label: "Academica" },
+              { value: "académica", label: "Académica" },
               { value: "conductual", label: "Conductual" },
               { value: "emocional", label: "Emocional" },
               { value: "familiar", label: "Familiar" },
-              { value: "adaptación", label: "Adaptacion" },
-              { value: "reunión", label: "Reunion" }
+              { value: "adaptación", label: "Adaptación" },
+              { value: "reunión", label: "Reunión" }
             ]}
           />
           <Select
@@ -446,11 +469,11 @@ function ActionForms({
               { value: "alta", label: "Alta" }
             ]}
           />
-          <Input name="title" label="Titulo" required />
+          <Input name="title" label="Título" required />
           <Textarea name="content" label="Contenido" required rows={4} />
-          <Submit label="Guardar observacion" icon={MessageSquarePlus} />
+          <Submit label="Guardar observación" icon={MessageSquarePlus} />
         </form>
-      </section>
+      </details>
     </section>
   );
 }
@@ -549,6 +572,16 @@ function buildSubjectOptions(grades: GradeWithLabels[], termGrades: TermSubjectG
   return Array.from(new Map(entries).entries())
     .map(([id, name]) => ({ id, name }))
     .sort((a, b) => a.name.localeCompare(b.name, "es"));
+}
+
+function latestItem(prefix: string, id: string | undefined, title: string | undefined, meta: string | null) {
+  if (!id || !title || !meta) return null;
+
+  return {
+    id: `${prefix}-${id}`,
+    title,
+    meta
+  };
 }
 
 function BackLink() {
