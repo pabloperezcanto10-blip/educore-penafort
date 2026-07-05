@@ -1,24 +1,13 @@
 import Link from "next/link";
-import {
-  ArrowRight,
-  Bell,
-  BookOpenCheck,
-  CalendarDays,
-  CheckCircle2,
-  ClipboardCheck,
-  FileCheck2,
-  Inbox,
-  Layers3,
-  Settings2,
-  Users
-} from "lucide-react";
+import { BookOpenCheck, CalendarDays, FileCheck2, Inbox, Layers3, Settings2, Users } from "lucide-react";
 import { requireRole } from "@/lib/auth/session";
 import { getTutorUnreadCommunicationsCount } from "@/lib/communications/notifications";
 import { getSubjectCoursesForTeacher } from "@/lib/grades/grades";
 import { formatScheduleTime, getTeacherScheduleForToday, getWeekdayLabel, type TeacherScheduleSlot } from "@/lib/tutors/schedule";
-import { getDashboardNotifications, type DashboardNotification } from "@/lib/internal-notifications";
+import { NotificationsPanel } from "@/components/dashboard/notifications-panel";
+import { CalendarSummaryCard } from "@/components/dashboard/calendar-summary-card";
+import { getDashboardNotifications } from "@/lib/internal-notifications";
 import { getRegisteredScheduleIdsForDate } from "@/lib/attendance/session-attendance";
-import { getDashboardCalendarEvents, type CalendarEventSummary } from "@/lib/calendar/ical";
 
 type DashboardIcon = typeof Layers3;
 
@@ -28,8 +17,7 @@ export default async function TutorDashboardPage() {
     { items: subjectCourses, errorMessage: subjectsError },
     { count: unreadCommunications, errorMessage: communicationsError },
     { notifications: dashboardNotifications, unreadCount, errorMessage: dashboardNotificationsError },
-    { slots: todaySchedule, weekday, errorMessage: scheduleError },
-    { todayEvents, upcomingEvents, errorMessage: calendarError }
+    { slots: todaySchedule, weekday, errorMessage: scheduleError }
   ] = await Promise.all([
     getSubjectCoursesForTeacher(profile.id),
     getTutorUnreadCommunicationsCount(profile.id),
@@ -38,8 +26,7 @@ export default async function TutorDashboardPage() {
       role: "tutor",
       communicationHref: "/dashboard/tutor/communications"
     }),
-    getTeacherScheduleForToday(profile.id),
-    getDashboardCalendarEvents()
+    getTeacherScheduleForToday(profile.id)
   ]);
   const { registeredScheduleIds, errorMessage: scheduleRegistrationError } = await getRegisteredScheduleIdsForDate({
     teacherId: profile.id,
@@ -47,10 +34,9 @@ export default async function TutorDashboardPage() {
   });
   const errorMessage = subjectsError ?? communicationsError ?? dashboardNotificationsError ?? scheduleError ?? scheduleRegistrationError;
   const tutorName = profile.full_name ?? profile.email ?? "tutor";
-  const classCount = todaySchedule.filter((slot) => !slot.is_break).length;
 
   return (
-    <section className="space-y-7">
+    <section className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-normal text-foreground">Buenos d&iacute;as, {tutorName}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -64,349 +50,112 @@ export default async function TutorDashboardPage() {
         </div>
       ) : null}
 
-      <section className="space-y-3">
-        <SectionHeading title="Hoy" description="Horario, eventos del centro y avisos que conviene revisar al entrar." />
-        <div className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
-          <TodayScheduleCard
-            weekday={weekday}
-            slots={todaySchedule}
-            registeredScheduleIds={registeredScheduleIds}
-          />
-          <div className="grid gap-4">
-            <TodayEventsCard todayEvents={todayEvents} upcomingEvents={upcomingEvents} errorMessage={calendarError} />
-            <TodayNotificationsCard notifications={dashboardNotifications} unreadCount={unreadCount} />
+      <NotificationsPanel notifications={dashboardNotifications} unreadCount={unreadCount} />
+      <CalendarSummaryCard href="/dashboard/tutor/calendar" />
+
+      <section className="rounded-lg border border-border bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted text-primary">
+              <CalendarDays className="h-5 w-5" aria-hidden="true" />
+            </span>
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">Horario de hoy</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {getWeekdayLabel(weekday)}. Accede directamente a cada clase para pasar lista.
+              </p>
+            </div>
           </div>
-        </div>
-      </section>
-
-      <section className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-        <div className="space-y-3">
-          <SectionHeading title="Pendientes" description="Lo que requiere atencion con los datos disponibles ahora." />
-          <div className="rounded-lg border border-border bg-white p-4 shadow-sm">
-            <PendingRow
-              label="Comunicaciones"
-              value={unreadCommunications}
-              text={
-                unreadCommunications === 0
-                  ? "Sin comunicaciones pendientes."
-                  : `${unreadCommunications} comunicacion${unreadCommunications === 1 ? "" : "es"} pendiente${unreadCommunications === 1 ? "" : "s"}.`
-              }
-              href="/dashboard/tutor/communications"
-            />
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <SectionHeading title="Accesos rapidos" description="Las acciones mas habituales para el trabajo diario." />
-          <div className="grid gap-3 sm:grid-cols-2">
-            <QuickAccess
-              title="Mis alumnos"
-              description="Buscar y abrir fichas."
-              href="/dashboard/tutor/students"
-              icon={Users}
-            />
-            <QuickAccess
-              title="Cuaderno"
-              description="Notas, comentarios y cierres."
-              href="/dashboard/tutor/gradebook"
-              icon={BookOpenCheck}
-            />
-            <QuickAccess
-              title="Comunicaciones"
-              description="Abrir bandeja del tutor."
-              href="/dashboard/tutor/communications"
-              icon={Inbox}
-              meta={unreadCommunications > 0 ? `${unreadCommunications} pendiente${unreadCommunications === 1 ? "" : "s"}` : "Todo al dia"}
-            />
-            <QuickAccess
-              title="Horario / Pasar lista"
-              description={classCount > 0 ? `${classCount} clase${classCount === 1 ? "" : "s"} hoy.` : "Sin clases hoy."}
-              href="/dashboard/tutor/attendance"
-              icon={ClipboardCheck}
-            />
-          </div>
-        </div>
-      </section>
-
-      <section className="space-y-3">
-        <SectionHeading title="Mas herramientas" description="Configuracion, materias y consultas menos frecuentes." />
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <ToolLink
-            title="Mis materias"
-            description={
-              subjectCourses.length === 0
-                ? "Sin materias asignadas."
-                : `${subjectCourses.length} materia${subjectCourses.length === 1 ? "" : "s"} asignada${subjectCourses.length === 1 ? "" : "s"}.`
-            }
-            href="/dashboard/tutor/subjects"
-            icon={Layers3}
-          />
-          <ToolLink
-            title="Criterios de evaluacion"
-            description="Pesos por curso, materia y trimestre."
-            href="/dashboard/tutor/evaluation-settings"
-            icon={Settings2}
-          />
-          <ToolLink
-            title="Cierre final de curso"
-            description="Nota final oficial por materia."
-            href="/dashboard/tutor/final-grades"
-            icon={FileCheck2}
-          />
-          <ToolLink
-            title="Calendario / Fechas de interes"
-            description="Agenda oficial del centro."
-            href="/dashboard/tutor/calendar"
-            icon={CalendarDays}
-          />
-        </div>
-      </section>
-    </section>
-  );
-}
-
-function SectionHeading({ title, description }: { title: string; description: string }) {
-  return (
-    <div>
-      <h2 className="text-base font-semibold text-foreground">{title}</h2>
-      <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-    </div>
-  );
-}
-
-function TodayScheduleCard({
-  weekday,
-  slots,
-  registeredScheduleIds
-}: {
-  weekday: number | null;
-  slots: TeacherScheduleSlot[];
-  registeredScheduleIds: Set<string>;
-}) {
-  return (
-    <section className="rounded-lg border border-border bg-white p-5 shadow-sm">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <CalendarDays className="h-5 w-5" aria-hidden="true" />
-          </span>
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">Horario de hoy</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {getWeekdayLabel(weekday)}. Accede a la clase para pasar lista.
-            </p>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
           <Link
             href="/dashboard/tutor/attendance"
-            className="inline-flex h-9 w-fit items-center justify-center rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground transition hover:opacity-95"
-          >
-            Pasar lista
-          </Link>
-          <Link
-            href="/dashboard/tutor/schedule"
             className="inline-flex h-9 w-fit items-center justify-center rounded-md border border-border bg-white px-3 text-xs font-semibold text-foreground transition hover:bg-muted"
           >
-            Ver semana
+            Abrir pasar lista
           </Link>
         </div>
-      </div>
 
-      {slots.length === 0 ? (
-        <div className="mt-4 rounded-md border border-dashed border-border bg-[#f8fafc] px-4 py-3 text-sm text-muted-foreground">
-          No hay clases programadas para hoy.
-        </div>
-      ) : (
-        <div className="mt-4 grid gap-2 md:grid-cols-2">
-          {slots.map((slot) => (
-            <ScheduleSlotCard key={slot.id} slot={slot} registered={registeredScheduleIds.has(slot.id)} />
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
-function TodayEventsCard({
-  todayEvents,
-  upcomingEvents,
-  errorMessage
-}: {
-  todayEvents: CalendarEventSummary[];
-  upcomingEvents: CalendarEventSummary[];
-  errorMessage: string | null;
-}) {
-  const hasEvents = todayEvents.length > 0 || upcomingEvents.length > 0;
-
-  return (
-    <section className="rounded-lg border border-border bg-white p-4 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted text-primary">
-            <CalendarDays className="h-4 w-4" aria-hidden="true" />
-          </span>
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">Eventos</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {errorMessage
-                ? "Consulta el calendario para ver la agenda."
-                : hasEvents
-                  ? "Hoy y proximos dias."
-                  : "Sin eventos programados proximos."}
-            </p>
-          </div>
-        </div>
-        <Link href="/dashboard/tutor/calendar" className="text-xs font-semibold text-primary hover:underline">
-          Ver calendario
-        </Link>
-      </div>
-
-      {!errorMessage && hasEvents ? (
-        <div className="mt-3 space-y-2">
-          {[...todayEvents, ...upcomingEvents].slice(0, 3).map((event) => (
-            <div key={event.id} className="flex items-start justify-between gap-3 rounded-md bg-[#f8fafc] px-3 py-2">
-              <p className="line-clamp-2 text-sm font-medium text-foreground">{event.title}</p>
-              <span className="shrink-0 rounded-full border border-border bg-white px-2 py-1 text-[11px] font-semibold text-muted-foreground">
-                {formatCalendarEventDate(event)}
-              </span>
-            </div>
-          ))}
-        </div>
-      ) : null}
-    </section>
-  );
-}
-
-function TodayNotificationsCard({
-  notifications,
-  unreadCount
-}: {
-  notifications: DashboardNotification[];
-  unreadCount: number;
-}) {
-  const visibleNotifications = notifications.slice(0, 3);
-
-  return (
-    <section className="rounded-lg border border-border bg-white p-4 shadow-sm">
-      <div className="flex items-start gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted text-primary">
-          <Bell className="h-4 w-4" aria-hidden="true" />
-        </span>
-        <div>
-          <h3 className="text-sm font-semibold text-foreground">Novedades</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {unreadCount > 0
-              ? `${unreadCount} aviso${unreadCount === 1 ? "" : "s"} pendiente${unreadCount === 1 ? "" : "s"}.`
-              : "Todo al dia. No hay avisos pendientes."}
-          </p>
-        </div>
-      </div>
-
-      {visibleNotifications.length > 0 ? (
-        <div className="mt-3 space-y-2">
-          {visibleNotifications.map((notification) => (
+        {todaySchedule.length === 0 ? (
+          <div className="mt-4 rounded-md border border-dashed border-border bg-[#f8fafc] p-4 text-sm text-muted-foreground">
+            <p>No hay clases programadas para hoy.</p>
             <Link
-              key={`${notification.source}-${notification.id}`}
-              href={notification.href}
-              className={`block rounded-md px-3 py-2 text-sm transition hover:bg-muted ${
-                notification.read ? "bg-[#f8fafc] text-muted-foreground" : "bg-primary/5 text-foreground"
-              }`}
+              href="/dashboard/tutor/schedule"
+              className="mt-3 inline-flex h-9 items-center justify-center rounded-md border border-border bg-white px-3 text-xs font-semibold text-foreground transition hover:bg-muted"
             >
-              <span className="font-semibold">{notification.title}</span>
-              <span className="mt-1 block line-clamp-1 text-muted-foreground">{notification.body}</span>
+              Ver horario completo
             </Link>
-          ))}
-        </div>
-      ) : null}
-    </section>
-  );
-}
-
-function PendingRow({
-  label,
-  value,
-  text,
-  href
-}: {
-  label: string;
-  value: number;
-  text: string;
-  href: string;
-}) {
-  const isClear = value === 0;
-
-  return (
-    <Link href={href} className="flex items-center justify-between gap-4 rounded-md px-3 py-2 transition hover:bg-muted">
-      <div className="flex items-start gap-3">
-        <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${isClear ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
-          {isClear ? <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> : <Inbox className="h-4 w-4" aria-hidden="true" />}
-        </span>
-        <div>
-          <p className="text-sm font-semibold text-foreground">{label}</p>
-          <p className="text-sm text-muted-foreground">{text}</p>
-        </div>
-      </div>
-      <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-    </Link>
-  );
-}
-
-function QuickAccess({
-  title,
-  description,
-  href,
-  icon: Icon,
-  meta
-}: {
-  title: string;
-  description: string;
-  href: string;
-  icon: DashboardIcon;
-  meta?: string;
-}) {
-  return (
-    <Link href={href} className="group rounded-lg border border-border bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Icon className="h-4 w-4" aria-hidden="true" />
-          </span>
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-            {meta ? <p className="mt-2 text-xs font-semibold text-primary">{meta}</p> : null}
           </div>
-        </div>
-        <ArrowRight className="mt-2 h-4 w-4 text-muted-foreground transition group-hover:translate-x-0.5" aria-hidden="true" />
-      </div>
-    </Link>
-  );
-}
+        ) : (
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {todaySchedule.map((slot) => (
+              <ScheduleSlotCard key={slot.id} slot={slot} registered={registeredScheduleIds.has(slot.id)} />
+            ))}
+          </div>
+        )}
+      </section>
 
-function ToolLink({
-  title,
-  description,
-  href,
-  icon: Icon
-}: {
-  title: string;
-  description: string;
-  href: string;
-  icon: DashboardIcon;
-}) {
-  return (
-    <Link href={href} className="rounded-lg border border-border bg-white px-4 py-3 transition hover:bg-muted">
-      <div className="flex items-start gap-3">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted text-primary">
-          <Icon className="h-4 w-4" aria-hidden="true" />
-        </span>
-        <div>
-          <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-          <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{description}</p>
-        </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <DashboardSection
+          title="Mis materias"
+          description={
+            subjectCourses.length === 0
+              ? "No hay materias asignadas."
+              : `${subjectCourses.length} materia${subjectCourses.length === 1 ? "" : "s"} asignada${subjectCourses.length === 1 ? "" : "s"}.`
+          }
+          href="/dashboard/tutor/subjects"
+          icon={Layers3}
+          action="Ver materias"
+        />
+        <DashboardSection
+          title="Mis alumnos"
+          description="Busca alumnos, filtra por curso y accede a sus fichas."
+          href="/dashboard/tutor/students"
+          icon={Users}
+          action="Abrir alumnos"
+        />
+        <DashboardSection
+          title="Criterios de evaluacion"
+          description="Configura pesos y criterios por curso, materia y trimestre antes de evaluar."
+          href="/dashboard/tutor/evaluation-settings"
+          icon={Settings2}
+          action="Configurar criterios"
+        />
+        <DashboardSection
+          title="Cuaderno de calificaciones"
+          description="Introduce notas, comentarios, recomendaciones y cierres trimestrales."
+          href="/dashboard/tutor/gradebook"
+          icon={BookOpenCheck}
+          action="Abrir cuaderno"
+        />
+        <DashboardSection
+          title="Cierre final de curso"
+          description="Configura pesos anuales y cierra la nota final oficial por materia."
+          href="/dashboard/tutor/final-grades"
+          icon={FileCheck2}
+          action="Abrir cierre final"
+        />
+        <DashboardSection
+          title="Comunicaciones"
+          description={`${unreadCommunications} comunicacion${unreadCommunications === 1 ? "" : "es"} pendiente${unreadCommunications === 1 ? "" : "s"} de lectura por familias.`}
+          href="/dashboard/tutor/communications"
+          icon={Inbox}
+          action="Abrir bandeja"
+        />
+        <DashboardSection
+          title="Horario docente"
+          description="Consulta tu horario semanal y accede a pasar lista por clase."
+          href="/dashboard/tutor/schedule"
+          icon={CalendarDays}
+          action="Ver horario"
+        />
+        <DashboardSection
+          title="Calendario / Fechas de interes"
+          description="Consulta examenes, reuniones, salidas, evaluaciones y avisos importantes del centro."
+          href="/dashboard/tutor/calendar"
+          icon={CalendarDays}
+          action="Abrir calendario"
+        />
       </div>
-    </Link>
+    </section>
   );
 }
 
@@ -415,22 +164,22 @@ function ScheduleSlotCard({ slot, registered }: { slot: TeacherScheduleSlot; reg
 
   const content = (
     <article
-      className={`rounded-md border px-3 py-2.5 transition ${
+      className={`rounded-md border p-4 transition ${
         slot.is_break
           ? "border-dashed border-border bg-[#f8fafc]"
-          : "border-border bg-white hover:-translate-y-0.5 hover:shadow-sm"
+          : "border-border bg-white shadow-sm hover:-translate-y-0.5 hover:shadow-md"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+        <div>
           <p className="text-xs font-semibold text-primary">
             {formatScheduleTime(slot.start_time)} - {formatScheduleTime(slot.end_time)}
           </p>
-          <h4 className="mt-1 truncate text-sm font-semibold text-foreground">{slot.course_name}</h4>
-          <p className="mt-0.5 truncate text-sm text-muted-foreground">{slot.subject_name ?? "Sin materia"}</p>
+          <h3 className="mt-1 text-sm font-semibold text-foreground">{slot.course_name}</h3>
+          <p className="mt-1 text-sm text-muted-foreground">{slot.subject_name ?? "Sin materia"}</p>
         </div>
-        <span className="shrink-0 rounded-full border border-border bg-[#f8fafc] px-2 py-1 text-[11px] font-semibold text-muted-foreground">
-          {slot.is_break ? "Descanso" : registered ? "Registrada" : "Pendiente"}
+        <span className="rounded-full border border-border bg-[#f8fafc] px-2 py-1 text-[11px] font-semibold text-muted-foreground">
+          {slot.is_break ? "Descanso" : registered ? "Asistencia registrada" : "Pendiente"}
         </span>
       </div>
     </article>
@@ -443,20 +192,31 @@ function ScheduleSlotCard({ slot, registered }: { slot: TeacherScheduleSlot; reg
   return <Link href={href}>{content}</Link>;
 }
 
-function formatCalendarEventDate(event: CalendarEventSummary) {
-  const date = new Intl.DateTimeFormat("es-ES", {
-    day: "2-digit",
-    month: "short"
-  }).format(event.startsAt);
-
-  if (event.allDay) {
-    return date;
-  }
-
-  const time = new Intl.DateTimeFormat("es-ES", {
-    hour: "2-digit",
-    minute: "2-digit"
-  }).format(event.startsAt);
-
-  return `${date} - ${time}`;
+function DashboardSection({
+  title,
+  description,
+  href,
+  icon: Icon,
+  action
+}: {
+  title: string;
+  description: string;
+  href: string;
+  icon: DashboardIcon;
+  action: string;
+}) {
+  return (
+    <Link href={href} className="rounded-lg border border-border bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:bg-muted hover:shadow-md">
+      <div className="flex items-start gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
+          <Icon className="h-5 w-5" aria-hidden="true" />
+        </span>
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+          <p className="mt-3 text-xs font-semibold text-primary">{action}</p>
+        </div>
+      </div>
+    </Link>
+  );
 }
