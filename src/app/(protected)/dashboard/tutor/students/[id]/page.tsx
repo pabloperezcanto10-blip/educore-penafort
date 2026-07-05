@@ -46,6 +46,13 @@ type TutorStudentDetailPageProps = {
 
 const terms: GradeTerm[] = ["1", "2", "3"];
 
+type ActivityItem = {
+  id: string;
+  title: string;
+  detail: string;
+  meta: string;
+};
+
 export default async function TutorStudentDetailPage({
   params,
   searchParams = {}
@@ -113,10 +120,13 @@ export default async function TutorStudentDetailPage({
     termGradesErrorMessage ??
     communicationsErrorMessage;
   const latestActivityItems = [
-    latestItem("communication", communications[0]?.id, communications[0]?.title, communications[0] ? `Comunicación · ${formatDate(communications[0].created_at)}` : null),
-    latestItem("incident", incidents[0]?.id, incidents[0]?.type, incidents[0] ? `Incidencia · ${formatDate(incidents[0].created_at)}` : null),
-    latestItem("observation", observations[0]?.id, observations[0]?.title, observations[0] ? `Observación · ${formatDate(observations[0].created_at)}` : null)
-  ].filter((item): item is { id: string; title: string; meta: string } => Boolean(item));
+    latestItem("communication", communications[0]?.id, "Comunicación", communications[0]?.title, communications[0] ? formatDate(communications[0].created_at) : null),
+    latestItem("incident", incidents[0]?.id, "Incidencia", incidents[0]?.type, incidents[0] ? formatDate(incidents[0].created_at) : null),
+    latestItem("observation", observations[0]?.id, "Observación", observations[0]?.title, observations[0] ? formatDate(observations[0].created_at) : null),
+    latestItem("attendance", recentAttendance[0]?.id, "Asistencia", recentAttendance[0] ? getAttendanceLabel(recentAttendance[0].status) : undefined, recentAttendance[0]?.date ?? null),
+    latestItem("grade", grades[0]?.id, "Nota", grades[0] ? `${grades[0].subjectName}: ${grades[0].grade}` : undefined, grades[0]?.assessment_date ? formatDate(grades[0].assessment_date) : null)
+  ].filter((item): item is ActivityItem => Boolean(item));
+  const pendingFollowUps = recentAttendance.filter((record) => !record.justified).length;
 
   return (
     <section className="grid gap-4 xl:grid-cols-[300px_1fr]">
@@ -139,11 +149,10 @@ export default async function TutorStudentDetailPage({
 
         <nav className="mt-6 space-y-1 border-t border-border pt-4" aria-label="Navegación del alumno">
           <SidebarNavLink href="#resumen" icon={ShieldCheck} label="Resumen" active />
-          <SidebarNavLink href="#comunicaciones" icon={Bell} label="Comunicaciones" />
-          <SidebarNavLink href="#incidencias" icon={AlertCircle} label="Incidencias" />
-          <SidebarNavLink href="#observaciones" icon={MessageSquarePlus} label="Observaciones" />
-          <SidebarNavLink href="#asistencia" icon={CalendarDays} label="Asistencia" />
-          <SidebarNavLink href="#calificaciones" icon={ClipboardList} label="Calificaciones" />
+          <SidebarNavLink href="#actividad" icon={Bell} label="Actividad" />
+          <SidebarNavLink href="#academico" icon={BookOpenCheck} label="Académico" />
+          <SidebarNavLink href="#notas-tutor" icon={MessageSquarePlus} label="Notas privadas" />
+          <SidebarNavLink href="#acciones-seguimiento" icon={AlertCircle} label="Acciones" />
         </nav>
       </aside>
 
@@ -152,25 +161,27 @@ export default async function TutorStudentDetailPage({
 
         {pageError ? <ErrorBox message={`Parte de la ficha no se pudo cargar: ${pageError}`} /> : null}
 
-        <section id="resumen" className="grid gap-4 2xl:grid-cols-[1fr_420px]">
-          <SummaryCard title="Resumen actual">
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              <Metric label="Faltas" value={attendanceSummary.absences} />
-              <Metric label="Retrasos" value={attendanceSummary.lates} />
-              <Metric label="Incidencias" value={incidents.length} />
-              <Metric label="Observaciones" value={observations.length} />
-              <Metric label="Comunicaciones" value={communications.length} />
-              <Metric label="Calificaciones" value={grades.length} />
-            </div>
+        <section id="resumen" className="grid gap-4 2xl:grid-cols-[1fr_380px]">
+          <SummaryCard title="Estado del alumno">
+            <StatusSummary
+              items={[
+                { label: "Faltas", value: attendanceSummary.absences },
+                { label: "Retrasos", value: attendanceSummary.lates },
+                { label: "Incidencias", value: incidents.length },
+                { label: "Observaciones", value: observations.length },
+                { label: "Comunicaciones", value: communications.length },
+                { label: "Pendientes", value: pendingFollowUps }
+              ]}
+            />
           </SummaryCard>
 
-          <SummaryCard title="Última actividad">
-            <CompactList items={latestActivityItems} empty="Sin actividad reciente." />
+          <SummaryCard title="Última actividad" className="2xl:row-span-2" id="actividad">
+            <ActivityTimeline items={latestActivityItems} />
           </SummaryCard>
         </section>
 
-        <section className="grid gap-4 2xl:grid-cols-[1fr_420px]">
-          <SummaryCard title="Información académica">
+        <section className="grid gap-4 2xl:grid-cols-[1fr_380px]">
+          <SummaryCard title="Información académica" id="academico">
             <div className="grid gap-3 md:grid-cols-3">
               <Info label="Curso" value={student.courses?.name ?? student.course_id} />
               <Info label="Tutor" value={profile.full_name ?? profile.email ?? profile.id} />
@@ -178,7 +189,7 @@ export default async function TutorStudentDetailPage({
             </div>
           </SummaryCard>
 
-          <SummaryCard title="Notas privadas del tutor">
+          <SummaryCard title="Notas privadas del tutor" id="notas-tutor">
             {observations[0] ? (
               <div className="rounded-md border border-border bg-background p-3">
                 <p className="text-sm font-semibold text-foreground">{observations[0].title}</p>
@@ -194,15 +205,20 @@ export default async function TutorStudentDetailPage({
           </SummaryCard>
         </section>
 
-        <section className="grid gap-4 xl:grid-cols-2" aria-label="Paneles bajo demanda">
+        <section id="acciones-seguimiento" className="grid gap-4 xl:grid-cols-2" aria-label="Paneles bajo demanda">
+          {communications.length > 0 ? (
           <WorkspacePanel id="comunicaciones" title="Comunicaciones" icon={Bell} description="Últimos mensajes relacionados con este alumno.">
             <CommunicationList communications={communications.slice(0, 5)} />
           </WorkspacePanel>
+          ) : null}
 
+          {incidents.length > 0 ? (
           <WorkspacePanel id="incidencias" title="Incidencias" icon={AlertCircle} description="Registros recientes de seguimiento.">
             <IncidentList incidents={incidents.slice(0, 5)} />
           </WorkspacePanel>
+          ) : null}
 
+          {observations.length > 0 || observationsErrorMessage ? (
           <WorkspacePanel id="observaciones" title="Observaciones internas" icon={MessageSquarePlus} description="Seguimiento privado del tutor.">
             {observationsErrorMessage ? (
               <ErrorBox message={`No se pudieron cargar las observaciones: ${observationsErrorMessage}`} />
@@ -210,22 +226,22 @@ export default async function TutorStudentDetailPage({
               <ObservationList observations={observations.slice(0, 5)} />
             )}
           </WorkspacePanel>
+          ) : null}
 
+          {recentAttendance.length > 0 ? (
           <WorkspacePanel id="asistencia" title="Asistencia" icon={CalendarDays} description="Faltas y retrasos recientes.">
-            {recentAttendance.length === 0 ? (
-              <EmptyBox text="Sin faltas ni retrasos recientes." />
-            ) : (
-              <CompactList
-                items={recentAttendance.map((record) => ({
-                  id: record.id,
-                  title: `${record.date} · ${getAttendanceLabel(record.status)}`,
-                  meta: record.justified ? "Justificado" : "Pendiente de justificar"
-                }))}
-                empty="Sin asistencia reciente."
-              />
-            )}
+            <CompactList
+              items={recentAttendance.map((record) => ({
+                id: record.id,
+                title: `${record.date} · ${getAttendanceLabel(record.status)}`,
+                meta: record.justified ? "Justificado" : "Pendiente de justificar"
+              }))}
+              empty="Sin asistencia reciente."
+            />
           </WorkspacePanel>
+          ) : null}
 
+          {gradeGroups.length > 0 || gradesErrorMessage || termGradesErrorMessage ? (
           <WorkspacePanel id="calificaciones" title="Calificaciones" icon={BookOpenCheck} description="Consulta filtrable de notas y cierres.">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <p className="text-sm text-muted-foreground">La introducción masiva de notas se realiza desde el cuaderno.</p>
@@ -264,6 +280,7 @@ export default async function TutorStudentDetailPage({
               </div>
             )}
           </WorkspacePanel>
+          ) : null}
 
           <ActionForms
             studentId={student.id}
@@ -281,9 +298,9 @@ function QuickActions({ studentId, courseId }: { studentId: string; courseId: st
     { label: "Enviar comunicación", href: "#enviar-aviso", icon: Bell, primary: true },
     { label: "Añadir incidencia", href: "#registrar-incidencia", icon: AlertCircle },
     { label: "Añadir observación", href: "#observacion-interna", icon: MessageSquarePlus },
-    { label: "Ver asistencia", href: "#asistencia", icon: CalendarDays },
+    { label: "Ver asistencia", href: "#actividad", icon: CalendarDays },
     { label: "Abrir cuaderno", href: `/dashboard/tutor/gradebook?course_id=${courseId}`, icon: BookOpenCheck },
-    { label: "Ver calificaciones", href: `/dashboard/tutor/students/${studentId}#calificaciones`, icon: ClipboardList }
+    { label: "Ver calificaciones", href: `/dashboard/tutor/students/${studentId}#academico`, icon: ClipboardList }
   ];
 
   return (
@@ -562,12 +579,13 @@ function buildSubjectOptions(grades: GradeWithLabels[], termGrades: TermSubjectG
     .sort((a, b) => a.name.localeCompare(b.name, "es"));
 }
 
-function latestItem(prefix: string, id: string | undefined, title: string | undefined, meta: string | null) {
-  if (!id || !title || !meta) return null;
+function latestItem(prefix: string, id: string | undefined, title: string, detail: string | undefined, meta: string | null) {
+  if (!id || !detail || !meta) return null;
 
   return {
     id: `${prefix}-${id}`,
     title,
+    detail,
     meta
   };
 }
@@ -649,21 +667,46 @@ function WorkspacePanel({
   );
 }
 
-function SummaryCard({ title, children, className = "" }: { title: string; children: React.ReactNode; className?: string }) {
+function StatusSummary({ items }: { items: { label: string; value: number }[] }) {
   return (
-    <section className={`rounded-lg border border-border bg-white p-5 ${className}`}>
-      <h2 className="text-sm font-semibold text-foreground">{title}</h2>
-      <div className="mt-4">{children}</div>
-    </section>
+    <div className="grid grid-cols-2 divide-x divide-y divide-border overflow-hidden rounded-md border border-border bg-background sm:grid-cols-3 lg:grid-cols-6 lg:divide-y-0">
+      {items.map((item) => (
+        <div key={item.label} className="min-w-0 px-3 py-3">
+          <p className="truncate text-xs font-medium text-muted-foreground">{item.label}</p>
+          <p className="mt-1 text-lg font-semibold text-foreground">{item.value}</p>
+        </div>
+      ))}
+    </div>
   );
 }
 
-function Metric({ label, value }: { label: string; value: number }) {
+function ActivityTimeline({ items }: { items: ActivityItem[] }) {
+  if (items.length === 0) {
+    return <p className="text-sm text-muted-foreground">Sin movimientos registrados durante los últimos 30 días.</p>;
+  }
+
   return (
-    <div className="rounded-md border border-border bg-background p-3">
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
-      <p className="mt-1 text-xl font-semibold text-foreground">{value}</p>
-    </div>
+    <ol className="space-y-3">
+      {items.map((item) => (
+        <li key={item.id} className="flex gap-3">
+          <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" aria-hidden="true" />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-foreground">{item.title}</p>
+            <p className="mt-0.5 truncate text-sm text-muted-foreground">{item.detail}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{item.meta}</p>
+          </div>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function SummaryCard({ id, title, children, className = "" }: { id?: string; title: string; children: React.ReactNode; className?: string }) {
+  return (
+    <section id={id} className={`rounded-lg border border-border bg-white p-5 ${className}`}>
+      <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+      <div className="mt-4">{children}</div>
+    </section>
   );
 }
 
