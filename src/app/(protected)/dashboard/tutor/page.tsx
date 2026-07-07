@@ -1,23 +1,43 @@
 import Link from "next/link";
-import { BookOpenCheck, CalendarDays, FileCheck2, Inbox, Layers3, Settings2, Users } from "lucide-react";
+import { CalendarDays, ClipboardList, Inbox, type LucideIcon } from "lucide-react";
+
 import { requireRole } from "@/lib/auth/session";
-import { getTutorUnreadCommunicationsCount } from "@/lib/communications/notifications";
-import { getSubjectCoursesForTeacher } from "@/lib/grades/grades";
-import { formatScheduleTime, getTeacherScheduleForToday, getWeekdayLabel, type TeacherScheduleSlot } from "@/lib/tutors/schedule";
-import { NotificationsPanel } from "@/components/dashboard/notifications-panel";
-import { CalendarSummaryCard } from "@/components/dashboard/calendar-summary-card";
-import { getDashboardNotifications } from "@/lib/internal-notifications";
 import { getRegisteredScheduleIdsForDate } from "@/lib/attendance/session-attendance";
+import { getDashboardCalendarEvents, type CalendarEventSummary } from "@/lib/calendar/ical";
+import { getTutorUnreadCommunicationsCount } from "@/lib/communications/notifications";
+import { getSubjectCoursesForTeacher, type TeacherSubjectCourse } from "@/lib/grades/grades";
+import type { DashboardNotification } from "@/lib/internal-notifications";
+import { getDashboardNotifications } from "@/lib/internal-notifications";
+import { formatScheduleTime, getTeacherScheduleForToday, getWeekdayLabel, type TeacherScheduleSlot } from "@/lib/tutors/schedule";
+import { GradebookBadge, GradebookCard, GradebookCardHeader, ProgressBar } from "@/components/grades/gradebook-design";
+import { StudentActivityTimeline, type StudentActivityItem } from "@/components/students/student-profile";
+import { WorkCenterTabs } from "@/components/dashboard/work-center-tabs";
 
-type DashboardIcon = typeof Layers3;
+type TutorDashboardTab = "pendientes" | "cuaderno" | "alumnos" | "comunicaciones" | "calendario";
 
-export default async function TutorDashboardPage() {
+type TutorDashboardPageProps = {
+  searchParams?: {
+    work_tab?: string;
+  };
+};
+
+const workTabs: Array<{ id: TutorDashboardTab; label: string }> = [
+  { id: "pendientes", label: "Pendientes" },
+  { id: "cuaderno", label: "Cuaderno" },
+  { id: "alumnos", label: "Mis alumnos" },
+  { id: "comunicaciones", label: "Comunicaciones" },
+  { id: "calendario", label: "Calendario" }
+];
+
+export default async function TutorDashboardPage({ searchParams }: TutorDashboardPageProps) {
   const profile = await requireRole("tutor");
+  const activeTab = normalizeWorkTab(searchParams?.work_tab);
   const [
     { items: subjectCourses, errorMessage: subjectsError },
     { count: unreadCommunications, errorMessage: communicationsError },
     { notifications: dashboardNotifications, unreadCount, errorMessage: dashboardNotificationsError },
-    { slots: todaySchedule, weekday, errorMessage: scheduleError }
+    { slots: todaySchedule, weekday, errorMessage: scheduleError },
+    { todayEvents, upcomingEvents, errorMessage: calendarError }
   ] = await Promise.all([
     getSubjectCoursesForTeacher(profile.id),
     getTutorUnreadCommunicationsCount(profile.id),
@@ -26,22 +46,34 @@ export default async function TutorDashboardPage() {
       role: "tutor",
       communicationHref: "/dashboard/tutor/communications"
     }),
-    getTeacherScheduleForToday(profile.id)
+    getTeacherScheduleForToday(profile.id),
+    getDashboardCalendarEvents()
   ]);
   const { registeredScheduleIds, errorMessage: scheduleRegistrationError } = await getRegisteredScheduleIdsForDate({
     teacherId: profile.id,
     scheduleIds: todaySchedule.filter((slot) => !slot.is_break).map((slot) => slot.id)
   });
-  const errorMessage = subjectsError ?? communicationsError ?? dashboardNotificationsError ?? scheduleError ?? scheduleRegistrationError;
+  const errorMessage = subjectsError ?? communicationsError ?? dashboardNotificationsError ?? scheduleError ?? scheduleRegistrationError ?? calendarError;
   const tutorName = profile.full_name ?? profile.email ?? "tutor";
+  const teachingSlots = todaySchedule.filter((slot) => !slot.is_break);
+  const pendingAttendance = teachingSlots.filter((slot) => !registeredScheduleIds.has(slot.id)).length;
+  const assignedCourseCount = countAssignedCourses(subjectCourses);
+  const activityItems = buildActivityItems(dashboardNotifications, todaySchedule, registeredScheduleIds);
 
   return (
-    <section className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-normal text-foreground">Buenos d&iacute;as, {tutorName}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Tutor&iacute;a y docencia organizadas para materias, alumnos, evaluaci&oacute;n y comunicaciones.
-        </p>
+    <section className="space-y-5">
+      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-950">Buenos días, {tutorName}</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Tutoría y docencia organizadas para decidir rápido qué toca hacer ahora.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <GradebookBadge tone={teachingSlots.length > 0 ? "blue" : "gray"}>{teachingSlots.length} clases hoy</GradebookBadge>
+          {pendingAttendance > 0 ? <GradebookBadge tone="amber">{pendingAttendance} listas pendientes</GradebookBadge> : null}
+          {unreadCommunications > 0 ? <GradebookBadge tone="amber">{unreadCommunications} comunicaciones pendientes</GradebookBadge> : null}
+        </div>
       </div>
 
       {errorMessage ? (
@@ -50,173 +82,364 @@ export default async function TutorDashboardPage() {
         </div>
       ) : null}
 
-      <NotificationsPanel notifications={dashboardNotifications} unreadCount={unreadCount} />
-      <CalendarSummaryCard href="/dashboard/tutor/calendar" />
-
-      <section className="rounded-lg border border-border bg-white p-5 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted text-primary">
-              <CalendarDays className="h-5 w-5" aria-hidden="true" />
-            </span>
-            <div>
-              <h2 className="text-sm font-semibold text-foreground">Horario de hoy</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {getWeekdayLabel(weekday)}. Accede directamente a cada clase para pasar lista.
-              </p>
-            </div>
-          </div>
-          <Link
-            href="/dashboard/tutor/attendance"
-            className="inline-flex h-9 w-fit items-center justify-center rounded-md border border-border bg-white px-3 text-xs font-semibold text-foreground transition hover:bg-muted"
-          >
-            Abrir pasar lista
-          </Link>
-        </div>
-
-        {todaySchedule.length === 0 ? (
-          <div className="mt-4 rounded-md border border-dashed border-border bg-[#f8fafc] p-4 text-sm text-muted-foreground">
-            <p>No hay clases programadas para hoy.</p>
-            <Link
-              href="/dashboard/tutor/schedule"
-              className="mt-3 inline-flex h-9 items-center justify-center rounded-md border border-border bg-white px-3 text-xs font-semibold text-foreground transition hover:bg-muted"
-            >
-              Ver horario completo
-            </Link>
-          </div>
-        ) : (
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            {todaySchedule.map((slot) => (
-              <ScheduleSlotCard key={slot.id} slot={slot} registered={registeredScheduleIds.has(slot.id)} />
-            ))}
-          </div>
-        )}
-      </section>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <DashboardSection
-          title="Mis materias"
-          description={
-            subjectCourses.length === 0
-              ? "No hay materias asignadas."
-              : `${subjectCourses.length} materia${subjectCourses.length === 1 ? "" : "s"} asignada${subjectCourses.length === 1 ? "" : "s"}.`
-          }
-          href="/dashboard/tutor/subjects"
-          icon={Layers3}
-          action="Ver materias"
-        />
-        <DashboardSection
-          title="Mis alumnos"
-          description="Busca alumnos, filtra por curso y accede a sus fichas."
-          href="/dashboard/tutor/students"
-          icon={Users}
-          action="Abrir alumnos"
-        />
-        <DashboardSection
-          title="Criterios de evaluacion"
-          description="Configura pesos y criterios por curso, materia y trimestre antes de evaluar."
-          href="/dashboard/tutor/evaluation-settings"
-          icon={Settings2}
-          action="Configurar criterios"
-        />
-        <DashboardSection
-          title="Cuaderno de calificaciones"
-          description="Introduce notas, comentarios, recomendaciones y cierres trimestrales."
-          href="/dashboard/tutor/gradebook"
-          icon={BookOpenCheck}
-          action="Abrir cuaderno"
-        />
-        <DashboardSection
-          title="Cierre final de curso"
-          description="Configura pesos anuales y cierra la nota final oficial por materia."
-          href="/dashboard/tutor/final-grades"
-          icon={FileCheck2}
-          action="Abrir cierre final"
-        />
-        <DashboardSection
-          title="Comunicaciones"
-          description={`${unreadCommunications} comunicacion${unreadCommunications === 1 ? "" : "es"} pendiente${unreadCommunications === 1 ? "" : "s"} de lectura por familias.`}
-          href="/dashboard/tutor/communications"
-          icon={Inbox}
-          action="Abrir bandeja"
-        />
-        <DashboardSection
-          title="Horario docente"
-          description="Consulta tu horario semanal y accede a pasar lista por clase."
-          href="/dashboard/tutor/schedule"
-          icon={CalendarDays}
-          action="Ver horario"
-        />
-        <DashboardSection
-          title="Calendario / Fechas de interes"
-          description="Consulta examenes, reuniones, salidas, evaluaciones y avisos importantes del centro."
-          href="/dashboard/tutor/calendar"
-          icon={CalendarDays}
-          action="Abrir calendario"
-        />
+      <div className="grid gap-4 xl:grid-cols-2">
+        <CompactNotifications notifications={dashboardNotifications} unreadCount={unreadCount} />
+        <CompactCalendar todayEvents={todayEvents} upcomingEvents={upcomingEvents} errorMessage={calendarError} />
       </div>
+
+      <TodayScheduleCard weekday={weekday} slots={todaySchedule} registeredScheduleIds={registeredScheduleIds} />
+
+      <WorkCenter
+        activeTab={activeTab}
+        subjectCourses={subjectCourses}
+        unreadCommunications={unreadCommunications}
+        pendingAttendance={pendingAttendance}
+        assignedCourseCount={assignedCourseCount}
+        dashboardNotifications={dashboardNotifications}
+        todayEvents={todayEvents}
+        upcomingEvents={upcomingEvents}
+      />
+
+      <StudentActivityTimeline items={activityItems} empty="Sin movimientos recientes registrados." />
     </section>
   );
 }
 
-function ScheduleSlotCard({ slot, registered }: { slot: TeacherScheduleSlot; registered: boolean }) {
-  const href = slot.is_break ? "/dashboard/tutor" : `/dashboard/tutor/attendance/${slot.id}`;
-
-  const content = (
-    <article
-      className={`rounded-md border p-4 transition ${
-        slot.is_break
-          ? "border-dashed border-border bg-[#f8fafc]"
-          : "border-border bg-white shadow-sm hover:-translate-y-0.5 hover:shadow-md"
-      }`}
-    >
+function CompactNotifications({ notifications, unreadCount }: { notifications: DashboardNotification[]; unreadCount: number }) {
+  return (
+    <GradebookCard className="p-4">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold text-primary">
-            {formatScheduleTime(slot.start_time)} - {formatScheduleTime(slot.end_time)}
-          </p>
-          <h3 className="mt-1 text-sm font-semibold text-foreground">{slot.course_name}</h3>
-          <p className="mt-1 text-sm text-muted-foreground">{slot.subject_name ?? "Sin materia"}</p>
+        <div className="flex items-start gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-700">
+            <Inbox className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <div>
+            <h2 className="text-sm font-semibold text-slate-950">Novedades</h2>
+            <p className="mt-1 text-sm text-slate-500">{unreadCount > 0 ? `${unreadCount} aviso${unreadCount === 1 ? "" : "s"} pendiente${unreadCount === 1 ? "" : "s"}.` : "Todo al día. No hay avisos pendientes."}</p>
+          </div>
         </div>
-        <span className="rounded-full border border-border bg-[#f8fafc] px-2 py-1 text-[11px] font-semibold text-muted-foreground">
-          {slot.is_break ? "Descanso" : registered ? "Asistencia registrada" : "Pendiente"}
-        </span>
+        <GradebookBadge tone={unreadCount > 0 ? "amber" : "green"}>{unreadCount > 0 ? "Pendiente" : "Todo al día"}</GradebookBadge>
       </div>
-    </article>
+      {notifications.length > 0 ? (
+        <div className="mt-3 space-y-2">
+          {notifications.slice(0, 2).map((notification) => (
+            <Link key={`${notification.source}-${notification.id}`} href={notification.href} className="block rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 transition hover:bg-white">
+              <p className="text-sm font-semibold text-slate-950">{notification.title}</p>
+              <p className="mt-1 line-clamp-1 text-xs text-slate-500">{notification.body}</p>
+            </Link>
+          ))}
+        </div>
+      ) : null}
+    </GradebookCard>
   );
-
-  if (slot.is_break) {
-    return content;
-  }
-
-  return <Link href={href}>{content}</Link>;
 }
 
-function DashboardSection({
-  title,
-  description,
-  href,
-  icon: Icon,
-  action
+function CompactCalendar({ todayEvents, upcomingEvents, errorMessage }: { todayEvents: CalendarEventSummary[]; upcomingEvents: CalendarEventSummary[]; errorMessage: string | null }) {
+  const events = [...todayEvents, ...upcomingEvents].slice(0, 3);
+  return (
+    <GradebookCard className="p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+            <CalendarDays className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <div>
+            <h2 className="text-sm font-semibold text-slate-950">Hoy y próximos eventos</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              {errorMessage ? "No se pudieron cargar los próximos eventos." : events.length > 0 ? "Fechas importantes del centro." : "No hay eventos programados para hoy ni los próximos días."}
+            </p>
+          </div>
+        </div>
+        <Link href="/dashboard/tutor/calendar" className="inline-flex h-9 shrink-0 items-center justify-center rounded-xl bg-sky-700 px-3 text-xs font-semibold text-white transition hover:bg-sky-800">
+          Ver calendario
+        </Link>
+      </div>
+      {events.length > 0 ? (
+        <div className="mt-3 grid gap-2 md:grid-cols-3">
+          {events.map((event) => (
+            <article key={event.id} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+              <p className="line-clamp-1 text-sm font-semibold text-slate-950">{event.title}</p>
+              <p className="mt-1 text-xs text-slate-500">{formatCalendarEventDate(event)}</p>
+            </article>
+          ))}
+        </div>
+      ) : null}
+    </GradebookCard>
+  );
+}
+
+function TodayScheduleCard({ weekday, slots, registeredScheduleIds }: { weekday: number | null; slots: TeacherScheduleSlot[]; registeredScheduleIds: Set<string> }) {
+  return (
+    <GradebookCard>
+      <GradebookCardHeader title="Horario de hoy">
+        <div className="flex items-center gap-2">
+          <GradebookBadge tone="blue">{weekday ? getWeekdayLabel(weekday) : "Hoy"}</GradebookBadge>
+          <Link href="/dashboard/tutor/schedule" className="text-xs font-semibold text-sky-700 hover:text-sky-900">Ver horario completo</Link>
+        </div>
+      </GradebookCardHeader>
+      <div className="p-3">
+        {slots.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-3 text-sm text-slate-500">No hay clases programadas para hoy.</div>
+        ) : (
+          <div className="grid gap-2 lg:grid-cols-2 xl:grid-cols-3">
+            {slots.map((slot) => <ScheduleSlotCard key={slot.id} slot={slot} registered={registeredScheduleIds.has(slot.id)} />)}
+          </div>
+        )}
+      </div>
+    </GradebookCard>
+  );
+}
+
+function ScheduleSlotCard({ slot, registered }: { slot: TeacherScheduleSlot; registered: boolean }) {
+  if (slot.is_break) {
+    return (
+      <article className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-2.5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold text-slate-500">{formatScheduleTime(slot.start_time)} - {formatScheduleTime(slot.end_time)}</p>
+            <h3 className="mt-0.5 text-sm font-semibold text-slate-950">Patio / descanso</h3>
+          </div>
+          <GradebookBadge tone="gray">Descanso</GradebookBadge>
+        </div>
+      </article>
+    );
+  }
+
+  return (
+    <article className="rounded-lg border border-slate-200 bg-white p-2.5 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold text-sky-700">{formatScheduleTime(slot.start_time)} - {formatScheduleTime(slot.end_time)}</p>
+          <h3 className="mt-0.5 truncate text-sm font-semibold text-slate-950">{slot.course_name}</h3>
+          <p className="mt-0.5 truncate text-xs text-slate-500">{slot.subject_name ?? "Sin materia"}</p>
+        </div>
+        <GradebookBadge tone={registered ? "green" : "amber"}>{registered ? "Registrada" : "Pendiente"}</GradebookBadge>
+      </div>
+      <Link href={`/dashboard/tutor/attendance/${slot.id}`} className="mt-2 inline-flex h-8 w-full items-center justify-center rounded-lg bg-sky-700 px-3 text-xs font-semibold text-white transition hover:bg-sky-800">
+        Pasar lista
+      </Link>
+    </article>
+  );
+}
+
+function WorkCenter({
+  activeTab,
+  subjectCourses,
+  unreadCommunications,
+  pendingAttendance,
+  assignedCourseCount,
+  dashboardNotifications,
+  todayEvents,
+  upcomingEvents
 }: {
-  title: string;
-  description: string;
-  href: string;
-  icon: DashboardIcon;
-  action: string;
+  activeTab: TutorDashboardTab;
+  subjectCourses: TeacherSubjectCourse[];
+  unreadCommunications: number;
+  pendingAttendance: number;
+  assignedCourseCount: number;
+  dashboardNotifications: DashboardNotification[];
+  todayEvents: CalendarEventSummary[];
+  upcomingEvents: CalendarEventSummary[];
 }) {
   return (
-    <Link href={href} className="rounded-lg border border-border bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:bg-muted hover:shadow-md">
-      <div className="flex items-start gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
-          <Icon className="h-5 w-5" aria-hidden="true" />
-        </span>
+    <GradebookCard>
+      <GradebookCardHeader title="Centro de trabajo">
+        <GradebookBadge tone="blue">Prioridades</GradebookBadge>
+      </GradebookCardHeader>
+      <WorkCenterTabs
+        initialTab={activeTab}
+        tabs={workTabs}
+        basePath="/dashboard/tutor"
+        panels={[
+          {
+            id: "pendientes",
+            content: <PendingPanel unreadCommunications={unreadCommunications} pendingAttendance={pendingAttendance} />
+          },
+          {
+            id: "cuaderno",
+            content: <GradebookPanel subjectCourses={subjectCourses} assignedCourseCount={assignedCourseCount} />
+          },
+          {
+            id: "alumnos",
+            content: <StudentsPanel subjectCourses={subjectCourses} unreadCommunications={unreadCommunications} />
+          },
+          {
+            id: "comunicaciones",
+            content: <CommunicationsPanel unreadCommunications={unreadCommunications} notifications={dashboardNotifications} />
+          },
+          {
+            id: "calendario",
+            content: <CalendarPanel todayEvents={todayEvents} upcomingEvents={upcomingEvents} />
+          }
+        ]}
+      />
+    </GradebookCard>
+  );
+}
+
+function PendingPanel({ unreadCommunications, pendingAttendance }: { unreadCommunications: number; pendingAttendance: number }) {
+  const items = [
+    pendingAttendance > 0 ? { title: "Pasar lista pendiente", description: `${pendingAttendance} clase${pendingAttendance === 1 ? "" : "s"} de hoy sin asistencia registrada.`, href: "/dashboard/tutor/attendance", icon: ClipboardList, tone: "amber" as const } : null,
+    unreadCommunications > 0 ? { title: "Comunicaciones por leer", description: `${unreadCommunications} mensaje${unreadCommunications === 1 ? "" : "s"} pendiente${unreadCommunications === 1 ? "" : "s"}.`, href: "/dashboard/tutor/communications", icon: Inbox, tone: "amber" as const } : null
+  ].filter((item): item is NonNullable<typeof item> => Boolean(item));
+
+  if (items.length === 0) {
+    return <EmptyWorkState title="✓ Todo al día" description="No tienes acciones pendientes." />;
+  }
+
+  return <div className="grid gap-3 lg:grid-cols-3">{items.map((item) => <WorkItem key={item.title} {...item} />)}</div>;
+}
+
+function GradebookPanel({ subjectCourses, assignedCourseCount }: { subjectCourses: TeacherSubjectCourse[]; assignedCourseCount: number }) {
+  const maxCourses = Math.max(1, ...subjectCourses.map((item) => item.courses.length));
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-sm font-semibold text-foreground">{title}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-          <p className="mt-3 text-xs font-semibold text-primary">{action}</p>
+          <p className="text-sm font-semibold text-slate-950">Resumen del cuaderno</p>
+          <p className="mt-1 text-sm text-slate-500">Materias y cursos asignados al tutor. El detalle de notas vive en el cuaderno.</p>
+        </div>
+        <Link href="/dashboard/tutor/gradebook" className="inline-flex h-10 w-fit items-center justify-center rounded-xl bg-sky-700 px-3 text-sm font-semibold text-white transition hover:bg-sky-800">Abrir cuaderno</Link>
+      </div>
+      {subjectCourses.length === 0 ? <EmptyWorkState title="Sin materias asignadas" description="No hay materias disponibles para mostrar en el cuaderno." /> : (
+        <div className="grid gap-3 md:grid-cols-2">
+          {subjectCourses.slice(0, 6).map((item) => {
+            const value = Math.round((item.courses.length / maxCourses) * 100);
+            return (
+              <div key={item.subject.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-950">{item.subject.name}</p>
+                    <p className="mt-1 text-xs text-slate-500">{item.courses.length} curso{item.courses.length === 1 ? "" : "s"} asignado{item.courses.length === 1 ? "" : "s"}</p>
+                  </div>
+                  <GradebookBadge tone="blue">{value}%</GradebookBadge>
+                </div>
+                <div className="mt-3"><ProgressBar value={value} /></div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <p className="text-xs text-slate-500">Total: {assignedCourseCount} curso{assignedCourseCount === 1 ? "" : "s"} asignado{assignedCourseCount === 1 ? "" : "s"}.</p>
+    </div>
+  );
+}
+
+function StudentsPanel({ subjectCourses, unreadCommunications }: { subjectCourses: TeacherSubjectCourse[]; unreadCommunications: number }) {
+  const courseCount = countAssignedCourses(subjectCourses);
+  return (
+    <div className="grid gap-3 md:grid-cols-4">
+      <SummaryTile label="Cursos" value={courseCount} />
+      <SummaryTile label="Materias" value={subjectCourses.length} />
+      <SummaryTile label="Comunicaciones" value={unreadCommunications} />
+      <SummaryTile label="Incidencias" value="Ver ficha" />
+      <div className="md:col-span-4">
+        <Link href="/dashboard/tutor/students" className="inline-flex h-10 items-center justify-center rounded-xl bg-sky-700 px-3 text-sm font-semibold text-white transition hover:bg-sky-800">Abrir Mis alumnos</Link>
+      </div>
+    </div>
+  );
+}
+
+function CommunicationsPanel({ unreadCommunications, notifications }: { unreadCommunications: number; notifications: DashboardNotification[] }) {
+  return (
+    <div className="space-y-3">
+      <div className="grid gap-3 md:grid-cols-3">
+        <SummaryTile label="Mensajes nuevos" value={unreadCommunications} />
+        <SummaryTile label="Novedades" value={notifications.length} />
+        <SummaryTile label="Pendientes" value={notifications.filter((notification) => !notification.read).length} />
+      </div>
+      <Link href="/dashboard/tutor/communications" className="inline-flex h-10 items-center justify-center rounded-xl bg-sky-700 px-3 text-sm font-semibold text-white transition hover:bg-sky-800">Abrir comunicaciones</Link>
+    </div>
+  );
+}
+
+function CalendarPanel({ todayEvents, upcomingEvents }: { todayEvents: CalendarEventSummary[]; upcomingEvents: CalendarEventSummary[] }) {
+  const events = [...todayEvents, ...upcomingEvents].slice(0, 4);
+  return (
+    <div className="space-y-3">
+      {events.length === 0 ? <EmptyWorkState title="Sin eventos próximos" description="No hay eventos programados para hoy ni los próximos días." /> : (
+        <div className="grid gap-3 md:grid-cols-2">
+          {events.map((event) => (
+            <article key={event.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <p className="text-sm font-semibold text-slate-950">{event.title}</p>
+              <p className="mt-1 text-xs text-slate-500">{formatCalendarEventDate(event)}</p>
+            </article>
+          ))}
+        </div>
+      )}
+      <Link href="/dashboard/tutor/calendar" className="inline-flex h-10 items-center justify-center rounded-xl bg-sky-700 px-3 text-sm font-semibold text-white transition hover:bg-sky-800">Abrir calendario</Link>
+    </div>
+  );
+}
+
+function WorkItem({ title, description, href, icon: Icon, tone }: { title: string; description: string; href: string; icon: LucideIcon; tone: "blue" | "amber" }) {
+  const toneClass = tone === "amber" ? "bg-amber-50 text-amber-700" : "bg-sky-50 text-sky-700";
+  return (
+    <Link href={href} className="rounded-lg border border-slate-200 bg-slate-50 p-3 transition hover:bg-white">
+      <div className="flex items-start gap-3">
+        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${toneClass}`}><Icon className="h-4 w-4" /></span>
+        <div>
+          <p className="text-sm font-semibold text-slate-950">{title}</p>
+          <p className="mt-1 text-xs text-slate-500">{description}</p>
         </div>
       </div>
     </Link>
   );
+}
+
+function SummaryTile({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
+      <p className="mt-1 text-xl font-bold text-slate-950">{value}</p>
+    </div>
+  );
+}
+
+function EmptyWorkState({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4">
+      <p className="text-sm font-semibold text-slate-950">{title}</p>
+      <p className="mt-1 text-sm text-slate-500">{description}</p>
+    </div>
+  );
+}
+
+function buildActivityItems(notifications: DashboardNotification[], schedule: TeacherScheduleSlot[], registeredScheduleIds: Set<string>): StudentActivityItem[] {
+  const notificationItems: StudentActivityItem[] = notifications.slice(0, 4).map((notification) => ({
+    id: `${notification.source}-${notification.id}`,
+    title: notification.title,
+    meta: notification.source === "communication" ? "Comunicación pendiente" : notification.body,
+    date: notification.created_at,
+    tone: notification.read ? "gray" : "blue",
+    kind: notification.source === "communication" ? "communication" : "observation"
+  }));
+  const attendanceItems: StudentActivityItem[] = schedule
+    .filter((slot) => !slot.is_break && registeredScheduleIds.has(slot.id))
+    .slice(0, 2)
+    .map((slot) => ({
+      id: `attendance-${slot.id}`,
+      title: "Asistencia registrada",
+      meta: `${slot.course_name} · ${slot.subject_name ?? "Sin materia"}`,
+      date: new Date().toISOString(),
+      tone: "green" as const,
+      kind: "attendance" as const
+    }));
+
+  return [...notificationItems, ...attendanceItems].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
+}
+
+function countAssignedCourses(subjectCourses: TeacherSubjectCourse[]) {
+  return new Set(subjectCourses.flatMap((item) => item.courses.map((course) => course.id))).size;
+}
+
+function normalizeWorkTab(tab?: string): TutorDashboardTab {
+  return workTabs.some((item) => item.id === tab) ? (tab as TutorDashboardTab) : "pendientes";
+}
+
+function formatCalendarEventDate(event: CalendarEventSummary) {
+  const date = new Intl.DateTimeFormat("es-ES", { weekday: "short", day: "2-digit", month: "short" }).format(event.startsAt);
+  if (event.allDay) return `${date} · Todo el día`;
+  const time = new Intl.DateTimeFormat("es-ES", { hour: "2-digit", minute: "2-digit" }).format(event.startsAt);
+  return `${date} · ${time}`;
 }

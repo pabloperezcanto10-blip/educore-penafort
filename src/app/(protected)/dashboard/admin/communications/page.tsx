@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Eye, Forward, Inbox, MailOpen, MessageCircleReply, Search, Star } from "lucide-react";
 import { getAdminCourses, getAdminProfiles, getAdminStudents, getProfileDisplayName, getStudentDisplayName, type AdminProfile } from "@/lib/admin/admin";
+import { CommunicationBadge, CommunicationEmptyState, CommunicationMessageBubble, ConversationContextGrid, ConversationListCard } from "@/components/communications/communication-design";
 import { requireRole } from "@/lib/auth/session";
 import { createAdminClient, hasSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -160,9 +161,11 @@ export default async function AdminCommunicationsPage({ searchParams }: PageProp
                 No se pudieron cargar las comunicaciones: {errorMessage}
               </div>
             ) : conversations.length === 0 ? (
-              <div className="mt-4 rounded-md border border-dashed border-border p-4 text-sm text-muted-foreground">
-                No hay conversaciones para esta busqueda.
-              </div>
+              <CommunicationEmptyState
+                title="No hay conversaciones"
+                description="No hay conversaciones para esta busqueda. Ajusta los filtros o limpia la busqueda."
+                className="mt-4"
+              />
             ) : (
               <div className="mt-4 space-y-2">
                 {conversations.map((conversation) => (
@@ -261,34 +264,21 @@ function ConversationListItem({
   searchParams: PageProps["searchParams"];
 }) {
   return (
-    <Link
+    <ConversationListCard
       href={hrefWith(searchParams, { c: conversation.id })}
-      className={`block rounded-lg border p-3 transition ${
-        active ? "border-primary bg-primary/5" : "border-border bg-white hover:bg-muted"
-      }`}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="truncate text-sm font-semibold text-foreground">{conversation.title}</p>
-            {conversation.unreadCount > 0 ? (
-              <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">
-                {conversation.unreadCount}
-              </span>
-            ) : null}
-          </div>
-          <p className="mt-1 truncate text-xs text-muted-foreground">{conversation.subtitle}</p>
-        </div>
-        <time className="shrink-0 text-xs text-muted-foreground">{formatShortDate(conversation.lastMessage.created_at)}</time>
-      </div>
-      <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{conversation.lastMessage.message}</p>
-      <div className="mt-3 flex flex-wrap items-center gap-1.5">
-        <Badge>{getCategoryLabel(conversation.lastMessage.category)}</Badge>
-        {conversation.lastMessage.courseName !== "Sin curso" ? <Badge>{conversation.lastMessage.courseName}</Badge> : null}
-        {conversation.isClosed ? <Badge>Cerrada</Badge> : null}
-        {conversation.unreadCount > 0 ? <span className="h-2 w-2 rounded-full bg-primary" aria-label="No leida" /> : null}
-      </div>
-    </Link>
+      active={active}
+      title={conversation.title}
+      subtitle={conversation.subtitle}
+      date={formatShortDate(conversation.lastMessage.created_at)}
+      preview={conversation.lastMessage.message}
+      unreadCount={conversation.unreadCount}
+      badges={[
+        { label: getCategoryLabel(conversation.lastMessage.category), tone: "blue" },
+        ...(conversation.lastMessage.courseName !== "Sin curso" ? [{ label: conversation.lastMessage.courseName, tone: "gray" as const }] : []),
+        { label: conversation.isClosed ? "Cerrada" : "Abierta", tone: conversation.isClosed ? "gray" : "green" },
+        ...(conversation.isImportant ? [{ label: "Importante", tone: "amber" as const }] : [])
+      ]}
+    />
   );
 }
 
@@ -324,12 +314,14 @@ function ConversationDetail({
           <div>
             <h2 className="text-lg font-semibold text-foreground">{conversation.title}</h2>
             <p className="mt-1 text-sm text-muted-foreground">{conversation.subtitle}</p>
-            <div className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2 xl:grid-cols-4">
-              <Info label="Remitente" value={latest.senderName} />
-              <Info label="Destinatario" value={latest.receiverName} />
-              <Info label="Alumno" value={latest.studentName} />
-              <Info label="Curso" value={latest.courseName} />
-            </div>
+            <ConversationContextGrid
+              items={[
+                { label: "Remitente", value: latest.senderName },
+                { label: "Destinatario", value: latest.receiverName },
+                { label: "Alumno", value: latest.studentName },
+                { label: "Curso", value: latest.courseName }
+              ]}
+            />
             <div className="mt-3 flex flex-wrap gap-2">
               <Badge>{getCategoryLabel(latest.category)}</Badge>
               {latest.courseName !== "Sin curso" ? <Badge>{latest.courseName}</Badge> : null}
@@ -380,7 +372,7 @@ function ConversationDetail({
         </div>
       </header>
 
-      <div className="flex-1 space-y-4 overflow-y-auto bg-background p-5">
+      <div className="flex-1 space-y-5 overflow-y-auto bg-slate-50 p-5">
         {messages.map((message) => (
           <MessageBubble key={message.id} message={message} />
         ))}
@@ -434,25 +426,18 @@ function ConversationDetail({
 
 function MessageBubble({ message }: { message: LabeledCommunication }) {
   return (
-    <article className="flex justify-start">
-      <div className="max-w-2xl rounded-2xl border border-border bg-white px-4 py-3 shadow-sm">
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <span className="font-semibold text-foreground">{message.senderName}</span>
-          <span>para</span>
-          <span className="font-semibold text-foreground">{message.receiverName}</span>
-          <span>{formatDate(message.created_at)}</span>
-        </div>
-        <div className="mt-2 flex flex-wrap gap-2">
-          <Badge>{getCategoryLabel(message.category)}</Badge>
-          <Badge>{message.read ? "Leido" : "No leido"}</Badge>
-          <Badge>{message.status === "closed" ? "Cerrada" : "Abierta"}</Badge>
-          {message.studentName !== "Sin alumno" ? <Badge>{message.studentName}</Badge> : null}
-          {message.courseName !== "Sin curso" ? <Badge>{message.courseName}</Badge> : null}
-        </div>
-        <h3 className="mt-3 text-sm font-semibold text-foreground">{message.title}</h3>
-        <p className="mt-2 whitespace-pre-line text-sm text-muted-foreground">{message.message}</p>
-      </div>
-    </article>
+    <CommunicationMessageBubble
+      title={`${message.senderName} para ${message.receiverName}`}
+      meta={formatDate(message.created_at)}
+      message={message.message}
+      badges={[
+        { label: getCategoryLabel(message.category), tone: "blue" },
+        { label: message.read ? "Leido" : "No leido", tone: message.read ? "green" : "amber" },
+        { label: message.status === "closed" ? "Cerrada" : "Abierta", tone: message.status === "closed" ? "gray" : "green" },
+        ...(message.studentName !== "Sin alumno" ? [{ label: message.studentName, tone: "gray" as const }] : []),
+        ...(message.courseName !== "Sin curso" ? [{ label: message.courseName, tone: "gray" as const }] : [])
+      ]}
+    />
   );
 }
 
@@ -669,7 +654,7 @@ function Info({ label, value }: { label: string; value: string }) {
 }
 
 function Badge({ children }: { children: string }) {
-  return <span className="rounded-md border border-border bg-white px-2 py-1 text-xs font-medium">{children}</span>;
+  return <CommunicationBadge>{children}</CommunicationBadge>;
 }
 
 async function createCommunicationClient(): Promise<AdminCommunicationClient> {

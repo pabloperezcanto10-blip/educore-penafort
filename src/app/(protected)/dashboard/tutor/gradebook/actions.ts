@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -134,7 +134,7 @@ export async function saveGradebook(formData: FormData) {
 
   revalidatePath("/dashboard/tutor/gradebook");
   revalidatePath("/dashboard/family");
-  redirect(withToast(buildGradebookHref({ courseId, subjectId, term, assessmentType, assessmentName, assessmentDate }), "success", "Calificacion guardada."));
+  redirect(withToast(buildGradebookHref({ courseId, subjectId, term, assessmentType, assessmentName, assessmentDate }), "success", "Calificación guardada."));
 }
 
 export async function saveEvaluationCriterion(formData: FormData) {
@@ -428,7 +428,7 @@ export async function saveTermSubjectGrades(formData: FormData) {
   revalidatePath("/dashboard/tutor/gradebook");
   revalidatePath("/dashboard/director/gradebook");
   revalidatePath("/dashboard/admin/gradebook");
-  redirect(withToast(buildGradebookHref({ courseId, subjectId, term }), "success", status === "closed" ? "Evaluacion cerrada correctamente." : "Borrador guardado correctamente."));
+  redirect(withToast(buildGradebookHref({ courseId, subjectId, term }), "success", status === "closed" ? "Evaluación cerrada correctamente." : "Borrador guardado correctamente."));
 }
 
 async function notifyFamiliesAboutGradebookRows(
@@ -560,7 +560,7 @@ export async function reopenTermSubjectGrade(formData: FormData) {
   revalidatePath("/dashboard/tutor/gradebook");
   revalidatePath("/dashboard/director/reports");
   revalidatePath("/dashboard/admin/reports");
-  redirect(withToast(`/dashboard/tutor/gradebook?course_id=${currentGrade.course_id}&subject_id=${currentGrade.subject_id}&term=${currentGrade.term}`, "success", "Evaluacion reabierta correctamente."));
+  redirect(withToast(`/dashboard/tutor/gradebook?course_id=${currentGrade.course_id}&subject_id=${currentGrade.subject_id}&term=${currentGrade.term}`, "success", "Evaluación reabierta correctamente."));
 }
 
 async function assertEvaluationIsNotPublished(
@@ -704,3 +704,5 @@ function buildGradebookHref({
 
   return `/dashboard/tutor/gradebook?${params.toString()}`;
 }
+
+

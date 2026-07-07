@@ -1,7 +1,25 @@
 import Link from "next/link";
-import { BookOpenCheck, CalendarCheck, GraduationCap, History, Layers3, MessageSquarePlus, UserRound } from "lucide-react";
+import {
+  BookOpenCheck,
+  CalendarCheck,
+  ChevronRight,
+  GraduationCap,
+  History,
+  Layers3,
+  MessageSquarePlus,
+  UserRound,
+  type LucideIcon
+} from "lucide-react";
+
 import { requireRole } from "@/lib/auth/session";
-import { getStudentsForCourse, getSubjectCoursesForTeacher, type GradebookCourse, type GradebookStudent, type TeacherSubjectCourse } from "@/lib/grades/grades";
+import { GradebookBadge, GradebookCard, GradebookCardHeader } from "@/components/grades/gradebook-design";
+import {
+  getStudentsForCourse,
+  getSubjectCoursesForTeacher,
+  type GradebookCourse,
+  type GradebookStudent,
+  type TeacherSubjectCourse
+} from "@/lib/grades/grades";
 
 type TutorSubjectsPageProps = {
   searchParams?: {
@@ -23,15 +41,18 @@ export default async function TutorSubjectsPage({ searchParams }: TutorSubjectsP
   const studentsByCourse = new Map(studentsByCourseEntries);
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-5">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-normal text-foreground">Mis materias</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-950">Mis materias</h1>
+          <p className="mt-1 text-sm text-slate-500">
             Materias asignadas organizadas por curso. Abre solo el curso que necesites consultar.
           </p>
         </div>
-        <Link href="/dashboard/tutor" className="inline-flex h-10 w-fit items-center justify-center rounded-md border border-border bg-white px-3 text-sm font-medium transition hover:bg-muted">
+        <Link
+          href="/dashboard/tutor"
+          className="inline-flex h-10 w-fit items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+        >
           Volver al dashboard
         </Link>
       </div>
@@ -41,7 +62,7 @@ export default async function TutorSubjectsPage({ searchParams }: TutorSubjectsP
           No se pudieron cargar las materias: {errorMessage}
         </div>
       ) : items.length === 0 || !activeSubject ? (
-        <div className="rounded-lg border border-dashed border-border bg-white p-6 text-sm text-muted-foreground">
+        <div className="rounded-lg border border-dashed border-slate-200 bg-white p-6 text-sm text-slate-500">
           No tienes materias asignadas.
         </div>
       ) : (
@@ -56,7 +77,7 @@ export default async function TutorSubjectsPage({ searchParams }: TutorSubjectsP
 
 function SubjectTabs({ items, activeSubjectId }: { items: TeacherSubjectCourse[]; activeSubjectId: string }) {
   return (
-    <nav className="flex gap-2 overflow-x-auto rounded-lg border border-border bg-white p-2 shadow-sm" aria-label="Materias">
+    <nav className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-2 shadow-sm" aria-label="Materias">
       {items.map((item) => {
         const active = item.subject.id === activeSubjectId;
 
@@ -64,8 +85,8 @@ function SubjectTabs({ items, activeSubjectId }: { items: TeacherSubjectCourse[]
           <Link
             key={item.subject.id}
             href={`/dashboard/tutor/subjects?subject_id=${item.subject.id}`}
-            className={`inline-flex h-10 shrink-0 items-center justify-center rounded-md px-4 text-sm font-semibold transition ${
-              active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            className={`inline-flex h-10 shrink-0 items-center justify-center rounded-xl px-4 text-sm font-semibold transition ${
+              active ? "bg-sky-700 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
             }`}
           >
             {item.subject.name}
@@ -84,20 +105,20 @@ function SubjectPanel({
   studentsByCourse: Map<string, GradebookStudent[]>;
 }) {
   return (
-    <article className="rounded-lg border border-border bg-white p-5 shadow-sm">
-      <div className="flex items-center gap-3">
-        <span className="flex h-10 w-10 items-center justify-center rounded-md bg-primary text-primary-foreground">
-          <Layers3 className="h-5 w-5" aria-hidden="true" />
-        </span>
-        <div>
-          <h2 className="text-sm font-semibold text-foreground">{item.subject.name}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+    <GradebookCard>
+      <GradebookCardHeader title={item.subject.name}>
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-700">
+            <Layers3 className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <p className="text-sm text-slate-500">
             {item.courses.length} curso{item.courses.length === 1 ? "" : "s"} asociado{item.courses.length === 1 ? "" : "s"}.
           </p>
         </div>
-      </div>
+        <GradebookBadge tone="blue">{item.courses.length} cursos</GradebookBadge>
+      </GradebookCardHeader>
 
-      <div className="mt-5 space-y-3">
+      <div className="space-y-2 p-4">
         {item.courses.map((course) => (
           <CourseAccordion
             key={course.id}
@@ -107,7 +128,7 @@ function SubjectPanel({
           />
         ))}
       </div>
-    </article>
+    </GradebookCard>
   );
 }
 
@@ -124,16 +145,16 @@ function CourseAccordion({
   const historyHref = `/dashboard/tutor/attendance-history?course_id=${course.id}&subject_id=${subjectId}`;
 
   return (
-    <details className="group rounded-md border border-border bg-white">
-      <summary className="flex cursor-pointer list-none flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+    <details className="group rounded-lg border border-slate-200 bg-white shadow-sm">
+      <summary className="flex cursor-pointer list-none flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <span className="text-lg text-primary transition group-open:rotate-90">▸</span>
+          <ChevronRight className="h-4 w-4 text-sky-700 transition group-open:rotate-90" aria-hidden="true" />
           <div>
             <div className="flex items-center gap-2">
-              <GraduationCap className="h-4 w-4 text-primary" aria-hidden="true" />
-              <h3 className="text-sm font-semibold text-foreground">{course.name}</h3>
+              <GraduationCap className="h-4 w-4 text-sky-700" aria-hidden="true" />
+              <h3 className="text-sm font-semibold text-slate-950">{course.name}</h3>
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-slate-500">
               {students.length} alumno{students.length === 1 ? "" : "s"} activo{students.length === 1 ? "" : "s"}.
             </p>
           </div>
@@ -145,15 +166,17 @@ function CourseAccordion({
         </div>
       </summary>
 
-      <div className="border-t border-border px-4 pb-4">
+      <div className="border-t border-slate-200 px-3 pb-3">
         {students.length === 0 ? (
-          <p className="py-4 text-sm text-muted-foreground">No hay alumnos activos en este curso.</p>
+          <p className="mt-3 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+            No hay alumnos activos en este curso.
+          </p>
         ) : (
-          <ul className="divide-y divide-border">
+          <ul className="divide-y divide-slate-200">
             {students.map((student) => (
               <li key={student.id}>
-                <div className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
-                  <span className="text-sm font-medium text-foreground">
+                <div className="flex flex-col gap-2 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+                  <span className="text-sm font-semibold text-slate-950">
                     {student.name} {student.last_name}
                   </span>
                   <div className="flex flex-wrap gap-2">
@@ -177,15 +200,15 @@ function ActionLink({
   primary = false
 }: {
   href: string;
-  icon: typeof BookOpenCheck;
+  icon: LucideIcon;
   label: string;
   primary?: boolean;
 }) {
   return (
     <Link
       href={href}
-      className={`inline-flex h-9 w-fit items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold transition ${
-        primary ? "bg-primary text-primary-foreground hover:opacity-95" : "border border-border bg-white text-foreground hover:bg-muted"
+      className={`inline-flex h-9 w-fit items-center justify-center gap-2 rounded-lg px-3 text-sm font-semibold transition ${
+        primary ? "bg-sky-700 text-white hover:bg-sky-800" : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
       }`}
     >
       <Icon className="h-4 w-4" aria-hidden="true" />

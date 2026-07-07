@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type { ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
@@ -56,7 +56,7 @@ export function GradebookFilters({
   }
 
   return (
-    <form className="grid gap-3 rounded-lg border border-border bg-white p-5 lg:grid-cols-5">
+    <form className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white px-5 py-4 shadow-sm">
       <Select
         name="course_id"
         label="Curso"
@@ -98,10 +98,10 @@ export function GradebookFilters({
         }))}
       />
       <Input name="assessment_date" label="Fecha" type="date" defaultValue={assessmentDate} />
-      <div className="lg:col-span-5">
+      <div>
         <button
           type="submit"
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
+          className="inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-md bg-blue-800 px-4 text-[13px] font-semibold text-white shadow-sm transition hover:bg-blue-900"
         >
           <BookOpenCheck className="h-4 w-4" aria-hidden="true" />
           Cargar cuaderno
@@ -138,12 +138,12 @@ function Select({
       };
 
   return (
-    <label className="space-y-2">
-      <span className="block text-sm font-medium text-foreground">{label}</span>
+    <label className="flex min-w-[140px] flex-1 flex-col gap-1">
+      <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{label}</span>
       <select
         name={name}
         {...selectProps}
-        className="h-11 w-full rounded-md border border-border bg-white px-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+        className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-[13px] text-slate-900 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10"
       >
         <option value="">Selecciona</option>
         {options.map((option) => (
@@ -168,14 +168,15 @@ function Input({
   type?: string;
 }) {
   return (
-    <label className="space-y-2">
-      <span className="block text-sm font-medium text-foreground">{label}</span>
+    <label className="flex min-w-[140px] flex-1 flex-col gap-1">
+      <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{label}</span>
       <input
         name={name}
         type={type}
         defaultValue={defaultValue}
-        className="h-11 w-full rounded-md border border-border bg-white px-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+        className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-[13px] text-slate-900 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10"
       />
     </label>
   );
 }
+

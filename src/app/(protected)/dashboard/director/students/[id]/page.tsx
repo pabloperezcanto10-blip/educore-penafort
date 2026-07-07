@@ -5,11 +5,8 @@ import {
   Bell,
   BookOpen,
   ClipboardList,
-  Eye,
-  FileText,
   GraduationCap,
-  MessageSquarePlus,
-  ShieldCheck
+  MessageSquarePlus
 } from "lucide-react";
 import { requireRole } from "@/lib/auth/session";
 import { getAttendanceLabel, type AttendanceRecord } from "@/lib/attendance/attendance";
@@ -22,7 +19,15 @@ import {
   type GradeWithLabels,
   type TermSubjectGradeWithLabels
 } from "@/lib/grades/grades";
-import type { StudentIncident, StudentObservation, TutorStudentDetail } from "@/lib/tutors/students";
+import type { StudentIncident, StudentObservation } from "@/lib/tutors/students";
+import {
+  StudentActivityTimeline,
+  StudentProfileHeader,
+  StudentProfileTabs,
+  StudentQuickActions,
+  StudentStatusDashboard,
+  type StudentActivityItem
+} from "@/components/students/student-profile";
 
 type DirectorStudentTab = "resumen" | "comunicaciones" | "calificaciones" | "incidencias" | "asistencia" | "observaciones";
 
@@ -38,6 +43,8 @@ type DirectorStudentDetailPageProps = {
     term?: string;
   };
 };
+
+const terms: GradeTerm[] = ["1", "2", "3"];
 
 const tabs: Array<{ id: DirectorStudentTab; label: string }> = [
   { id: "resumen", label: "Resumen" },
@@ -64,7 +71,7 @@ export default async function DirectorStudentDetailPage({ params, searchParams }
 
   if (errorMessage && !student) {
     return (
-      <section className="space-y-6">
+      <section className="space-y-5">
         <BackLink />
         <div className="rounded-lg border border-red-200 bg-red-50 p-5 text-sm text-red-700">
           No se pudo cargar la ficha del alumno: {errorMessage}
@@ -75,7 +82,7 @@ export default async function DirectorStudentDetailPage({ params, searchParams }
 
   if (!student) {
     return (
-      <section className="space-y-6">
+      <section className="space-y-5">
         <BackLink />
         <div className="rounded-lg border border-border bg-white p-6">
           <h1 className="text-xl font-semibold text-foreground">Alumno no encontrado</h1>
@@ -84,36 +91,18 @@ export default async function DirectorStudentDetailPage({ params, searchParams }
     );
   }
 
-  const absences = attendance.filter((record) => record.status === "absent").length;
-  const lates = attendance.filter((record) => record.status === "late").length;
-
   return (
-    <section className="space-y-6">
-      <BackLink />
-
-      <header className="rounded-lg border border-border bg-white p-5">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-semibold tracking-normal text-foreground">
-                {student.name} {student.last_name}
-              </h1>
-              <span className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium text-muted-foreground">
-                <ShieldCheck className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
-                {student.active ? "Activo" : "Inactivo"}
-              </span>
-            </div>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Supervisión académica, convivencia, asistencia y comunicaciones.
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
-            <Metric label="Faltas" value={absences} />
-            <Metric label="Retrasos" value={lates} />
-            <Metric label="Incidencias" value={incidents.length} />
-          </div>
-        </div>
-      </header>
+    <section className="space-y-5">
+      <StudentProfileHeader backHref="/dashboard/director/students" backLabel="← Volver a alumnos" studentName={`${student.name} ${student.last_name}`.trim()} courseName={student.courses?.name ?? student.course_id} tutorName="Tutor asociado al curso" active={student.active} />
+      <StudentQuickActions
+        title="Acciones de supervisión"
+        description="Consulta el seguimiento del alumno sin modificar los registros del tutor."
+        actions={[
+          { label: "Abrir cuaderno", href: `/dashboard/director/gradebook?student_id=${params.id}`, icon: GraduationCap, primary: true },
+          { label: "Ver comunicaciones", href: tabHref(params.id, "comunicaciones"), icon: Bell },
+          { label: "Ver calificaciones", href: tabHref(params.id, "calificaciones"), icon: ClipboardList }
+        ]}
+      />
 
       {errorMessage ? (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
@@ -121,28 +110,16 @@ export default async function DirectorStudentDetailPage({ params, searchParams }
         </div>
       ) : null}
 
-      <nav className="flex gap-2 overflow-x-auto rounded-lg border border-border bg-white p-2" aria-label="Pestañas de ficha">
-        {tabs.map((tab) => (
-          <Link
-            key={tab.id}
-            href={tabHref(params.id, tab.id)}
-            className={`whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition ${
-              activeTab === tab.id ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-            }`}
-          >
-            {tab.label}
-          </Link>
-        ))}
-      </nav>
+      <StudentProfileTabs activeTab={activeTab} tabs={tabs.map((tab) => ({ ...tab, href: tabHref(params.id, tab.id) }))} />
 
       {activeTab === "resumen" ? (
         <SummaryTab
-          student={student}
           attendance={attendance}
           incidents={incidents}
           observations={observations}
           communications={communications}
           grades={grades}
+          termGrades={termGrades}
         />
       ) : null}
 
@@ -174,84 +151,45 @@ export default async function DirectorStudentDetailPage({ params, searchParams }
 }
 
 function SummaryTab({
-  student,
   attendance,
   incidents,
   observations,
   communications,
-  grades
+  grades,
+  termGrades
 }: {
-  student: TutorStudentDetail;
   attendance: AttendanceRecord[];
   incidents: StudentIncident[];
   observations: StudentObservation[];
   communications: DirectorCommunication[];
   grades: GradeWithLabels[];
+  termGrades: TermSubjectGradeWithLabels[];
 }) {
   const absences = attendance.filter((record) => record.status === "absent").length;
   const lates = attendance.filter((record) => record.status === "late").length;
-  const recentIncidents = incidents.slice(0, 3);
-  const alerts = buildAlerts(absences, lates, incidents, observations, communications, grades);
+  const recentAttendance = attendance.filter((record) => record.status === "absent" || record.status === "late").slice(0, 5);
+  const latestItems = buildDirectorLatestActivity({ incidents, observations, communications, grades, recentAttendance });
+  const averageGrade = calculateAverageGrade(grades);
+  const latestGrade = grades[0];
+  const progress = calculateEvaluationProgress(termGrades, grades);
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[1fr_0.9fr]">
-      <section className="rounded-lg border border-border bg-white p-5">
-        <div className="flex items-center gap-3">
-          <FileText className="h-5 w-5 text-primary" aria-hidden="true" />
-          <h2 className="text-sm font-semibold text-foreground">Resumen del alumno</h2>
-        </div>
-        <dl className="mt-5 grid gap-4 sm:grid-cols-2">
-          <Field label="Nombre" value={student.name} />
-          <Field label="Apellidos" value={student.last_name} />
-          <Field label="Fecha de nacimiento" value={student.birth_date ?? "Sin fecha registrada"} />
-          <Field label="Curso" value={student.courses?.name ?? student.course_id} />
-          <Field label="Tutor" value="Tutor asociado al curso" />
-          <Field label="Estado" value={student.active ? "Activo" : "Inactivo"} />
-        </dl>
-
-        <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          <SummaryCard label="Faltas acumuladas" value={String(absences)} />
-          <SummaryCard label="Retrasos acumulados" value={String(lates)} />
-          <SummaryCard label="Última observación" value={observations[0]?.title ?? "Sin observaciones"} />
-          <SummaryCard label="Última comunicación" value={communications[0]?.title ?? "Sin comunicaciones"} />
-        </div>
-      </section>
-
-      <aside className="space-y-5">
-        <section className="rounded-lg border border-border bg-white p-5">
-          <div className="flex items-center gap-3">
-            <AlertCircle className="h-5 w-5 text-primary" aria-hidden="true" />
-            <h2 className="text-sm font-semibold text-foreground">Últimas alertas relevantes</h2>
-          </div>
-          {alerts.length === 0 ? (
-            <EmptyState text="No hay alertas relevantes en este momento." />
-          ) : (
-            <div className="mt-4 space-y-2">
-              {alerts.map((alert) => (
-                <p key={alert} className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                  {alert}
-                </p>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section className="rounded-lg border border-border bg-white p-5">
-          <div className="flex items-center gap-3">
-            <Eye className="h-5 w-5 text-primary" aria-hidden="true" />
-            <h2 className="text-sm font-semibold text-foreground">Últimas incidencias</h2>
-          </div>
-          {recentIncidents.length === 0 ? (
-            <EmptyState text="No hay incidencias registradas." />
-          ) : (
-            <div className="mt-4 space-y-3">
-              {recentIncidents.map((incident) => (
-                <CompactIncident key={incident.id} incident={incident} />
-              ))}
-            </div>
-          )}
-        </section>
-      </aside>
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+      <StudentStatusDashboard
+        averageGrade={averageGrade}
+        latestGrade={latestGrade?.grade ?? null}
+        latestGradeMeta={latestGrade ? `${latestGrade.subjectName} · ${latestGrade.assessment_name}` : "Sin registros"}
+        progressCompleted={progress.completed}
+        progressTotal={progress.total}
+        progressPercent={progress.percent}
+        attendanceValue={absences + lates === 0 ? "OK" : absences + lates}
+        attendanceHint={`${absences} faltas · ${lates} retrasos`}
+        attendanceTone={absences + lates > 0 ? "amber" : "green"}
+        incidents={incidents.length}
+        observations={observations.length}
+        communications={communications.length}
+      />
+      <StudentActivityTimeline items={latestItems} empty="Sin movimientos registrados durante los últimos 30 días." />
     </div>
   );
 }
@@ -708,32 +646,82 @@ function tabHref(studentId: string, tab: DirectorStudentTab, filters: Record<str
   return `/dashboard/director/students/${studentId}?${params.toString()}`;
 }
 
-function buildAlerts(
-  absences: number,
-  lates: number,
-  incidents: StudentIncident[],
-  observations: StudentObservation[],
-  communications: DirectorCommunication[],
-  grades: GradeWithLabels[]
-) {
-  const alerts: string[] = [];
-  const recentIncidents = incidents.filter((incident) => isWithinDays(incident.created_at, 7)).length;
-  const lowGrades = grades.filter((grade) => Number(grade.grade) < 5).length;
+function calculateAverageGrade(grades: GradeWithLabels[]) {
+  if (grades.length === 0) {
+    return null;
+  }
 
-  if (absences >= 3) alerts.push(`${absences} faltas acumuladas.`);
-  if (lates >= 3) alerts.push(`${lates} retrasos acumulados.`);
-  if (recentIncidents >= 2) alerts.push(`${recentIncidents} incidencias registradas en los últimos 7 días.`);
-  if (lowGrades > 0) alerts.push(`${lowGrades} calificación(es) por debajo de 5.`);
-  if (communications.some((communication) => !communication.read)) alerts.push("Hay comunicaciones no leídas vinculadas al alumno.");
-  if (observations.some((observation) => observation.priority === "alta")) alerts.push("Existe observación interna de prioridad alta.");
-
-  return alerts;
+  const average = grades.reduce((total, grade) => total + Number(grade.grade), 0) / grades.length;
+  return Number.isInteger(average) ? String(average) : average.toFixed(2);
 }
 
-function isWithinDays(value: string, days: number) {
-  const createdAt = new Date(value).getTime();
-  const limit = Date.now() - days * 24 * 60 * 60 * 1000;
-  return createdAt >= limit;
+function calculateEvaluationProgress(termGrades: TermSubjectGradeWithLabels[], grades: GradeWithLabels[]) {
+  const subjectIds = new Set<string>([
+    ...grades.map((grade) => grade.subject_id),
+    ...termGrades.map((grade) => grade.subject_id)
+  ]);
+  const total = subjectIds.size > 0 ? subjectIds.size * terms.length : 0;
+  const completed = termGrades.filter((grade) => grade.status === "closed" || grade.final_grade !== null).length;
+  const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+  return { completed, total, percent };
+}
+
+function buildDirectorLatestActivity({
+  incidents,
+  observations,
+  communications,
+  grades,
+  recentAttendance
+}: {
+  incidents: StudentIncident[];
+  observations: StudentObservation[];
+  communications: DirectorCommunication[];
+  grades: GradeWithLabels[];
+  recentAttendance: AttendanceRecord[];
+}): StudentActivityItem[] {
+  return [
+    ...communications.slice(0, 2).map((communication) => ({
+      id: `communication-${communication.id}`,
+      title: communication.title,
+      meta: `${communication.senderName} → ${communication.receiverName}`,
+      date: communication.created_at,
+      tone: "blue" as const,
+      kind: "communication" as const
+    })),
+    ...incidents.slice(0, 2).map((incident) => ({
+      id: `incident-${incident.id}`,
+      title: incident.type,
+      meta: `Incidencia ${incident.severity}`,
+      date: incident.created_at,
+      tone: "amber" as const,
+      kind: "incident" as const
+    })),
+    ...observations.slice(0, 2).map((observation) => ({
+      id: `observation-${observation.id}`,
+      title: observation.title,
+      meta: `Observación interna · ${observation.priority}`,
+      date: observation.created_at,
+      tone: "green" as const,
+      kind: "observation" as const
+    })),
+    ...recentAttendance.slice(0, 1).map((record) => ({
+      id: `attendance-${record.id}`,
+      title: getAttendanceLabel(record.status),
+      meta: record.justified ? "Asistencia justificada" : "Asistencia pendiente",
+      date: record.date,
+      tone: "gray" as const,
+      kind: "attendance" as const
+    })),
+    ...grades.slice(0, 1).map((grade) => ({
+      id: `grade-${grade.id}`,
+      title: `${grade.subjectName}: ${grade.grade}`,
+      meta: grade.assessment_name,
+      date: grade.created_at,
+      tone: "blue" as const,
+      kind: "grade" as const
+    }))
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
 }
 
 function buildSubjectOptions(grades: GradeWithLabels[], termGrades: TermSubjectGradeWithLabels[]) {

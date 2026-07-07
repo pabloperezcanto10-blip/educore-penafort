@@ -7,8 +7,7 @@ import {
   ClipboardList,
   GraduationCap,
   Inbox,
-  LockKeyhole,
-  UserRound
+  LockKeyhole
 } from "lucide-react";
 import { getFamilyAttendance, getAttendanceLabel, type FamilyAttendanceRow } from "@/lib/attendance/attendance";
 import { requireRole } from "@/lib/auth/session";
@@ -22,6 +21,7 @@ import {
   type GradeWithLabels,
   type TermSubjectGradeWithLabels
 } from "@/lib/grades/grades";
+import { GradebookBadge, GradebookCard, StudentAvatar } from "@/components/grades/gradebook-design";
 
 type PageProps = {
   searchParams?: {
@@ -66,17 +66,18 @@ export default async function FamilyStudentPage({ searchParams = {} }: PageProps
   const publications = selectedStudent ? await getPublicationStates(selectedStudent.course_id) : new Map();
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-5">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-normal text-foreground">Alumno</h1>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-700">Resumen familiar</p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-950">Alumno</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Resumen diario familiar de asistencia, seguimiento, comunicaciones y calificaciones.
           </p>
         </div>
         <Link
           href="/dashboard/family"
-          className="inline-flex h-10 w-fit items-center justify-center rounded-md border border-border bg-white px-3 text-sm font-medium transition hover:bg-muted"
+          className="inline-flex h-10 w-fit items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
         >
           Volver al dashboard
         </Link>
@@ -89,13 +90,13 @@ export default async function FamilyStudentPage({ searchParams = {} }: PageProps
       ) : null}
 
       {students.length > 1 ? (
-        <form className="rounded-lg border border-border bg-white p-4" action="/dashboard/family/student">
+        <form className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm" action="/dashboard/family/student">
           <label className="block max-w-md space-y-1 text-sm font-medium text-foreground">
             Seleccionar hijo
             <select
               name="student_id"
               defaultValue={selectedStudent?.id ?? ""}
-              className="h-10 w-full rounded-md border border-border bg-white px-3 text-sm"
+              className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
             >
               {students.map((student) => (
                 <option key={student.id} value={student.id}>
@@ -106,7 +107,7 @@ export default async function FamilyStudentPage({ searchParams = {} }: PageProps
           </label>
           <button
             type="submit"
-            className="mt-3 inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
+            className="mt-3 inline-flex h-10 items-center justify-center rounded-xl bg-sky-700 px-4 text-sm font-semibold text-white transition hover:bg-sky-800"
           >
             Ver resumen
           </button>
@@ -119,18 +120,19 @@ export default async function FamilyStudentPage({ searchParams = {} }: PageProps
         </div>
       ) : (
         <>
-          <section className="rounded-lg border border-border bg-white p-5">
+          <GradebookCard className="p-5">
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div className="flex items-start gap-3">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                  <UserRound className="h-5 w-5" aria-hidden="true" />
-                </span>
+                <StudentAvatar name={`${selectedStudent.name} ${selectedStudent.last_name}`} />
                 <div>
-                  <h2 className="text-lg font-semibold text-foreground">
-                    {selectedStudent.name} {selectedStudent.last_name}
-                  </h2>
-                  <p className="mt-1 text-sm text-muted-foreground">{selectedStudent.courseName}</p>
-                  <p className="text-sm text-muted-foreground">Tutor: {selectedStudent.tutorName}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-lg font-bold text-slate-950">
+                      {selectedStudent.name} {selectedStudent.last_name}
+                    </h2>
+                    <GradebookBadge tone="green">Vinculado</GradebookBadge>
+                  </div>
+                  <p className="mt-1 text-sm text-slate-500">{selectedStudent.courseName}</p>
+                  <p className="text-sm text-slate-500">Tutor: {selectedStudent.tutorName}</p>
                 </div>
               </div>
               <div className="grid gap-2 sm:grid-cols-3">
@@ -139,7 +141,7 @@ export default async function FamilyStudentPage({ searchParams = {} }: PageProps
                 <Metric label="Mensajes recientes" value={selectedCommunications.length} />
               </div>
             </div>
-          </section>
+          </GradebookCard>
 
           <div className="grid gap-4 xl:grid-cols-2">
             <SummaryCard title="Asistencia reciente" icon={CalendarDays}>
@@ -159,7 +161,7 @@ export default async function FamilyStudentPage({ searchParams = {} }: PageProps
             </SummaryCard>
           </div>
 
-          <section className="rounded-lg border border-border bg-white p-5">
+          <GradebookCard className="p-5">
             <div className="flex items-start gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
                 <GraduationCap className="h-5 w-5" aria-hidden="true" />
@@ -201,7 +203,7 @@ export default async function FamilyStudentPage({ searchParams = {} }: PageProps
                 );
               })}
             </div>
-          </section>
+          </GradebookCard>
         </>
       )}
     </section>
@@ -218,7 +220,7 @@ function SummaryCard({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-lg border border-border bg-white p-5">
+    <GradebookCard className="p-5">
       <div className="flex items-center gap-3">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
           <Icon className="h-5 w-5" aria-hidden="true" />
@@ -226,13 +228,13 @@ function SummaryCard({
         <h2 className="text-base font-semibold text-foreground">{title}</h2>
       </div>
       <div className="mt-4">{children}</div>
-    </section>
+    </GradebookCard>
   );
 }
 
 function Metric({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-md border border-border bg-background px-4 py-3">
+    <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
       <p className="mt-1 text-xl font-semibold text-foreground">{value}</p>
     </div>
@@ -247,7 +249,7 @@ function AttendanceList({ rows }: { rows: FamilyAttendanceRow[] }) {
   return (
     <div className="space-y-3">
       {rows.map((row) => (
-        <div key={row.id} className="rounded-md border border-border bg-background p-3">
+        <div key={row.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
           <div className="flex items-start justify-between gap-3">
             <p className="text-sm font-semibold text-foreground">{getAttendanceLabel(row.status)}</p>
             <span className="text-xs text-muted-foreground">{formatDate(row.date)}</span>
@@ -270,7 +272,7 @@ function IncidentList({ incidents }: { incidents: FamilyVisibleIncident[] }) {
   return (
     <div className="space-y-3">
       {incidents.map((incident) => (
-        <div key={incident.id} className="rounded-md border border-border bg-background p-3">
+        <div key={incident.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
           <div className="flex items-start justify-between gap-3">
             <p className="text-sm font-semibold text-foreground">{incident.type}</p>
             <span className="rounded-md border border-border bg-white px-2 py-1 text-xs text-muted-foreground">
@@ -293,7 +295,7 @@ function CommunicationList({ communications }: { communications: FamilyCommunica
   return (
     <div className="space-y-3">
       {communications.map((communication) => (
-        <div key={communication.id} className="rounded-md border border-border bg-background p-3">
+        <div key={communication.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
           <div className="flex items-start justify-between gap-3">
             <p className="text-sm font-semibold text-foreground">{communication.title}</p>
             <span className="text-xs text-muted-foreground">{communication.direction === "sent" ? "Enviado" : "Recibido"}</span>
@@ -334,7 +336,7 @@ function GradeList({
         </div>
       ))}
       {grades.map((grade) => (
-        <div key={grade.id} className="rounded-md border border-border bg-background p-3">
+        <div key={grade.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-foreground">{grade.subjectName}</p>
@@ -353,7 +355,7 @@ function GradeList({
 }
 
 function EmptyState({ text }: { text: string }) {
-  return <p className="rounded-md border border-dashed border-border bg-background p-4 text-sm text-muted-foreground">{text}</p>;
+  return <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">{text}</p>;
 }
 
 async function getPublicationStates(courseId: string) {

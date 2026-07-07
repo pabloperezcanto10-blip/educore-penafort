@@ -1,9 +1,9 @@
-import { createAdminClient, hasSupabaseAdminClient } from "@/lib/supabase/admin";
+﻿import { createAdminClient, hasSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 type CommunicationLabelClient = ReturnType<typeof createAdminClient>;
 
-export type NotificationCategory = "incidencia" | "académico" | "tutoría" | "general";
+export type NotificationCategory = "incidencia" | "acadÃ©mico" | "tutorÃ­a" | "general";
 
 export type FamilyRecipient = {
   parent_id: string;
@@ -170,6 +170,21 @@ export async function getFamilyRecipientsForStudent(studentId: string): Promise<
   recipients: FamilyRecipient[];
   errorMessage: string | null;
 }> {
+  if (!studentId) {
+    return { recipients: [], errorMessage: null };
+  }
+
+  if (hasSupabaseAdminClient()) {
+    const supabaseAdmin = createAdminClient();
+    const { data, error } = await supabaseAdmin
+      .from("parent_students")
+      .select("parent_id")
+      .eq("student_id", studentId)
+      .returns<FamilyRecipient[]>();
+
+    return normalizeFamilyRecipients(data, error?.message ?? null);
+  }
+
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("parent_students")
@@ -177,15 +192,21 @@ export async function getFamilyRecipientsForStudent(studentId: string): Promise<
     .eq("student_id", studentId)
     .returns<FamilyRecipient[]>();
 
-  if (error) {
+  return normalizeFamilyRecipients(data, error?.message ?? null);
+}
+
+function normalizeFamilyRecipients(data: FamilyRecipient[] | null, errorMessage: string | null) {
+  if (errorMessage) {
     return {
       recipients: [],
-      errorMessage: error.message
+      errorMessage
     };
   }
 
+  const parentIds = Array.from(new Set((data ?? []).map((recipient) => recipient.parent_id).filter(Boolean)));
+
   return {
-    recipients: data ?? [],
+    recipients: parentIds.map((parentId) => ({ parent_id: parentId })),
     errorMessage: null
   };
 }
@@ -692,16 +713,16 @@ async function attachDirectorCommunicationLabels(
 }
 
 function isNotificationCategory(category: string | undefined): category is NotificationCategory {
-  if (category === "académico" || category === "tutoría") {
+  if (category === "acadÃ©mico" || category === "tutorÃ­a") {
     return true;
   }
 
   return (
     category === "incidencia" ||
-    category === "académico" ||
     category === "acadÃ©mico" ||
-    category === "tutoría" ||
+    category === "acadÃƒÂ©mico" ||
     category === "tutorÃ­a" ||
+    category === "tutorÃƒÂ­a" ||
     category === "general"
   );
 }
@@ -713,3 +734,5 @@ async function createCommunicationLabelClient(): Promise<CommunicationLabelClien
 
   return (await createClient()) as unknown as CommunicationLabelClient;
 }
+
+

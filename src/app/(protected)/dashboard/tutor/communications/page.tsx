@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { Inbox, MessageSquareReply, Search, Send } from "lucide-react";
+import { Inbox, MessageSquareReply, Search } from "lucide-react";
 import { requireRole } from "@/lib/auth/session";
+import { CommunicationBadge, CommunicationEmptyState, CommunicationMessageBubble, CommunicationSummaryBadges, ConversationContextGrid, ConversationListCard } from "@/components/communications/communication-design";
 import { getTutorCommunications, type TutorCommunication } from "@/lib/communications/notifications";
 import { getActiveCourses } from "@/lib/courses";
 import { getStudentsForTutor } from "@/lib/tutors/students";
@@ -190,9 +191,10 @@ export default async function TutorCommunicationsPage({ searchParams = {} }: Tut
       </form>
 
       {conversations.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-border bg-white p-6 text-sm text-muted-foreground">
-          No hay comunicaciones con los filtros actuales.
-        </div>
+        <CommunicationEmptyState
+          title="No hay conversaciones"
+          description="No hay comunicaciones con los filtros actuales. Ajusta la busqueda o limpia los filtros."
+        />
       ) : (
         <section className="grid gap-4 xl:grid-cols-[420px_1fr]">
           <div className="space-y-2">
@@ -225,31 +227,20 @@ function ConversationListItem({
   const href = hrefWith(searchParams, { c: conversation.id });
 
   return (
-    <Link
+    <ConversationListCard
       href={href}
-      className={`block rounded-lg border p-4 transition ${
-        active ? "border-primary bg-primary/5" : "border-border bg-white hover:bg-muted"
-      }`}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className={`truncate text-sm ${conversation.unreadCount > 0 ? "font-bold" : "font-semibold"} text-foreground`}>
-            {latest.counterpartName}
-          </p>
-          <p className={`mt-1 truncate text-sm ${conversation.unreadCount > 0 ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
-            {conversation.subject}
-          </p>
-        </div>
-        <time className="shrink-0 text-xs text-muted-foreground">{formatShortDate(latest.created_at)}</time>
-      </div>
-      <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{latest.message}</p>
-      <div className="mt-3 flex flex-wrap items-center gap-1.5">
-        <Badge>{latest.category}</Badge>
-        {latest.courseName !== "Sin curso" ? <Badge>{latest.courseName}</Badge> : null}
-        {conversation.isClosed ? <Badge>Cerrada</Badge> : null}
-        {conversation.unreadCount > 0 ? <span className="h-2 w-2 rounded-full bg-primary" aria-label="No leida" /> : null}
-      </div>
-    </Link>
+      active={active}
+      title={latest.counterpartName}
+      subtitle={conversation.subject}
+      date={formatShortDate(latest.created_at)}
+      preview={latest.message}
+      unreadCount={conversation.unreadCount}
+      badges={[
+        { label: latest.category, tone: "blue" },
+        ...(latest.courseName !== "Sin curso" ? [{ label: latest.courseName, tone: "gray" as const }] : []),
+        { label: conversation.isClosed ? "Cerrada" : "Abierta", tone: conversation.isClosed ? "gray" : "green" }
+      ]}
+    />
   );
 }
 
@@ -284,12 +275,14 @@ function ConversationDetail({ conversation }: { conversation: TutorConversation 
           </div>
           <h2 className="mt-3 text-base font-semibold text-foreground">{conversation.subject}</h2>
           <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{latest.message}</p>
-          <div className="mt-3 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
-            <p>Interlocutor: {latest.counterpartName}</p>
-            <p>Alumno: {latest.studentName}</p>
-            <p>Curso: {latest.courseName}</p>
-            <p>Ultima respuesta: {formatDate(latest.created_at)}</p>
-          </div>
+          <ConversationContextGrid
+            items={[
+              { label: "Interlocutor", value: latest.counterpartName },
+              { label: "Alumno", value: latest.studentName },
+              { label: "Curso", value: latest.courseName },
+              { label: "Ultima respuesta", value: formatDate(latest.created_at) }
+            ]}
+          />
         </div>
         <div className="flex flex-wrap gap-2">
           {unreadReceivedIds.length > 0 ? (
@@ -326,7 +319,8 @@ function ConversationDetail({ conversation }: { conversation: TutorConversation 
         </div>
       </div>
 
-      <div className="mt-5 space-y-4 rounded-md bg-background p-4">
+      <div className="mt-5 space-y-5 rounded-lg bg-slate-50 p-4">
+
         {sortedMessages.map((message) => (
           <MessageBubble key={message.id} message={message} />
         ))}
@@ -358,17 +352,13 @@ function MessageBubble({ message }: { message: TutorCommunication }) {
   const sent = message.direction === "sent";
 
   return (
-    <div className={`flex ${sent ? "justify-end" : "justify-start"}`}>
-      <div className={`max-w-2xl rounded-2xl border px-4 py-3 shadow-sm ${sent ? "border-primary/25 bg-primary/5" : "border-border bg-white"}`}>
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          {sent ? <Send className="h-3.5 w-3.5 text-primary" aria-hidden="true" /> : <Inbox className="h-3.5 w-3.5 text-primary" aria-hidden="true" />}
-          <span className="font-semibold text-foreground">{sent ? "Tu mensaje" : message.senderName}</span>
-          <span>{formatDate(message.created_at)}</span>
-          <Badge>{message.read ? "Leido" : "Pendiente"}</Badge>
-        </div>
-        <p className="mt-2 whitespace-pre-line text-sm text-muted-foreground">{message.message}</p>
-      </div>
-    </div>
+    <CommunicationMessageBubble
+      sent={sent}
+      title={sent ? "Tu mensaje" : message.senderName}
+      meta={formatDate(message.created_at)}
+      message={message.message}
+      badges={[{ label: message.read ? "Leido" : "Pendiente", tone: message.read ? "green" : "amber" }]}
+    />
   );
 }
 
@@ -404,16 +394,18 @@ function Select({
 
 function SummaryChips({ sentCount, receivedCount, unreadCount }: { sentCount: number; receivedCount: number; unreadCount: number }) {
   return (
-    <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
-      <span className="rounded-full border border-border bg-white px-3 py-1">Enviados: <strong className="text-foreground">{sentCount}</strong></span>
-      <span className="rounded-full border border-border bg-white px-3 py-1">Recibidos: <strong className="text-foreground">{receivedCount}</strong></span>
-      <span className="rounded-full border border-border bg-white px-3 py-1">No leidos: <strong className="text-foreground">{unreadCount}</strong></span>
-    </div>
+    <CommunicationSummaryBadges
+      items={[
+        { label: "Enviados", value: sentCount },
+        { label: "Recibidos", value: receivedCount },
+        { label: "Sin leer", value: unreadCount, tone: unreadCount > 0 ? "amber" : "green" }
+      ]}
+    />
   );
 }
 
 function Badge({ children }: { children: React.ReactNode }) {
-  return <span className="rounded-md border border-border px-2 py-1 text-xs font-medium capitalize">{children}</span>;
+  return <CommunicationBadge>{children}</CommunicationBadge>;
 }
 
 function buildTutorConversations(communications: TutorCommunication[]) {

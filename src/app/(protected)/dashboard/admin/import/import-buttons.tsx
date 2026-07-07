@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -13,7 +13,7 @@ export function PreviewSubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex h-10 items-center justify-center rounded-md border border-border bg-white px-4 text-sm font-semibold text-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+      className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
     >
       {pending ? "Generando vista previa..." : "Vista previa"}
     </button>
@@ -29,9 +29,9 @@ export function ConfirmImportButton({ disabled }: { disabled: boolean }) {
       type="submit"
       disabled={isDisabled}
       aria-disabled={isDisabled}
-      className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+      className="inline-flex h-10 items-center justify-center rounded-xl bg-sky-700 px-4 text-sm font-semibold text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-50"
     >
-      {pending ? "Importando alumnos y familias..." : "Confirmar importacion"}
+      {pending ? "Importando alumnos y familias..." : "Confirmar importación"}
     </button>
   );
 }
@@ -42,7 +42,7 @@ export function DeleteStudentActionButton({ studentId }: { studentId: string }) 
       label="Borrar alumno"
       variant="outline"
       confirmTitle="Borrar alumno"
-      confirmMessage="Esta accion eliminara el alumno y posibles familias asociadas. No se puede deshacer."
+      confirmMessage="Esta acción eliminará el alumno y posibles familias asociadas. No se puede deshacer."
       onConfirm={() => deleteImportedStudentWithResult({ studentId })}
     />
   );
@@ -53,7 +53,7 @@ export function DeleteCourseActionButton({ courseId }: { courseId: string }) {
     <DeleteActionButton
       label="Borrar curso completo"
       confirmTitle="Borrar curso completo"
-      confirmMessage="Esta accion eliminara todos los alumnos del curso y posibles familias asociadas. No se puede deshacer."
+      confirmMessage="Esta acción eliminará todos los alumnos del curso y posibles familias asociadas. No se puede deshacer."
       onConfirm={() => deleteImportedCourseWithResult({ courseId })}
     />
   );
@@ -100,15 +100,15 @@ function DeleteActionButton({
       </button>
       {open ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
-          <div className="w-full max-w-md rounded-lg border border-border bg-white p-5 shadow-xl">
-            <h3 className="text-base font-semibold text-foreground">{confirmTitle}</h3>
-            <p className="mt-2 text-sm text-muted-foreground">{confirmMessage}</p>
+          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-xl">
+            <h3 className="text-base font-semibold text-slate-950">{confirmTitle}</h3>
+            <p className="mt-2 text-sm text-slate-500">{confirmMessage}</p>
             <div className="mt-5 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setOpen(false)}
                 disabled={isPending}
-                className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-white px-3 text-sm font-medium transition hover:bg-muted disabled:opacity-60"
+                className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
               >
                 Cancelar
               </button>
@@ -116,7 +116,7 @@ function DeleteActionButton({
                 type="button"
                 onClick={handleConfirm}
                 disabled={isPending}
-                className="inline-flex h-9 items-center justify-center rounded-md bg-red-600 px-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
+                className="inline-flex h-9 items-center justify-center rounded-xl bg-red-600 px-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
               >
                 {isPending ? "Borrando datos..." : "Confirmar borrado"}
               </button>
@@ -146,7 +146,7 @@ function InlineToast({
     <div className={`fixed right-4 top-4 z-[60] w-[calc(100vw-2rem)] max-w-sm rounded-lg border p-4 shadow-lg ${styles}`} role="status" aria-live="polite">
       <div className="flex items-start gap-3">
         <p className="flex-1 text-sm font-medium leading-5">{toast.message}</p>
-        <button type="button" onClick={onClose} className="rounded-md p-1 transition hover:bg-white/70" aria-label="Cerrar notificacion">
+        <button type="button" onClick={onClose} className="rounded-md p-1 transition hover:bg-white/70" aria-label="Cerrar notificación">
           <X className="h-4 w-4" aria-hidden="true" />
         </button>
       </div>
