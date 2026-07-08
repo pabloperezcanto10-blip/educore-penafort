@@ -50,6 +50,7 @@ export default async function TutorAttendancePage({ searchParams }: TutorAttenda
   }).format(new Date());
   const errorMessage = attendanceResult?.errorMessage ?? scheduleStudentsResult?.errorMessage ?? null;
   const saved = searchParams?.saved === "1";
+  const dailyCounts = getDailyCounts(rows);
 
   return (
     <section className="space-y-6">
@@ -86,25 +87,24 @@ export default async function TutorAttendancePage({ searchParams }: TutorAttenda
             day="Hoy"
             time="Jornada"
             date={date}
-            statusLabel={getDailyCounts(rows).pending === 0 ? "Asistencia registrada" : "Pendiente"}
+            statusLabel={dailyCounts.pending === 0 ? "Asistencia registrada" : "Pendiente"}
           />
 
-          <AttendanceSummary counts={getDailyCounts(rows)} />
+          <AttendanceSummary counts={dailyCounts} />
+
+          <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+            <AttendanceBulkActions />
+            <button
+              type="submit"
+              className="inline-flex h-10 items-center justify-center rounded-xl bg-sky-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-800"
+            >
+              Guardar asistencia del día
+            </button>
+          </div>
 
           <AttendanceTableCard
             title="Alumnos"
-            badge={<GradebookBadge tone={getDailyCounts(rows).pending > 0 ? "amber" : "green"}>{getDailyCounts(rows).pending > 0 ? "Cambios pendientes" : "Registrada"}</GradebookBadge>}
-            footer={
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <AttendanceBulkActions />
-                <button
-                  type="submit"
-                  className="inline-flex h-10 items-center justify-center rounded-xl bg-sky-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-800"
-                >
-                  Guardar asistencia del día
-                </button>
-              </div>
-            }
+            badge={<GradebookBadge tone={dailyCounts.pending > 0 ? "amber" : "green"}>{dailyCounts.pending > 0 ? "Cambios pendientes" : "Registrada"}</GradebookBadge>}
           >
             {rows.map((row) => {
               const studentName = `${row.student.name} ${row.student.last_name}`;

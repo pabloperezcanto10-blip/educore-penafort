@@ -99,18 +99,17 @@ function AttendanceSessionContent({
           <input type="hidden" name="subject_id" value={context.subject?.id ?? ""} />
           <input type="hidden" name="attendance_date" value={context.date} />
 
+          <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+            <AttendanceBulkActions />
+            <SaveSessionAttendanceButton />
+          </div>
+
           <AttendanceTableCard
             title="Alumnos de la sesión"
             badge={
               <GradebookBadge tone={counts.pending > 0 ? "amber" : "green"}>
                 {counts.pending > 0 ? "Cambios pendientes" : "Registrada"}
               </GradebookBadge>
-            }
-            footer={
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <AttendanceBulkActions />
-                <SaveSessionAttendanceButton />
-              </div>
             }
           >
             {context.rows.map((row) => {
