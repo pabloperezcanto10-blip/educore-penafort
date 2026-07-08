@@ -505,10 +505,7 @@ function toCommunicationActivityItem(communication: DirectorCommunication): Cent
       ? `${communication.senderName} respondió a ${communication.receiverName}.`
       : `${communication.senderName} envió una comunicación a ${communication.receiverName}.`;
   const conversationId = getDirectorConversationId(communication);
-  const context = [
-    communication.studentName !== "Sin alumno" ? communication.studentName : null,
-    communication.courseName !== "Sin curso" ? communication.courseName : null
-  ].filter(Boolean).join(" · ") || normalizeSubject(communication.title);
+  const context = getCommunicationTimelineContext(communication);
 
   return {
     id: `communication-${communication.id}`,
@@ -523,6 +520,46 @@ function toCommunicationActivityItem(communication: DirectorCommunication): Cent
     priority: communication.receiverName.toLowerCase().includes("direcci") ? "attention" : isReply ? "followup" : "info",
     groupKey: isReply ? "communication-replies" : "communication-new"
   };
+}
+
+function getCommunicationTimelineContext(communication: DirectorCommunication) {
+  const subject = normalizeSubject(communication.title);
+  const identity = getCommunicationIdentity(communication);
+
+  if (subject && subject !== "Sin asunto") {
+    return `${identity} · ${subject}`;
+  }
+
+  return identity;
+}
+
+function getCommunicationIdentity(communication: DirectorCommunication) {
+  const studentName = cleanCommunicationValue(communication.studentName, "Sin alumno");
+  const courseName = cleanCommunicationValue(communication.courseName, "Sin curso");
+
+  if (studentName) {
+    return [studentName, courseName].filter(Boolean).join(" · ");
+  }
+
+  const senderName = cleanCommunicationValue(communication.senderName);
+  const receiverName = cleanCommunicationValue(communication.receiverName);
+  const familyName = [senderName, receiverName].find((name) => name?.toLowerCase().includes("familia"));
+
+  if (familyName) {
+    return familyName;
+  }
+
+  if (senderName && receiverName) {
+    return `${senderName} → ${receiverName}`;
+  }
+
+  return senderName ?? receiverName ?? "Comunicación del centro";
+}
+
+function cleanCommunicationValue(value: string | null | undefined, emptyValue?: string) {
+  const cleaned = value?.trim();
+  if (!cleaned || cleaned === emptyValue) return null;
+  return cleaned;
 }
 function toActivityItem(log: AuditLog, actorName: string): CenterActivityItem {
   const label = auditActionLabel(log.action);

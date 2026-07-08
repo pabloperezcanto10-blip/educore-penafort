@@ -1,5 +1,5 @@
 ﻿import Link from "next/link";
-import { BookOpen, CheckCircle2, GraduationCap, LibraryBig, UserPlus, UsersRound } from "lucide-react";
+import { BookOpen, CheckCircle2, GraduationCap, LibraryBig, UserPlus, UsersRound, type LucideIcon } from "lucide-react";
 import { GradebookBadge, GradebookCard } from "@/components/grades/gradebook-design";
 import { requireRole } from "@/lib/auth/session";
 import {
@@ -50,14 +50,14 @@ export default async function AdminCreatePage({
     <section className="space-y-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-normal text-foreground">Página de creación</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-950">Página de creación</h1>
+          <p className="mt-1 text-sm text-slate-500">
             Alta rápida de perfiles, relaciones y estructuras del centro.
           </p>
         </div>
         <Link
           href="/dashboard/admin"
-          className="inline-flex h-10 w-fit items-center justify-center rounded-md border border-border bg-white px-3 text-sm font-medium transition hover:bg-muted"
+          className="inline-flex h-10 w-fit items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
         >
           Volver al panel
         </Link>
@@ -100,7 +100,7 @@ export default async function AdminCreatePage({
         </div>
       ) : null}
 
-      <div className="grid gap-5 xl:grid-cols-2">
+      <div className={`grid gap-5 ${selectedType ? "" : "xl:grid-cols-2"}`}>
         <CreateCard
           type="student"
           selectedType={selectedType}
@@ -108,24 +108,53 @@ export default async function AdminCreatePage({
           description="Alta directa de alumno con curso y tutor asignado."
           icon={GraduationCap}
         >
-          <form action={createAdminStudent} className="grid gap-3 md:grid-cols-2">
-            <Input name="name" label="Nombre" required />
-            <Input name="last_name" label="Apellidos" required />
-            <Input name="birth_date" label="Fecha de nacimiento" type="date" />
-            <Select
-              name="course_id"
-              label="Curso"
-              options={courses.map((course) => ({ value: course.id, label: course.name }))}
-              required
+          <form action={createAdminStudent} className="grid gap-5">
+            <GradebookCard className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <SectionIntro
+                  icon={GraduationCap}
+                  title="Datos personales"
+                  description="Registra la identidad básica del alumno antes de asignarlo a un curso."
+                />
+                <GradebookBadge tone="blue">Alumno</GradebookBadge>
+              </div>
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <Input name="name" label="Nombre" required />
+                <Input name="last_name" label="Apellidos" required />
+                <Input name="birth_date" label="Fecha de nacimiento" type="date" />
+              </div>
+            </GradebookCard>
+
+            <GradebookCard className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <SectionIntro
+                  icon={BookOpen}
+                  title="Curso y tutoría"
+                  description="Selecciona el grupo académico y el tutor responsable del seguimiento."
+                />
+                <GradebookBadge tone="gray">Obligatorio</GradebookBadge>
+              </div>
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <Select
+                  name="course_id"
+                  label="Curso"
+                  options={sortedCourses.map((course) => ({ value: course.id, label: course.name }))}
+                  required
+                />
+                <Select
+                  name="tutor_teacher_id"
+                  label="Tutor"
+                  options={tutors.map((tutor) => ({ value: tutor.id, label: getProfileDisplayName(tutor) }))}
+                  required
+                />
+              </div>
+            </GradebookCard>
+
+            <CreationSummary
+              title="Resumen antes de crear"
+              description="El alumno quedará vinculado al curso y tutor seleccionados. Después podrás completar relaciones familiares desde Familias o Importación."
+              actionLabel="Crear alumno"
             />
-            <Select
-              name="tutor_teacher_id"
-              label="Tutor"
-              options={tutors.map((tutor) => ({ value: tutor.id, label: getProfileDisplayName(tutor) }))}
-              required
-              className="md:col-span-2"
-            />
-            <SubmitButton label="Crear alumno" />
           </form>
         </CreateCard>
 
@@ -136,22 +165,51 @@ export default async function AdminCreatePage({
           description="Alta de usuario familiar y vínculo opcional con alumno."
           icon={UsersRound}
         >
-          <form action={createAdminFamilyQuick} className="grid gap-3 md:grid-cols-2">
-            <Input name="full_name" label="Nombre" required />
-            <Input name="email" label="Email" type="email" required />
-            <Input
-              name="temporary_password"
-              label="Contraseña temporal"
-              type="password"
-              placeholder="Penafort2026!"
+          <form action={createAdminFamilyQuick} className="grid gap-5">
+            <GradebookCard className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <SectionIntro
+                  icon={UsersRound}
+                  title="Datos de acceso familiar"
+                  description="Crea el usuario de familia con email y contraseña temporal."
+                />
+                <GradebookBadge tone="blue">Familia</GradebookBadge>
+              </div>
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <Input name="full_name" label="Nombre" required />
+                <Input name="email" label="Email" type="email" required />
+                <Input
+                  name="temporary_password"
+                  label="Contraseña temporal"
+                  type="password"
+                  placeholder="Penafort2026!"
+                />
+              </div>
+            </GradebookCard>
+
+            <GradebookCard className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <SectionIntro
+                  icon={GraduationCap}
+                  title="Vinculación con alumno"
+                  description="Puedes relacionar la familia con un alumno ahora o hacerlo más adelante desde Familias."
+                />
+                <GradebookBadge tone="gray">Opcional</GradebookBadge>
+              </div>
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <Select
+                  name="student_id"
+                  label="Relacionar con alumno"
+                  options={students.map((student) => ({ value: student.id, label: getStudentDisplayName(student) }))}
+                />
+              </div>
+            </GradebookCard>
+
+            <CreationSummary
+              title="Resumen antes de crear"
+              description="La familia recibirá un usuario con contraseña temporal y deberá cambiarla en el primer acceso. El teléfono no se solicita en EduCore."
+              actionLabel="Crear familia"
             />
-            <Input name="phone" label="Teléfono" />
-            <Select
-              name="student_id"
-              label="Relacionar con alumno"
-              options={students.map((student) => ({ value: student.id, label: getStudentDisplayName(student) }))}
-            />
-            <SubmitButton label="Crear familia" />
           </form>
         </CreateCard>
 
@@ -298,7 +356,7 @@ function CreateCard({
   selectedType: CreateType | null;
   title: string;
   description: string;
-  icon: typeof GraduationCap;
+  icon: LucideIcon;
   children: React.ReactNode;
 }) {
   const isSelected = selectedType === type;
@@ -310,28 +368,75 @@ function CreateCard({
   return (
     <section
       id={type}
-      className={`rounded-lg border bg-white p-5 ${
-        isSelected ? "border-primary shadow-sm ring-2 ring-primary/15" : "border-border"
+      className={`rounded-lg border bg-white p-5 shadow-sm ${
+        isSelected ? "border-sky-200 ring-2 ring-sky-100" : "border-slate-200"
       }`}
     >
       <div className="flex items-start gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-700">
           <Icon className="h-5 w-5" aria-hidden="true" />
         </span>
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+            <h2 className="text-sm font-semibold text-slate-950">{title}</h2>
             {isSelected ? (
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                Seleccionado
-              </span>
+              <GradebookBadge tone="blue">Seleccionado</GradebookBadge>
             ) : null}
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+          <p className="mt-1 text-sm text-slate-500">{description}</p>
         </div>
       </div>
       <div className="mt-5">{children}</div>
     </section>
+  );
+}
+
+function SectionIntro({
+  icon: Icon,
+  title,
+  description
+}: {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-sky-700">
+        <Icon className="h-5 w-5" aria-hidden="true" />
+      </span>
+      <div>
+        <h3 className="text-sm font-semibold text-slate-950">{title}</h3>
+        <p className="mt-1 text-sm text-slate-500">{description}</p>
+      </div>
+    </div>
+  );
+}
+
+function CreationSummary({
+  title,
+  description,
+  actionLabel
+}: {
+  title: string;
+  description: string;
+  actionLabel: string;
+}) {
+  return (
+    <GradebookCard className="p-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-sm font-semibold text-slate-950">{title}</h3>
+            <GradebookBadge tone="green">Listo para guardar</GradebookBadge>
+          </div>
+          <p className="mt-1 text-sm text-slate-500">{description}</p>
+        </div>
+        <div className="lg:shrink-0">
+          <SubmitButton label={actionLabel} inline />
+        </div>
+      </div>
+    </GradebookCard>
   );
 }
 
@@ -352,13 +457,13 @@ function Input({
 }) {
   return (
     <label className={`space-y-2 ${className}`}>
-      <span className="block text-sm font-medium text-foreground">{label}</span>
+      <span className="block text-sm font-semibold text-slate-950">{label}</span>
       <input
         name={name}
         type={type}
         required={required}
         placeholder={placeholder}
-        className="h-11 w-full rounded-md border border-border bg-white px-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+        className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
       />
     </label>
   );
@@ -381,12 +486,12 @@ function Select({
 }) {
   return (
     <label className={`space-y-2 ${className}`}>
-      <span className="block text-sm font-medium text-foreground">{label}</span>
+      <span className="block text-sm font-semibold text-slate-950">{label}</span>
       <select
         name={name}
         required={required}
         defaultValue={defaultValue}
-        className="h-11 w-full rounded-md border border-border bg-white px-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+        className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
       >
         <option value="" disabled={required}>
           Selecciona
