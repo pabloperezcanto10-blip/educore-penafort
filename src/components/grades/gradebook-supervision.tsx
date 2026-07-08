@@ -179,6 +179,8 @@ function SupervisionStudentRow({
   const isComplete = group.reports.length > 0 && pending === 0;
   const status: GradebookStudentStatus = isComplete ? "completed" : closed > 0 ? "pending" : "ungraded";
   const progress = group.reports.length > 0 ? Math.round((closed / group.reports.length) * 100) : 0;
+  const courseId = group.reports[0]?.course_id ?? "";
+  const reportQuery = `student_id=${group.studentId}&term=${term}${courseId ? `&course_id=${courseId}` : ""}`;
 
   return (
     <tr className="border-b border-slate-200 transition last:border-b-0 hover:bg-slate-50 align-top">
@@ -205,7 +207,7 @@ function SupervisionStudentRow({
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap gap-2">
             <Link
-              href={`/dashboard/reports/term-preview?student_id=${group.studentId}&term=${term}`}
+              href={`/dashboard/reports/term-preview?${reportQuery}`}
               target="_blank"
               rel="noreferrer"
               className="inline-flex h-8 w-fit items-center gap-2 rounded-md border border-sky-200 bg-sky-50 px-3 text-xs font-semibold text-sky-800 transition hover:bg-sky-100"
@@ -214,11 +216,13 @@ function SupervisionStudentRow({
               Vista previa
             </Link>
             <Link
-              href={`/dashboard/reports/term-pdf?student_id=${group.studentId}&term=${term}`}
+              href={`/dashboard/reports/term-pdf?${reportQuery}`}
+              target="_blank"
+              rel="noreferrer"
               className="inline-flex h-8 w-fit items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
             >
               <Download className="h-3.5 w-3.5" aria-hidden="true" />
-              PDF
+              Descargar PDF
             </Link>
           </div>
           <details>

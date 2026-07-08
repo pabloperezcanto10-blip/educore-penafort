@@ -2,13 +2,15 @@ import Link from "next/link";
 import { getCurrentUserProfile } from "@/lib/auth/session";
 import type { GradeTerm } from "@/lib/grades/grades";
 import { getTermReportForProfile } from "@/lib/reports/term-report-pdf";
-import { TermReportPreview } from "@/components/reports/term-report-preview";
+import { ReportCardTemplate } from "@/components/reports/term-report-preview";
 import { ReportPrintButton } from "@/components/reports/report-print-button";
 
 type TermPreviewPageProps = {
   searchParams: {
     student_id?: string;
     term?: string;
+    course_id?: string;
+    print?: string;
   };
 };
 
@@ -16,6 +18,10 @@ export default async function TermPreviewPage({ searchParams }: TermPreviewPageP
   const profile = await getCurrentUserProfile();
   const studentId = searchParams.student_id ?? "";
   const term = normalizeTerm(searchParams.term);
+  const courseId = searchParams.course_id ?? "";
+  const backHref = courseId
+    ? `/dashboard/director/gradebook?course_id=${courseId}&term=${term ?? "1"}`
+    : `/dashboard/director/gradebook?term=${term ?? "1"}`;
 
   if (!profile || !profile.active) {
     return <PreviewError message="No hay sesión activa." />;
@@ -59,21 +65,21 @@ export default async function TermPreviewPage({ searchParams }: TermPreviewPageP
         }`}
       </style>
       <div className="mx-auto mb-5 flex max-w-[210mm] flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm print:hidden sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold text-slate-950">Vista previa del boletín</p>
-          <p className="mt-1 text-xs text-slate-500">Revisa el documento antes de descargarlo o publicarlo.</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <ReportPrintButton />
+        <div className="flex items-start gap-4">
           <Link
-            href={`/dashboard/reports/term-pdf?student_id=${studentId}&term=${term}`}
-            className="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+            href={backHref}
+            className="inline-flex h-9 items-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
           >
-            Descargar PDF
+            ← Volver
           </Link>
+          <div>
+            <p className="text-sm font-semibold text-slate-950">Vista previa del boletín</p>
+            <p className="mt-1 text-xs text-slate-500">Revisa el documento antes de descargarlo o publicarlo.</p>
+          </div>
         </div>
+        <ReportPrintButton />
       </div>
-      <TermReportPreview report={report} />
+      <ReportCardTemplate report={report} />
     </main>
   );
 }

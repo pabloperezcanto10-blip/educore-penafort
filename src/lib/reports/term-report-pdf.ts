@@ -86,7 +86,7 @@ export async function getTermReportForProfile({
   }
 
   if (profile.role !== "family" && profile.role !== "director" && profile.role !== "superadmin") {
-    return { report: null, errorMessage: "No tienes permisos para descargar este boletín.", status: 403 };
+    return { report: null, errorMessage: "No tienes permisos para consultar este boletín.", status: 403 };
   }
 
   const [
@@ -151,113 +151,4 @@ export async function getTermReportForProfile({
     errorMessage: null,
     status: 200
   };
-}
-
-export function generateTermReportPdf(report: TermReportData) {
-  const lines: string[] = [];
-
-  lines.push("q 0.96 0.98 1 rg 0 780 595 62 re f Q");
-  drawText(lines, "Colegio Peñafort Platform", 46, 805, 20, true);
-  drawText(lines, "Boletín trimestral oficial", 46, 785, 11);
-  drawText(lines, `Curso escolar ${report.academicYearName}`, 46, 744, 11);
-  drawText(lines, `Alumno: ${report.studentName}`, 46, 724, 12, true);
-  drawText(lines, `Curso: ${report.courseName}`, 46, 704, 11);
-  drawText(lines, `Trimestre: ${report.term}`, 320, 704, 11);
-  drawText(lines, `Fecha de publicación: ${report.publishedAt ? formatDate(report.publishedAt) : "Pendiente de publicación"}`, 46, 684, 11);
-
-  const tableTop = 640;
-  lines.push("0.12 0.48 0.65 rg 46 618 503 24 re f");
-  drawText(lines, "Asignatura", 58, 625, 10, true, true);
-  drawText(lines, "Nota final", 258, 625, 10, true, true);
-  drawText(lines, "Observación final", 342, 625, 10, true, true);
-
-  let y = tableTop - 48;
-  report.rows.forEach((row, index) => {
-    if (index % 2 === 0) {
-      lines.push("0.97 0.98 0.99 rg 46 " + (y - 6) + " 503 40 re f");
-    }
-
-    drawText(lines, row.subjectName, 58, y + 14, 10);
-    drawText(lines, String(row.finalGrade), 278, y + 14, 11, true);
-    wrapText(row.finalObservation || "Sin observación", 42).slice(0, 2).forEach((line, lineIndex) => {
-      drawText(lines, line, 342, y + 14 - lineIndex * 12, 9);
-    });
-    lines.push("0.85 0.88 0.91 RG 46 " + (y - 8) + " 503 0.5 w S");
-    y -= 42;
-  });
-
-  if (report.rows.length === 0) {
-    drawText(lines, "No hay notas finales cerradas para este trimestre.", 58, y + 14, 10);
-  }
-
-  drawText(lines, "Este boletín incluye únicamente asignatura, nota final entera y observación final.", 46, 54, 8);
-
-  return buildPdf(lines.join("\n"));
-}
-
-function drawText(lines: string[], text: string, x: number, y: number, size: number, bold = false, white = false) {
-  lines.push(`${white ? "1 1 1 rg" : "0.05 0.12 0.22 rg"} BT /${bold ? "F2" : "F1"} ${size} Tf ${x} ${y} Td (${escapePdfText(text)}) Tj ET`);
-}
-
-function wrapText(text: string, maxLength: number) {
-  const words = text.split(/\s+/);
-  const lines: string[] = [];
-  let current = "";
-
-  words.forEach((word) => {
-    const next = current ? `${current} ${word}` : word;
-    if (next.length > maxLength && current) {
-      lines.push(current);
-      current = word;
-    } else {
-      current = next;
-    }
-  });
-
-  if (current) lines.push(current);
-  return lines;
-}
-
-function buildPdf(content: string) {
-  const objects = [
-    "<< /Type /Catalog /Pages 2 0 R >>",
-    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>",
-    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
-    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>",
-    `<< /Length ${Buffer.byteLength(content, "latin1")} >>\nstream\n${content}\nendstream`
-  ];
-  const chunks: string[] = ["%PDF-1.4\n"];
-  const offsets: number[] = [0];
-
-  objects.forEach((object, index) => {
-    offsets.push(Buffer.byteLength(chunks.join(""), "latin1"));
-    chunks.push(`${index + 1} 0 obj\n${object}\nendobj\n`);
-  });
-
-  const xrefOffset = Buffer.byteLength(chunks.join(""), "latin1");
-  chunks.push(`xref\n0 ${objects.length + 1}\n`);
-  chunks.push("0000000000 65535 f \n");
-  offsets.slice(1).forEach((offset) => {
-    chunks.push(`${String(offset).padStart(10, "0")} 00000 n \n`);
-  });
-  chunks.push(`trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`);
-
-  return Buffer.from(chunks.join(""), "latin1");
-}
-
-function escapePdfText(text: string) {
-  return text
-    .replace(/[^\u0009\u000A\u000D\u0020-\u00FF]/g, "")
-    .replace(/\\/g, "\\\\")
-    .replace(/\(/g, "\\(")
-    .replace(/\)/g, "\\)");
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("es-ES", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric"
-  }).format(new Date(value));
 }
