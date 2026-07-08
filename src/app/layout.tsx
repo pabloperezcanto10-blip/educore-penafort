@@ -6,13 +6,14 @@ export const metadata: Metadata = {
   title: "EduCore",
   description: "Gestión educativa inteligente para centros educativos",
   applicationName: "EduCore",
-  manifest: "/manifest.webmanifest",
+  manifest: "/manifest.json",
   icons: {
     icon: [
       { url: "/brand/educore/favicon.svg", type: "image/svg+xml" },
+      { url: "/brand/educore/icon-192.png", sizes: "192x192", type: "image/png" },
       { url: "/brand/educore/app-icon-dark.svg", sizes: "512x512", type: "image/svg+xml" }
     ],
-    apple: [{ url: "/brand/educore/apple-touch-icon.svg", sizes: "180x180", type: "image/svg+xml" }]
+    apple: [{ url: "/brand/educore/apple-touch-icon.png", sizes: "180x180", type: "image/png" }]
   },
   appleWebApp: {
     capable: true,
@@ -20,7 +21,7 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent"
   },
   other: {
-    "apple-touch-startup-image": "/brand/educore/splash.svg"
+    "apple-touch-startup-image": "/brand/educore/splash.png"
   }
 };
 

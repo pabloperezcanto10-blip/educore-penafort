@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { InstallEduCoreButton } from "@/components/pwa/install-educore-button";
 import { getCurrentUserProfile } from "@/lib/auth/session";
 import { getDashboardPathForRole } from "@/lib/auth/roles";
 
@@ -96,6 +97,24 @@ export default async function HomePage() {
         }
         .educore-public-page .nav-links { display: flex; align-items: center; gap: 28px; color: var(--stone-700); font-size: 14px; font-weight: 600; }
         .educore-public-page .nav-actions { display: flex; align-items: center; gap: 12px; }
+        .educore-public-page .install-wrap { position: relative; display: inline-flex; }
+        .educore-public-page .install-help {
+          position: absolute;
+          right: 0;
+          top: calc(100% + 10px);
+          z-index: 30;
+          width: min(320px, calc(100vw - 32px));
+          border-radius: 18px;
+          border: 1px solid var(--stone-200);
+          background: white;
+          box-shadow: var(--shadow-md);
+          padding: 14px 16px;
+          color: var(--stone-700);
+          font-size: 13px;
+          font-weight: 650;
+          line-height: 1.55;
+          text-align: left;
+        }
         .educore-public-page .btn {
           display: inline-flex;
           align-items: center;
@@ -424,6 +443,7 @@ export default async function HomePage() {
             <a href="#seguridad">Seguridad</a>
           </nav>
           <div className="nav-actions">
+            <InstallEduCoreButton className="btn btn-soft" />
             <a className="btn btn-soft" href="#acceso">Accede a tu centro</a>
             <a className="btn btn-primary" href="#demo">Solicitar demo</a>
           </div>
@@ -439,6 +459,7 @@ export default async function HomePage() {
             <div className="hero-actions">
               <a className="btn btn-gold" href="#demo">Solicitar una demo</a>
               <a className="btn btn-soft" href="#acceso">Accede a tu centro</a>
+              <InstallEduCoreButton className="btn btn-soft" />
             </div>
             <div className="trust-row">
               <span>Dirección</span><span className="trust-dot" />
@@ -576,6 +597,7 @@ export default async function HomePage() {
             <div className="hero-actions">
               <a className="btn btn-gold" href="#demo">Solicitar demo</a>
               <a className="btn btn-soft" href="#acceso">Accede a tu centro</a>
+              <InstallEduCoreButton className="btn btn-soft" />
             </div>
           </div>
           <div className="app-preview" aria-hidden="true">
