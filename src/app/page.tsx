@@ -51,7 +51,7 @@ export default async function HomePage() {
               href="/login"
               className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
             >
-              Iniciar sesi\u00f3n
+              Iniciar sesión
             </Link>
           </section>
         </div>

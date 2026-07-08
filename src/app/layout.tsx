@@ -4,7 +4,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "EduCore",
-  description: "Gesti\u00f3n educativa inteligente para Colegio Pe\u00f1afort"
+  description: "Gestión educativa inteligente para Colegio Peñafort"
 };
 
 export default function RootLayout({
