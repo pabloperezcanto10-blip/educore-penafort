@@ -12,6 +12,23 @@ const schools = [
   }
 ];
 
+const solvedItems = [
+  "Comunicación centralizada entre familias, docentes y dirección.",
+  "Cuaderno de calificaciones, criterios, observaciones y boletines.",
+  "Asistencia y seguimiento diario desde cada sesión.",
+  "Supervisión directiva de actividad, prioridades y publicaciones.",
+  "Acceso familiar claro a notas, boletines y mensajes visibles."
+];
+
+const modules = [
+  ["Comunicación", "Conversaciones con estados, trazabilidad y respuesta por roles."],
+  ["Cuaderno", "Evaluación, criterios, notas visibles y observaciones conectadas."],
+  ["Asistencia", "Pasar lista de forma rápida, visual y preparada para seguimiento."],
+  ["Boletines", "Vista previa y documentos profesionales para familias."],
+  ["Centro de control", "Actividad del colegio, prioridades y supervisión directiva."],
+  ["EduCore AI", "Asistente educativo integrado para redacción y apoyo docente."]
+];
+
 export default async function HomePage() {
   const profile = await getCurrentUserProfile();
 
@@ -43,7 +60,6 @@ export default async function HomePage() {
           --shadow-md: 0 18px 55px rgba(6, 31, 42, .13);
           --radius-xl: 28px;
           --radius-lg: 22px;
-          --radius-md: 16px;
           --max: 1180px;
           min-height: 100vh;
           overflow: hidden;
@@ -63,8 +79,6 @@ export default async function HomePage() {
           display: block;
           filter: drop-shadow(0 12px 18px rgba(47, 138, 112, .22));
         }
-        .educore-public-page .brand-name { font-size: 23px; letter-spacing: -.04em; font-weight: 800; color: var(--navy-950); }
-        .educore-public-page .brand-name span { color: var(--green-700); }
         .educore-public-page .nav {
           position: sticky;
           top: 0;
@@ -104,7 +118,7 @@ export default async function HomePage() {
         .educore-public-page .btn-gold { background: linear-gradient(135deg, var(--gold-500), var(--green-600)); color: white; box-shadow: 0 16px 35px rgba(185, 136, 61, .28); }
         .educore-public-page .hero {
           position: relative;
-          padding: 86px 0 92px;
+          padding: 76px 0 70px;
         }
         .educore-public-page .hero::before {
           content: "";
@@ -151,8 +165,8 @@ export default async function HomePage() {
           line-height: 1.72;
           color: var(--stone-700);
         }
-        .educore-public-page .hero-actions { display: flex; align-items: center; gap: 14px; margin-top: 34px; flex-wrap: wrap; }
-        .educore-public-page .trust-row { display: flex; align-items: center; gap: 22px; margin-top: 34px; color: var(--stone-500); font-size: 13px; font-weight: 700; }
+        .educore-public-page .hero-actions { display: flex; align-items: center; gap: 14px; margin-top: 32px; flex-wrap: wrap; }
+        .educore-public-page .trust-row { display: flex; align-items: center; gap: 22px; margin-top: 32px; color: var(--stone-500); font-size: 13px; font-weight: 700; }
         .educore-public-page .trust-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gold-500); }
         .educore-public-page .product-card {
           position: relative;
@@ -175,13 +189,13 @@ export default async function HomePage() {
           border-radius: 26px;
           background: var(--white);
           border: 1px solid var(--stone-200);
-          min-height: 515px;
+          min-height: 455px;
           overflow: hidden;
         }
         .educore-public-page .mock-top { height: 62px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; border-bottom: 1px solid var(--stone-200); }
         .educore-public-page .mock-title { font-size: 13px; font-weight: 800; color: var(--navy-950); }
         .educore-public-page .mock-badge { padding: 6px 10px; border-radius: 999px; background: rgba(47,138,112,.1); color: var(--green-700); font-size: 11px; font-weight: 800; }
-        .educore-public-page .mock-body { display: grid; grid-template-columns: 145px 1fr; min-height: 453px; }
+        .educore-public-page .mock-body { display: grid; grid-template-columns: 145px 1fr; min-height: 393px; }
         .educore-public-page .mock-side { background: var(--navy-950); color: white; padding: 18px 14px; }
         .educore-public-page .mock-side .line { height: 10px; border-radius: 10px; background: rgba(255,255,255,.18); margin-bottom: 15px; }
         .educore-public-page .mock-side .active { background: linear-gradient(90deg, var(--gold-500), var(--green-500)); }
@@ -196,72 +210,73 @@ export default async function HomePage() {
         .educore-public-page .timeline-icon { width: 28px; height: 28px; border-radius: 50%; background: rgba(47,138,112,.12); }
         .educore-public-page .timeline-title { height: 10px; width: 72%; border-radius: 8px; background: var(--navy-900); opacity: .86; margin-bottom: 8px; }
         .educore-public-page .timeline-sub { height: 8px; width: 48%; border-radius: 8px; background: var(--stone-200); }
-        .educore-public-page section { padding: 86px 0; }
-        .educore-public-page .section-head { max-width: 760px; margin: 0 auto 42px; text-align: center; }
+        .educore-public-page section { padding: 64px 0; }
+        .educore-public-page .section-head { max-width: 760px; margin: 0 auto 34px; text-align: center; }
         .educore-public-page .section-kicker { color: var(--gold-600); text-transform: uppercase; font-size: 12px; letter-spacing: .14em; font-weight: 900; margin-bottom: 12px; }
         .educore-public-page .section-head h2 { margin: 0; color: var(--navy-950); font-size: clamp(34px, 4vw, 52px); line-height: 1.04; letter-spacing: -.055em; }
         .educore-public-page .section-head p { margin: 18px auto 0; color: var(--stone-700); font-size: 17px; line-height: 1.7; }
-        .educore-public-page .features { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
-        .educore-public-page .feature-card {
-          padding: 26px;
-          border-radius: var(--radius-lg);
+        .educore-public-page .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+        .educore-public-page .feature-card,
+        .educore-public-page .module-panel,
+        .educore-public-page .module-card,
+        .educore-public-page .security-card,
+        .educore-public-page .brand-note {
           background: white;
           border: 1px solid var(--stone-200);
           box-shadow: var(--shadow-sm);
         }
+        .educore-public-page .feature-card {
+          padding: 22px;
+          border-radius: var(--radius-lg);
+        }
         .educore-public-page .feature-icon {
-          width: 45px;
-          height: 45px;
+          width: 42px;
+          height: 42px;
           border-radius: 15px;
           display: grid;
           place-items: center;
           background: linear-gradient(135deg, rgba(210,166,87,.16), rgba(47,138,112,.13));
-          margin-bottom: 20px;
+          margin-bottom: 18px;
           color: var(--green-700);
           font-weight: 900;
         }
-        .educore-public-page .feature-card h3 { margin: 0 0 10px; font-size: 18px; letter-spacing: -.03em; color: var(--navy-950); }
-        .educore-public-page .feature-card p { margin: 0; color: var(--stone-700); line-height: 1.65; font-size: 14px; }
-        .educore-public-page .dark-band {
-          background: var(--navy-950);
-          color: white;
-          position: relative;
-        }
-        .educore-public-page .dark-band::before {
-          content: "";
-          position: absolute;
-          inset: 0;
-          background: radial-gradient(circle at 20% 20%, rgba(210,166,87,.22), transparent 34%), radial-gradient(circle at 82% 70%, rgba(47,138,112,.25), transparent 36%);
-          pointer-events: none;
-        }
-        .educore-public-page .dark-band .container { position: relative; }
-        .educore-public-page .dark-band .section-kicker { color: var(--gold-300); }
-        .educore-public-page .dark-band h2 { color: white; }
-        .educore-public-page .dark-band .section-head p { color: rgba(255,255,255,.72); }
-        .educore-public-page .roles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
-        .educore-public-page .role-card {
-          padding: 24px;
-          min-height: 260px;
-          border-radius: var(--radius-xl);
-          background: rgba(255,255,255,.08);
-          border: 1px solid rgba(255,255,255,.12);
-          backdrop-filter: blur(12px);
-        }
-        .educore-public-page .role-card h3 { margin: 0 0 12px; font-size: 21px; letter-spacing: -.04em; }
-        .educore-public-page .role-card p { margin: 0 0 22px; color: rgba(255,255,255,.7); line-height: 1.65; font-size: 14px; }
-        .educore-public-page .role-list { display: grid; gap: 9px; color: rgba(255,255,255,.86); font-size: 13px; font-weight: 600; }
-        .educore-public-page .modules-wrap { display: grid; grid-template-columns: .82fr 1.18fr; gap: 28px; align-items: stretch; }
+        .educore-public-page .feature-card h3 { margin: 0 0 8px; font-size: 18px; letter-spacing: -.03em; color: var(--navy-950); }
+        .educore-public-page .feature-card p { margin: 0; color: var(--stone-700); line-height: 1.62; font-size: 14px; }
+        .educore-public-page .solution-grid { display: grid; grid-template-columns: .9fr 1.1fr; gap: 24px; align-items: stretch; }
         .educore-public-page .module-panel {
           border-radius: var(--radius-xl);
-          padding: 34px;
-          background: white;
-          border: 1px solid var(--stone-200);
-          box-shadow: var(--shadow-sm);
+          padding: 30px;
         }
-        .educore-public-page .module-panel h3 { margin: 0; color: var(--navy-950); font-size: 31px; letter-spacing: -.05em; }
+        .educore-public-page .module-panel h2,
+        .educore-public-page .module-panel h3 { margin: 0; color: var(--navy-950); font-size: clamp(31px, 4vw, 46px); line-height: 1.05; letter-spacing: -.055em; }
         .educore-public-page .module-panel p { color: var(--stone-700); line-height: 1.72; margin: 14px 0 0; }
-        .educore-public-page .module-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
-        .educore-public-page .module-card { background: white; border: 1px solid var(--stone-200); border-radius: 20px; padding: 20px; box-shadow: var(--shadow-sm); }
+        .educore-public-page .solution-list { display: grid; gap: 10px; }
+        .educore-public-page .solution-item {
+          display: grid;
+          grid-template-columns: 28px 1fr;
+          gap: 12px;
+          align-items: start;
+          padding: 14px 16px;
+          border-radius: 18px;
+          background: rgba(255,255,255,.7);
+          border: 1px solid var(--stone-200);
+          color: var(--stone-700);
+          font-size: 14px;
+          font-weight: 650;
+          line-height: 1.45;
+        }
+        .educore-public-page .solution-dot {
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          display: grid;
+          place-items: center;
+          background: rgba(47,138,112,.1);
+          color: var(--green-700);
+          font-weight: 900;
+        }
+        .educore-public-page .module-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+        .educore-public-page .module-card { border-radius: 20px; padding: 20px; }
         .educore-public-page .module-card strong { display: block; color: var(--navy-950); margin-bottom: 7px; letter-spacing: -.03em; }
         .educore-public-page .module-card span { color: var(--stone-700); font-size: 13px; line-height: 1.55; }
         .educore-public-page .access-grid { display: grid; grid-template-columns: .9fr 1.1fr; gap: 24px; align-items: stretch; }
@@ -280,24 +295,53 @@ export default async function HomePage() {
         .educore-public-page .access-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
         .educore-public-page .access-card strong { display: block; color: var(--navy-950); font-size: 18px; letter-spacing: -.03em; margin-bottom: 6px; }
         .educore-public-page .access-card span { color: var(--stone-700); font-size: 14px; line-height: 1.55; }
-        .educore-public-page .brand-system { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: stretch; }
-        .educore-public-page .brand-board { background: white; border: 1px solid var(--stone-200); border-radius: var(--radius-xl); padding: 30px; box-shadow: var(--shadow-sm); }
-        .educore-public-page .brand-board h3 { margin: 0 0 18px; color: var(--navy-950); letter-spacing: -.04em; font-size: 24px; }
-        .educore-public-page .logo-showcase { min-height: 260px; display: grid; place-items: center; border-radius: 24px; background: linear-gradient(135deg, var(--cream-50), white); border: 1px dashed var(--stone-200); }
-        .educore-public-page .palette { display: grid; gap: 12px; }
-        .educore-public-page .swatch { display: grid; grid-template-columns: 56px 1fr; gap: 14px; align-items: center; }
-        .educore-public-page .swatch-color { height: 44px; border-radius: 14px; border: 1px solid rgba(0,0,0,.06); }
-        .educore-public-page .swatch strong { display: block; font-size: 13px; color: var(--navy-950); }
-        .educore-public-page .swatch span { font-size: 12px; color: var(--stone-500); font-weight: 700; }
+        .educore-public-page .dark-band {
+          background: var(--navy-950);
+          color: white;
+          position: relative;
+        }
+        .educore-public-page .dark-band::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: radial-gradient(circle at 20% 20%, rgba(210,166,87,.22), transparent 34%), radial-gradient(circle at 82% 70%, rgba(47,138,112,.25), transparent 36%);
+          pointer-events: none;
+        }
+        .educore-public-page .dark-band .container { position: relative; }
+        .educore-public-page .dark-band .section-kicker { color: var(--gold-300); }
+        .educore-public-page .dark-band h2 { color: white; }
+        .educore-public-page .dark-band .section-head p { color: rgba(255,255,255,.72); }
+        .educore-public-page .roles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+        .educore-public-page .role-card {
+          padding: 22px;
+          min-height: 190px;
+          border-radius: var(--radius-xl);
+          background: rgba(255,255,255,.08);
+          border: 1px solid rgba(255,255,255,.12);
+          backdrop-filter: blur(12px);
+        }
+        .educore-public-page .role-card h3 { margin: 0 0 10px; font-size: 21px; letter-spacing: -.04em; }
+        .educore-public-page .role-card p { margin: 0 0 18px; color: rgba(255,255,255,.72); line-height: 1.58; font-size: 14px; }
+        .educore-public-page .role-list { display: flex; flex-wrap: wrap; gap: 8px; color: rgba(255,255,255,.9); font-size: 12px; font-weight: 700; }
+        .educore-public-page .role-list span { border-radius: 999px; background: rgba(255,255,255,.1); padding: 6px 9px; }
+        .educore-public-page .brand-note {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 18px;
+          border-radius: var(--radius-xl);
+          padding: 24px 30px;
+        }
+        .educore-public-page .brand-note p { margin: 0; color: var(--stone-700); line-height: 1.62; font-size: 14px; max-width: 660px; }
         .educore-public-page .app-section { background: linear-gradient(180deg, white, var(--cream-50)); }
         .educore-public-page .app-card {
           border-radius: 36px;
           background: linear-gradient(135deg, var(--navy-950), var(--navy-800));
           color: white;
-          padding: 44px;
+          padding: 36px 40px;
           display: grid;
-          grid-template-columns: 1.1fr .9fr;
-          gap: 34px;
+          grid-template-columns: 1.18fr .82fr;
+          gap: 28px;
           align-items: center;
           box-shadow: var(--shadow-md);
           overflow: hidden;
@@ -315,45 +359,35 @@ export default async function HomePage() {
         }
         .educore-public-page .app-card > * { position: relative; z-index: 1; }
         .educore-public-page .app-card h2 { margin: 0; font-size: clamp(32px, 4vw, 48px); line-height: 1.05; letter-spacing: -.055em; }
-        .educore-public-page .app-card p { color: rgba(255,255,255,.72); line-height: 1.7; font-size: 17px; }
-        .educore-public-page .device {
-          width: 250px;
-          height: 430px;
-          margin: 0 auto;
-          border-radius: 42px;
-          background: #0c1620;
-          padding: 12px;
-          box-shadow: 0 35px 60px rgba(0,0,0,.35);
+        .educore-public-page .app-card p { color: rgba(255,255,255,.72); line-height: 1.7; font-size: 17px; margin: 14px 0 0; }
+        .educore-public-page .app-preview {
+          border-radius: 28px;
+          background: rgba(255,255,255,.08);
+          border: 1px solid rgba(255,255,255,.14);
+          padding: 22px;
+          display: grid;
+          gap: 12px;
         }
-        .educore-public-page .device-screen {
-          height: 100%;
-          border-radius: 32px;
-          background: var(--cream-50);
-          padding: 20px;
-          color: var(--navy-950);
-        }
-        .educore-public-page .device-icon { display: block; margin: 22px auto 12px; width: 58px; height: 58px; }
-        .educore-public-page .device-card { background: white; border-radius: 20px; padding: 16px; box-shadow: var(--shadow-sm); margin-top: 16px; }
-        .educore-public-page .device-line { height: 9px; border-radius: 999px; background: var(--stone-200); margin: 11px 0; }
-        .educore-public-page .device-line.green { background: linear-gradient(90deg, var(--green-600), var(--gold-500)); width: 70%; }
+        .educore-public-page .app-preview-line { height: 10px; border-radius: 999px; background: rgba(255,255,255,.22); }
+        .educore-public-page .app-preview-line.green { background: linear-gradient(90deg, var(--green-500), var(--gold-500)); width: 72%; }
         .educore-public-page .security { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
-        .educore-public-page .security-card { padding: 26px; border-radius: var(--radius-lg); background: white; border: 1px solid var(--stone-200); box-shadow: var(--shadow-sm); }
+        .educore-public-page .security-card { padding: 24px; border-radius: var(--radius-lg); }
         .educore-public-page .security-card strong { display: block; margin-bottom: 8px; color: var(--navy-950); }
         .educore-public-page .security-card span { color: var(--stone-700); font-size: 14px; line-height: 1.6; }
-        .educore-public-page .cta { padding: 80px 0 96px; }
-        .educore-public-page .cta-card { text-align: center; border-radius: 38px; padding: 62px 34px; background: white; border: 1px solid var(--stone-200); box-shadow: var(--shadow-md); }
+        .educore-public-page .cta { padding: 64px 0 82px; }
+        .educore-public-page .cta-card { text-align: center; border-radius: 38px; padding: 54px 34px; background: white; border: 1px solid var(--stone-200); box-shadow: var(--shadow-md); }
         .educore-public-page .cta-card h2 { margin: 0; font-size: clamp(36px, 5vw, 58px); letter-spacing: -.06em; color: var(--navy-950); }
         .educore-public-page .cta-card p { max-width: 650px; margin: 18px auto 30px; color: var(--stone-700); font-size: 17px; line-height: 1.7; }
-        .educore-public-page footer { padding: 32px 0 46px; color: var(--stone-500); font-size: 13px; }
-        .educore-public-page .footer-inner { display: flex; justify-content: space-between; gap: 20px; align-items: center; border-top: 1px solid var(--stone-200); padding-top: 26px; }
+        .educore-public-page footer { padding: 30px 0 42px; color: var(--stone-500); font-size: 13px; }
+        .educore-public-page .footer-inner { display: flex; justify-content: space-between; gap: 20px; align-items: center; border-top: 1px solid var(--stone-200); padding-top: 24px; }
         @media (max-width: 980px) {
           .educore-public-page .nav-links { display: none; }
           .educore-public-page .hero-grid,
-          .educore-public-page .modules-wrap,
-          .educore-public-page .brand-system,
+          .educore-public-page .solution-grid,
           .educore-public-page .app-card,
           .educore-public-page .access-grid { grid-template-columns: 1fr; }
           .educore-public-page .features,
+          .educore-public-page .module-list,
           .educore-public-page .roles,
           .educore-public-page .security { grid-template-columns: repeat(2, 1fr); }
         }
@@ -362,16 +396,17 @@ export default async function HomePage() {
           .educore-public-page .nav-inner { height: 68px; }
           .educore-public-page .brand-logo { width: 132px; }
           .educore-public-page .nav-actions .btn-soft { display: none; }
-          .educore-public-page .hero { padding: 58px 0 70px; }
+          .educore-public-page .hero { padding: 54px 0 60px; }
           .educore-public-page .product-card { padding: 10px; border-radius: 26px; }
           .educore-public-page .mock-body { grid-template-columns: 1fr; }
           .educore-public-page .mock-side { display: none; }
           .educore-public-page .features,
-          .educore-public-page .roles,
           .educore-public-page .module-list,
+          .educore-public-page .roles,
           .educore-public-page .security { grid-template-columns: 1fr; }
-          .educore-public-page .app-card { padding: 30px 22px; border-radius: 28px; }
+          .educore-public-page .brand-note,
           .educore-public-page .access-card { align-items: flex-start; flex-direction: column; }
+          .educore-public-page .app-card { padding: 30px 22px; border-radius: 28px; }
           .educore-public-page .footer-inner { flex-direction: column; align-items: flex-start; }
         }
       `}</style>
@@ -382,10 +417,10 @@ export default async function HomePage() {
             <Image className="brand-logo" src="/brand/educore/logo.svg" alt="EduCore" width={220} height={56} priority />
           </Link>
           <nav className="nav-links" aria-label="Principal">
+            <a href="#resuelve">Qué resuelve</a>
             <a href="#modulos">Módulos</a>
             <a href="#roles">Roles</a>
-            <a href="#marca">Marca</a>
-            <a href="#app">App</a>
+            <a href="#acceso">Centros</a>
             <a href="#seguridad">Seguridad</a>
           </nav>
           <div className="nav-actions">
@@ -449,18 +484,38 @@ export default async function HomePage() {
         </div>
       </section>
 
+      <section id="resuelve">
+        <div className="container solution-grid">
+          <div className="module-panel">
+            <div className="section-kicker">Qué resuelve EduCore</div>
+            <h2>Menos ruido operativo. Más centro educativo.</h2>
+            <p>EduCore reúne comunicación, evaluación, asistencia, boletines y supervisión en una única experiencia coherente para centros escolares.</p>
+          </div>
+          <div className="solution-list">
+            {solvedItems.map((item, index) => (
+              <div className="solution-item" key={item}>
+                <span className="solution-dot">{index + 1}</span>
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section id="modulos">
         <div className="container">
           <div className="section-head">
-            <div className="section-kicker">Producto</div>
-            <h2>Un motor común para todo el centro.</h2>
-            <p>EduCore organiza el trabajo diario del colegio con módulos visuales, conectados y pensados para reducir ruido operativo.</p>
+            <div className="section-kicker">Módulos principales</div>
+            <h2>Todo conectado, sin duplicar trabajo.</h2>
+            <p>Cada módulo común se implementa una vez y se adapta por permisos y rol.</p>
           </div>
-          <div className="features">
-            <article className="feature-card"><div className="feature-icon">01</div><h3>Comunicación</h3><p>Conversaciones entre familias, docentes y dirección con seguimiento, estados y trazabilidad.</p></article>
-            <article className="feature-card"><div className="feature-icon">02</div><h3>Cuaderno</h3><p>Calificaciones, observaciones, criterios y boletines conectados con datos reales.</p></article>
-            <article className="feature-card"><div className="feature-icon">03</div><h3>Asistencia</h3><p>Pasar lista de forma rápida, visual y preparada para seguimiento por roles.</p></article>
-            <article className="feature-card"><div className="feature-icon">04</div><h3>Supervisión</h3><p>Dashboards vivos para entender qué ocurre en el centro en segundos.</p></article>
+          <div className="module-list">
+            {modules.map(([title, description]) => (
+              <article className="module-card" key={title}>
+                <strong>{title}</strong>
+                <span>{description}</span>
+              </article>
+            ))}
           </div>
         </div>
       </section>
@@ -469,31 +524,14 @@ export default async function HomePage() {
         <div className="container">
           <div className="section-head">
             <div className="section-kicker">Roles</div>
-            <h2>Una experiencia distinta para cada miembro de la comunidad.</h2>
-            <p>La misma plataforma, adaptada a las responsabilidades reales de cada perfil.</p>
+            <h2>Una plataforma, cuatro experiencias.</h2>
+            <p>La misma base visual y funcional adaptada a las responsabilidades reales de cada perfil.</p>
           </div>
           <div className="roles">
-            <article className="role-card"><h3>Dirección</h3><p>Centro de control para supervisar comunicaciones, evaluación, incidencias y actividad del colegio.</p><div className="role-list"><span>Centro de actividad</span><span>Prioridades</span><span>Supervisión académica</span></div></article>
-            <article className="role-card"><h3>Docentes</h3><p>Un espacio operativo para pasar lista, calificar, comunicar y seguir a cada alumno.</p><div className="role-list"><span>Cuaderno</span><span>Mis alumnos</span><span>Horario y asistencia</span></div></article>
-            <article className="role-card"><h3>Familias</h3><p>Información clara sobre calificaciones, boletines, comunicaciones y evolución del alumno.</p><div className="role-list"><span>Notas visibles</span><span>Boletines</span><span>Comunicación directa</span></div></article>
-            <article className="role-card"><h3>Administración</h3><p>Gestión estructural del centro: usuarios, cursos, materias, importación y seguridad.</p><div className="role-list"><span>Mantenimiento</span><span>Importación</span><span>Usuarios y roles</span></div></article>
-          </div>
-        </div>
-      </section>
-
-      <section>
-        <div className="container modules-wrap">
-          <div className="module-panel">
-            <div className="section-kicker">Sistema modular</div>
-            <h3>Todo conectado, sin duplicar trabajo.</h3>
-            <p>EduCore está diseñado para que cada módulo común se implemente una vez y se adapte por permisos y rol. La mejora de un módulo se refleja en toda la plataforma.</p>
-            <div style={{ marginTop: 24 }}><a className="btn btn-primary" href="#demo">Ver una demo</a></div>
-          </div>
-          <div className="module-list">
-            <div className="module-card"><strong>Centro de control</strong><span>Timeline vivo con actividad del colegio y acciones contextualizadas.</span></div>
-            <div className="module-card"><strong>Ficha del alumno</strong><span>Resumen académico, asistencia, incidencias, comunicaciones y seguimiento.</span></div>
-            <div className="module-card"><strong>Boletines</strong><span>Vista previa y PDF profesional preparados para familias.</span></div>
-            <div className="module-card"><strong>EduCore AI</strong><span>Asistente educativo integrado, preparado para fases con privacidad controlada.</span></div>
+            <article className="role-card"><h3>Dirección</h3><p>Supervisa actividad, prioridades, evaluación e incidencias.</p><div className="role-list"><span>Centro de control</span><span>Prioridades</span></div></article>
+            <article className="role-card"><h3>Docentes</h3><p>Gestionan asistencia, cuaderno, alumnos y comunicaciones.</p><div className="role-list"><span>Cuaderno</span><span>Mis alumnos</span></div></article>
+            <article className="role-card"><h3>Familias</h3><p>Consultan notas visibles, boletines y mensajes del centro.</p><div className="role-list"><span>Boletines</span><span>Comunicación</span></div></article>
+            <article className="role-card"><h3>Administración</h3><p>Mantiene usuarios, estructura, importaciones y seguridad.</p><div className="role-list"><span>Mantenimiento</span><span>Roles</span></div></article>
           </div>
         </div>
       </section>
@@ -522,33 +560,10 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section id="marca">
-        <div className="container">
-          <div className="section-head">
-            <div className="section-kicker">Identidad</div>
-            <h2>Una marca pensada como el corazón del centro.</h2>
-            <p>El corazón representa conexión, cuidado y coordinación. El verde aporta crecimiento y confianza. El dorado añade valor institucional y sofisticación.</p>
-          </div>
-          <div className="brand-system">
-            <div className="brand-board">
-              <h3>Logo principal</h3>
-              <div className="logo-showcase">
-                <div style={{ textAlign: "center" }}>
-                  <Image src="/brand/educore/logo.svg" alt="EduCore" width={220} height={56} />
-                  <div style={{ marginTop: 8, color: "var(--stone-500)", fontWeight: 700 }}>El corazón de tu centro</div>
-                </div>
-              </div>
-            </div>
-            <div className="brand-board">
-              <h3>Paleta corporativa</h3>
-              <div className="palette">
-                <div className="swatch"><div className="swatch-color" style={{ background: "#061f2a" }} /><div><strong>Navy profundo</strong><span>#061F2A · Confianza y tecnología</span></div></div>
-                <div className="swatch"><div className="swatch-color" style={{ background: "#2f8a70" }} /><div><strong>Verde EduCore</strong><span>#2F8A70 · Crecimiento y comunidad</span></div></div>
-                <div className="swatch"><div className="swatch-color" style={{ background: "#d2a657" }} /><div><strong>Dorado institucional</strong><span>#D2A657 · Valor y excelencia</span></div></div>
-                <div className="swatch"><div className="swatch-color" style={{ background: "#fbf8f1" }} /><div><strong>Blanco cálido</strong><span>#FBF8F1 · Claridad y cercanía</span></div></div>
-              </div>
-            </div>
-          </div>
+      <section>
+        <div className="container brand-note">
+          <Image src="/brand/educore/logo.svg" alt="EduCore" width={168} height={43} />
+          <p>Una identidad propia para una plataforma SaaS educativa: sobria, cercana y preparada para crecer con nuevos centros.</p>
         </div>
       </section>
 
@@ -556,17 +571,19 @@ export default async function HomePage() {
         <div className="container app-card">
           <div>
             <div className="section-kicker" style={{ color: "var(--gold-300)" }}>App instalable</div>
-            <h2>EduCore también puede vivir en el móvil, tablet u ordenador.</h2>
-            <p>Preparado para convertirse en una app instalable tipo PWA, con icono propio, experiencia standalone y acceso rápido para docentes, familias y dirección.</p>
-            <div className="hero-actions"><a className="btn btn-gold" href="#demo">Solicitar demo</a><a className="btn btn-soft" href="#acceso">Acceder a centro</a></div>
-          </div>
-          <div className="device" aria-hidden="true">
-            <div className="device-screen">
-              <Image className="device-icon" src="/brand/educore/icon.svg" alt="" width={58} height={58} />
-              <div style={{ textAlign: "center", fontWeight: 800, fontSize: 24, letterSpacing: "-.04em" }}>EduCore</div>
-              <div className="device-card"><strong>Buenos días</strong><div className="device-line green" /><div className="device-line" /><div className="device-line" style={{ width: "82%" }} /></div>
-              <div className="device-card"><strong>Actividad</strong><div className="device-line" /><div className="device-line" style={{ width: "72%" }} /><div className="device-line" style={{ width: "46%" }} /></div>
+            <h2>Instala EduCore en móvil, tablet u ordenador.</h2>
+            <p>Acceso rápido para docentes, familias, dirección y administración desde cualquier dispositivo.</p>
+            <div className="hero-actions">
+              <a className="btn btn-gold" href="#demo">Solicitar demo</a>
+              <a className="btn btn-soft" href="#acceso">Accede a tu centro</a>
             </div>
+          </div>
+          <div className="app-preview" aria-hidden="true">
+            <Image className="brand-icon" src="/brand/educore/icon.svg" alt="" width={42} height={42} />
+            <div className="app-preview-line green" />
+            <div className="app-preview-line" />
+            <div className="app-preview-line" style={{ width: "82%" }} />
+            <div className="app-preview-line" style={{ width: "58%" }} />
           </div>
         </div>
       </section>
@@ -576,11 +593,10 @@ export default async function HomePage() {
           <div className="section-head">
             <div className="section-kicker">Confianza</div>
             <h2>Seguridad, permisos y privacidad desde el diseño.</h2>
-            <p>EduCore separa roles, permisos y visibilidad para que cada usuario vea únicamente lo que le corresponde.</p>
           </div>
           <div className="security">
             <div className="security-card"><strong>Roles claros</strong><span>Dirección, docentes, administración y familias con experiencias y permisos diferenciados.</span></div>
-            <div className="security-card"><strong>Datos visibles</strong><span>Las familias solo acceden a calificaciones, observaciones y boletines publicados o visibles.</span></div>
+            <div className="security-card"><strong>Datos visibles según permisos</strong><span>Cada usuario accede únicamente a la información que le corresponde.</span></div>
             <div className="security-card"><strong>Preparado para RGPD</strong><span>Arquitectura pensada para trazabilidad, control de acceso y evolución segura.</span></div>
           </div>
         </div>
@@ -591,9 +607,9 @@ export default async function HomePage() {
           <div className="cta-card">
             <div className="eyebrow">EduCore SaaS educativo</div>
             <h2>Convierte tu centro en una comunidad conectada.</h2>
-            <p>Solicita una demo y descubre cómo EduCore puede centralizar comunicación, evaluación, asistencia y supervisión en una única plataforma.</p>
+            <p>Solicita una demo y descubre cómo centralizar comunicación, evaluación, asistencia y supervisión en una única plataforma.</p>
             <div className="hero-actions" style={{ justifyContent: "center" }}>
-              <a className="btn btn-gold" href="mailto:demo@educore.es">Solicitar una demo</a>
+              <a className="btn btn-gold" href="mailto:demo@educore.es">Solicitar demo</a>
               <a className="btn btn-soft" href="#acceso">Accede a tu centro</a>
             </div>
           </div>
