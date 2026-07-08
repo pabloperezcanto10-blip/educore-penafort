@@ -1,16 +1,27 @@
-<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="64" height="64" rx="18" fill="#FBF8F1"/>
-  <path d="M31.9 50.8C24.1 44.6 17.3 39.1 13.6 33.4C9.8 27.5 10.6 19.6 16.3 15.2C21.6 11.1 28.1 12.8 32 18.1C35.9 12.8 42.4 11.1 47.7 15.2C53.4 19.6 54.2 27.5 50.4 33.4C46.7 39.1 39.9 44.6 32.1 50.8H31.9Z" fill="url(#paint0_linear)"/>
-  <path d="M31.9 50.8C24.1 44.6 17.3 39.1 13.6 33.4C9.8 27.5 10.6 19.6 16.3 15.2C21.6 11.1 28.1 12.8 32 18.1C35.9 12.8 42.4 11.1 47.7 15.2C53.4 19.6 54.2 27.5 50.4 33.4C46.7 39.1 39.9 44.6 32.1 50.8H31.9Z" fill="url(#paint1_radial)" fill-opacity=".28"/>
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M128 212C83.7 172.1 41.2 139.8 28.9 99.9C19.2 68.5 39.4 39.1 72.5 37.7C95.4 36.7 114.3 49.2 128 70.9C141.7 49.2 160.6 36.7 183.5 37.7C216.6 39.1 236.8 68.5 227.1 99.9C214.8 139.8 172.3 172.1 128 212Z" stroke="url(#heartGradient)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M69.5 112.7C90.7 115.5 109.7 129.4 119 147.9V185.7C98.2 174.6 80 159.9 69.5 139.9V112.7Z" fill="url(#leftPage)"/>
+  <path d="M186.5 112.7C165.3 115.5 146.3 129.4 137 147.9V185.7C157.8 174.6 176 159.9 186.5 139.9V112.7Z" fill="url(#rightPage)"/>
+  <path d="M78 154.8C94.7 163.1 110.7 174.8 128 198.1C145.3 174.8 161.3 163.1 178 154.8" stroke="url(#bookLine)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
   <defs>
-    <linearGradient id="paint0_linear" x1="15" y1="13" x2="49" y2="52" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#D2A657"/>
-      <stop offset=".52" stop-color="#2F8A70"/>
-      <stop offset="1" stop-color="#0B2B38"/>
+    <linearGradient id="heartGradient" x1="27" y1="44" x2="227" y2="212" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F1B2E"/>
+      <stop offset=".35" stop-color="#2F8A70"/>
+      <stop offset=".68" stop-color="#D2A657"/>
+      <stop offset="1" stop-color="#2F8A70"/>
     </linearGradient>
-    <radialGradient id="paint1_radial" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(26 21) rotate(54) scale(35 26)">
-      <stop stop-color="#FFFFFF"/>
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
-    </radialGradient>
+    <linearGradient id="leftPage" x1="67" y1="118" x2="123" y2="183" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2F8A70"/>
+      <stop offset="1" stop-color="#155F4A"/>
+    </linearGradient>
+    <linearGradient id="rightPage" x1="190" y1="118" x2="135" y2="184" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D2A657"/>
+      <stop offset="1" stop-color="#A47725"/>
+    </linearGradient>
+    <linearGradient id="bookLine" x1="78" y1="154" x2="178" y2="198" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2F8A70"/>
+      <stop offset=".52" stop-color="#0F1B2E"/>
+      <stop offset="1" stop-color="#D2A657"/>
+    </linearGradient>
   </defs>
 </svg>

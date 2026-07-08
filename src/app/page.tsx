@@ -40,24 +40,24 @@ export default async function HomePage() {
     <main className="educore-public-page">
       <style>{`
         .educore-public-page {
-          --navy-950: #061f2a;
-          --navy-900: #0b2b38;
-          --navy-800: #123b48;
-          --green-700: #1f6f5b;
+          --navy-950: #0f1b2e;
+          --navy-900: #142235;
+          --navy-800: #1d3045;
+          --green-700: #1f765d;
           --green-600: #2f8a70;
-          --green-500: #4aa486;
-          --gold-600: #b9883d;
+          --green-500: #58aa91;
+          --gold-600: #b88735;
           --gold-500: #d2a657;
           --gold-300: #edd8a6;
-          --cream-50: #fbf8f1;
-          --cream-100: #f4efe3;
-          --stone-900: #182025;
+          --cream-50: #f6f3ec;
+          --cream-100: #eee8db;
+          --stone-900: #0f1b2e;
           --stone-700: #4e5b61;
-          --stone-500: #7a8589;
-          --stone-200: #e5ded0;
+          --stone-500: #6b737c;
+          --stone-200: #e7ebee;
           --white: #ffffff;
-          --shadow-sm: 0 10px 30px rgba(6, 31, 42, .08);
-          --shadow-md: 0 18px 55px rgba(6, 31, 42, .13);
+          --shadow-sm: 0 10px 30px rgba(15, 27, 46, .07);
+          --shadow-md: 0 22px 70px rgba(15, 27, 46, .12);
           --radius-xl: 28px;
           --radius-lg: 22px;
           --max: 1180px;
@@ -65,14 +65,14 @@ export default async function HomePage() {
           overflow: hidden;
           color: var(--stone-900);
           background: var(--cream-50);
-          font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          font-family: Inter, Poppins, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
           -webkit-font-smoothing: antialiased;
         }
         .educore-public-page * { box-sizing: border-box; }
         .educore-public-page a { color: inherit; text-decoration: none; }
         .educore-public-page .container { width: min(var(--max), calc(100% - 40px)); margin: 0 auto; }
         .educore-public-page .brand { display: inline-flex; align-items: center; gap: 12px; }
-        .educore-public-page .brand-logo { display: block; width: 168px; height: auto; }
+        .educore-public-page .brand-logo { display: block; width: 184px; height: auto; }
         .educore-public-page .brand-icon {
           width: 42px;
           height: 42px;
@@ -84,8 +84,8 @@ export default async function HomePage() {
           top: 0;
           z-index: 20;
           backdrop-filter: blur(22px);
-          background: rgba(251, 248, 241, .78);
-          border-bottom: 1px solid rgba(229, 222, 208, .75);
+          background: rgba(246, 243, 236, .82);
+          border-bottom: 1px solid rgba(231, 235, 238, .85);
         }
         .educore-public-page .nav-inner {
           height: 78px;
@@ -111,11 +111,11 @@ export default async function HomePage() {
           transition: .2s ease;
           white-space: nowrap;
         }
-        .educore-public-page .btn-primary { background: var(--navy-950); color: white; box-shadow: 0 16px 35px rgba(6, 31, 42, .22); }
+        .educore-public-page .btn-primary { background: var(--navy-950); color: white; box-shadow: 0 16px 35px rgba(15, 27, 46, .2); }
         .educore-public-page .btn-primary:hover { transform: translateY(-1px); background: var(--navy-800); }
         .educore-public-page .btn-soft { background: rgba(255,255,255,.72); color: var(--navy-950); border-color: var(--stone-200); }
         .educore-public-page .btn-soft:hover { background: white; transform: translateY(-1px); }
-        .educore-public-page .btn-gold { background: linear-gradient(135deg, var(--gold-500), var(--green-600)); color: white; box-shadow: 0 16px 35px rgba(185, 136, 61, .28); }
+        .educore-public-page .btn-gold { background: linear-gradient(135deg, var(--green-600), var(--gold-500)); color: white; box-shadow: 0 16px 35px rgba(47, 138, 112, .24); }
         .educore-public-page .hero {
           position: relative;
           padding: 76px 0 70px;
@@ -127,7 +127,7 @@ export default async function HomePage() {
           width: 620px;
           height: 620px;
           border-radius: 50%;
-          background: radial-gradient(circle, rgba(210,166,87,.28), rgba(47,138,112,.1) 42%, transparent 68%);
+          background: radial-gradient(circle, rgba(210,166,87,.24), rgba(47,138,112,.12) 42%, transparent 68%);
           pointer-events: none;
         }
         .educore-public-page .hero-grid { display: grid; grid-template-columns: 1.02fr .98fr; gap: 58px; align-items: center; position: relative; }
@@ -172,7 +172,7 @@ export default async function HomePage() {
           position: relative;
           border-radius: 34px;
           padding: 18px;
-          background: linear-gradient(145deg, rgba(255,255,255,.92), rgba(244,239,227,.68));
+          background: linear-gradient(145deg, rgba(255,255,255,.94), rgba(246,243,236,.72));
           border: 1px solid rgba(255,255,255,.8);
           box-shadow: var(--shadow-md);
         }
@@ -414,7 +414,7 @@ export default async function HomePage() {
       <header className="nav">
         <div className="container nav-inner">
           <Link className="brand" href="/">
-            <Image className="brand-logo" src="/brand/educore/logo.svg" alt="EduCore" width={220} height={56} priority />
+            <Image className="brand-logo" src="/brand/educore/logo.svg" alt="EduCore" width={512} height={150} priority />
           </Link>
           <nav className="nav-links" aria-label="Principal">
             <a href="#resuelve">Qué resuelve</a>
@@ -452,7 +452,7 @@ export default async function HomePage() {
             <div className="mock-screen">
               <div className="mock-top">
                 <div className="brand" style={{ gap: 8 }}>
-                  <Image className="brand-icon" src="/brand/educore/icon.svg" alt="" width={42} height={42} style={{ width: 28, height: 28 }} />
+                  <Image className="brand-icon" src="/brand/educore/icon.svg" alt="" width={256} height={256} style={{ width: 28, height: 28 }} />
                   <span className="mock-title">EduCore Control Center</span>
                 </div>
                 <span className="mock-badge">Centro activo</span>
@@ -480,6 +480,30 @@ export default async function HomePage() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="acceso">
+        <div className="container access-grid">
+          <div className="module-panel">
+            <div className="section-kicker">Centros conectados</div>
+            <h3>Accede a tu centro educativo</h3>
+            <p>Selecciona el centro al que perteneces para acceder a tu plataforma EduCore.</p>
+          </div>
+          <div className="module-list" style={{ gridTemplateColumns: "1fr" }}>
+            {schools.map((school) => (
+              <Link className="access-card" href={school.href} key={school.name}>
+                <div className="brand" style={{ gap: 14 }}>
+                  <Image className="brand-icon" src="/brand/educore/icon.svg" alt="" width={256} height={256} />
+                  <div>
+                    <strong>{school.name}</strong>
+                    <span>{school.description}</span>
+                  </div>
+                </div>
+                <span className="btn btn-primary">Entrar</span>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
@@ -536,33 +560,9 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section id="acceso">
-        <div className="container access-grid">
-          <div className="module-panel">
-            <div className="section-kicker">Centros conectados</div>
-            <h3>Accede a tu centro educativo</h3>
-            <p>Selecciona el centro al que perteneces para acceder a tu plataforma EduCore.</p>
-          </div>
-          <div className="module-list" style={{ gridTemplateColumns: "1fr" }}>
-            {schools.map((school) => (
-              <Link className="access-card" href={school.href} key={school.name}>
-                <div className="brand" style={{ gap: 14 }}>
-                  <Image className="brand-icon" src="/brand/educore/icon.svg" alt="" width={42} height={42} />
-                  <div>
-                    <strong>{school.name}</strong>
-                    <span>{school.description}</span>
-                  </div>
-                </div>
-                <span className="btn btn-primary">Entrar</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
       <section>
         <div className="container brand-note">
-          <Image src="/brand/educore/logo.svg" alt="EduCore" width={168} height={43} />
+          <Image src="/brand/educore/logo.svg" alt="EduCore" width={512} height={150} style={{ width: 178, height: "auto" }} />
           <p>Una identidad propia para una plataforma SaaS educativa: sobria, cercana y preparada para crecer con nuevos centros.</p>
         </div>
       </section>
@@ -579,7 +579,7 @@ export default async function HomePage() {
             </div>
           </div>
           <div className="app-preview" aria-hidden="true">
-            <Image className="brand-icon" src="/brand/educore/icon.svg" alt="" width={42} height={42} />
+            <Image src="/brand/educore/app-icon-dark.svg" alt="" width={512} height={512} style={{ width: 72, height: 72, borderRadius: 18 }} />
             <div className="app-preview-line green" />
             <div className="app-preview-line" />
             <div className="app-preview-line" style={{ width: "82%" }} />
@@ -618,7 +618,7 @@ export default async function HomePage() {
 
       <footer>
         <div className="container footer-inner">
-          <Image src="/brand/educore/logo.svg" alt="EduCore" width={132} height={34} />
+          <Image src="/brand/educore/logo.svg" alt="EduCore" width={512} height={150} style={{ width: 132, height: "auto" }} />
           <div>© 2026 EduCore · El corazón de tu centro educativo.</div>
         </div>
       </footer>

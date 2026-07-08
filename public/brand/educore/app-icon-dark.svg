@@ -1,0 +1,10 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="96" fill="#0F1B2E"/>
+  <g transform="translate(112 94) scale(1.12)">
+    <path d="M128 212C83.7 172.1 41.2 139.8 28.9 99.9C19.2 68.5 39.4 39.1 72.5 37.7C95.4 36.7 114.3 49.2 128 70.9C141.7 49.2 160.6 36.7 183.5 37.7C216.6 39.1 236.8 68.5 227.1 99.9C214.8 139.8 172.3 172.1 128 212Z" stroke="url(#heartGradient)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M69.5 112.7C90.7 115.5 109.7 129.4 119 147.9V185.7C98.2 174.6 80 159.9 69.5 139.9V112.7Z" fill="#FFFFFF"/>
+    <path d="M186.5 112.7C165.3 115.5 146.3 129.4 137 147.9V185.7C157.8 174.6 176 159.9 186.5 139.9V112.7Z" fill="#D2A657"/>
+    <path d="M78 154.8C94.7 163.1 110.7 174.8 128 198.1C145.3 174.8 161.3 163.1 178 154.8" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <defs><linearGradient id="heartGradient" x1="27" y1="44" x2="227" y2="212" gradientUnits="userSpaceOnUse"><stop stop-color="#FFFFFF"/><stop offset=".55" stop-color="#2F8A70"/><stop offset="1" stop-color="#D2A657"/></linearGradient></defs>
+</svg>
