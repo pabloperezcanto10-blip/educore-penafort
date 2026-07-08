@@ -1,9 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { InstallEduCoreButton } from "@/components/pwa/install-educore-button";
-import { getCurrentUserProfile } from "@/lib/auth/session";
-import { getDashboardPathForRole } from "@/lib/auth/roles";
 
 const schools = [
   {
@@ -30,13 +27,7 @@ const modules = [
   ["EduCore AI", "Asistente educativo integrado para redacción y apoyo docente."]
 ];
 
-export default async function HomePage() {
-  const profile = await getCurrentUserProfile();
-
-  if (profile) {
-    redirect(getDashboardPathForRole(profile.role));
-  }
-
+export default function HomePage() {
   return (
     <main className="educore-public-page">
       <style>{`

@@ -8,7 +8,14 @@ La PWA abre directamente:
 
 `/app`
 
-Esta pantalla funciona como launcher sencillo para seleccionar el centro educativo. La landing pública sigue disponible en `/` para visitantes, demos y comunicación comercial.
+Esta pantalla funciona como launcher sencillo para seleccionar el centro educativo.
+
+La experiencia queda separada:
+
+- Web pública: `/`, siempre muestra la landing comercial de EduCore.
+- PWA instalada: `/app`, siempre abre el selector de centros.
+
+No hay redirecciones automáticas entre web y PWA por `display-mode`, `standalone` o instalación.
 
 ## Instalación en iPhone
 

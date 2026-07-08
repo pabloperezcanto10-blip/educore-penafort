@@ -2,6 +2,7 @@
   "name": "EduCore",
   "short_name": "EduCore",
   "description": "Gestión educativa inteligente para centros educativos.",
+  "id": "/app",
   "start_url": "/app",
   "scope": "/",
   "display": "standalone",
