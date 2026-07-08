@@ -1,5 +1,5 @@
 ﻿import Link from "next/link";
-import { Archive, ClipboardCheck, Download, FileSpreadsheet, FolderOpen, Landmark } from "lucide-react";
+import { Archive, ClipboardCheck, Download, Eye, FileSpreadsheet, FolderOpen, Landmark } from "lucide-react";
 import {
   GradebookBadge,
   GradebookCard,
@@ -203,13 +203,24 @@ function SupervisionStudentRow({
       </td>
       <td className="px-4 py-3">
         <div className="flex flex-col gap-3">
-          <Link
-            href={`/dashboard/reports/term-pdf?student_id=${group.studentId}&term=${term}`}
-            className="inline-flex h-8 w-fit items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            <Download className="h-3.5 w-3.5" aria-hidden="true" />
-            PDF
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href={`/dashboard/reports/term-preview?student_id=${group.studentId}&term=${term}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-8 w-fit items-center gap-2 rounded-md border border-sky-200 bg-sky-50 px-3 text-xs font-semibold text-sky-800 transition hover:bg-sky-100"
+            >
+              <Eye className="h-3.5 w-3.5" aria-hidden="true" />
+              Vista previa
+            </Link>
+            <Link
+              href={`/dashboard/reports/term-pdf?student_id=${group.studentId}&term=${term}`}
+              className="inline-flex h-8 w-fit items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              <Download className="h-3.5 w-3.5" aria-hidden="true" />
+              PDF
+            </Link>
+          </div>
           <details>
             <summary className="cursor-pointer text-sm font-semibold text-blue-800">Ver materias</summary>
             <div className="mt-3 grid gap-3 xl:grid-cols-2">
