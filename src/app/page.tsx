@@ -2,6 +2,49 @@ import Image from "next/image";
 import Link from "next/link";
 import { InstallEduCoreButton } from "@/components/pwa/install-educore-button";
 
+const siteUrl = "https://educacora.es";
+const siteDescription =
+  "EducaCora es una plataforma inteligente para centros educativos que conecta dirección, docentes, familias y alumnado en un único entorno digital.";
+
+const structuredData = [
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "EducaCora",
+    url: siteUrl,
+    logo: `${siteUrl}/brand/educore/logo.svg`,
+    description: siteDescription
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "EducaCora",
+    url: siteUrl,
+    description: siteDescription,
+    inLanguage: "es"
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "EducaCora",
+    url: siteUrl,
+    description: siteDescription,
+    applicationCategory: "EducationalApplication",
+    operatingSystem: "Web, iOS, Android, Windows, macOS",
+    offers: {
+      "@type": "Offer",
+      url: siteUrl,
+      priceCurrency: "EUR",
+      availability: "https://schema.org/InStock"
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "EducaCora",
+      url: siteUrl
+    }
+  }
+];
+
 const schools = [
   {
     name: "Colegio Peñafort",
@@ -30,6 +73,12 @@ const modules = [
 export default function HomePage() {
   return (
     <main className="educore-public-page">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(structuredData).replace(/</g, "\\u003c")
+        }}
+      />
       <style>{`
         .educore-public-page {
           --navy-950: #0f1b2e;

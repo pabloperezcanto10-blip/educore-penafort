@@ -1,5 +1,18 @@
 import Image from "next/image";
+import type { Metadata } from "next";
 import { EduCoreCenterLauncher } from "@/components/pwa/educore-center-launcher";
+
+export const metadata: Metadata = {
+  title: "EducaCora | Selecciona tu centro educativo",
+  description: "Accede a la plataforma de tu colegio desde EducaCora.",
+  alternates: {
+    canonical: "/app"
+  },
+  robots: {
+    index: false,
+    follow: false
+  }
+};
 
 const centers = [
   {

@@ -1,12 +1,12 @@
 {
   "name": "EducaCora",
   "short_name": "EducaCora",
-  "description": "Plataforma escolar inteligente para conectar dirección, docentes, familias y alumnos.",
-  "id": "/app",
-  "start_url": "/app",
+  "description": "El corazón de tu centro educativo.",
+  "id": "/",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait-primary",
+  "orientation": "portrait",
   "background_color": "#F6F3EC",
   "theme_color": "#0F1B2E",
   "icons": [
