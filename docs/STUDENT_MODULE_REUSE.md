@@ -2,7 +2,7 @@
 
 ## Regla de producto
 
-Todo módulo común de EduCore debe tener una única implementación visual compartida. Las diferencias entre Tutor, Director, Admin y Familia se controlan por props, permisos y modo de uso, nunca duplicando pantallas visuales.
+Todo módulo común de EducaCora debe tener una única implementación visual compartida. Las diferencias entre Tutor, Director, Admin y Familia se controlan por props, permisos y modo de uso, nunca duplicando pantallas visuales.
 
 Los módulos comunes de alumnos no deben tener implementaciones visuales distintas por rol. Las rutas pueden decidir permisos, datos y acciones, pero deben renderizar la misma base visual compartida.
 

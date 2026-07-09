@@ -5,7 +5,7 @@ import { InstallEduCoreButton } from "@/components/pwa/install-educore-button";
 const schools = [
   {
     name: "Colegio Peñafort",
-    description: "Acceso a la plataforma EduCore del centro.",
+    description: "Acceso a la plataforma EducaCora del centro.",
     href: "/login"
   }
 ];
@@ -24,7 +24,7 @@ const modules = [
   ["Asistencia", "Pasar lista de forma rápida, visual y preparada para seguimiento."],
   ["Boletines", "Vista previa y documentos profesionales para familias."],
   ["Centro de control", "Actividad del colegio, prioridades y supervisión directiva."],
-  ["EduCore AI", "Asistente educativo integrado para redacción y apoyo docente."]
+  ["Corium AI", "Asistente educativo integrado para redacción y apoyo docente."]
 ];
 
 export default function HomePage() {
@@ -424,7 +424,7 @@ export default function HomePage() {
       <header className="nav">
         <div className="container nav-inner">
           <Link className="brand" href="/">
-            <Image className="brand-logo" src="/brand/educore/logo.svg" alt="EduCore" width={512} height={150} priority />
+            <Image className="brand-logo" src="/brand/educore/logo.svg" alt="EducaCora" width={512} height={150} priority />
           </Link>
           <nav className="nav-links" aria-label="Principal">
             <a href="#resuelve">Qué resuelve</a>
@@ -444,8 +444,8 @@ export default function HomePage() {
       <section className="hero">
         <div className="container hero-grid">
           <div>
-            <div className="eyebrow">● El corazón de tu centro</div>
-            <h1>EduCore conecta toda la <span className="gradient">comunidad educativa</span>.</h1>
+            <div className="eyebrow">● El corazón de tu centro educativo.</div>
+            <h1>EducaCora conecta toda la <span className="gradient">comunidad educativa</span>.</h1>
             <p>Una plataforma escolar inteligente, elegante y centralizada para coordinar dirección, docentes, familias y alumnos desde un único lugar.</p>
             <div className="hero-actions">
               <a className="btn btn-gold" href="#demo">Solicitar una demo</a>
@@ -460,12 +460,12 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="product-card" aria-label="Vista conceptual de EduCore">
+          <div className="product-card" aria-label="Vista conceptual de EducaCora">
             <div className="mock-screen">
               <div className="mock-top">
                 <div className="brand" style={{ gap: 8 }}>
                   <Image className="brand-icon" src="/brand/educore/icon.svg" alt="" width={256} height={256} style={{ width: 28, height: 28 }} />
-                  <span className="mock-title">EduCore Control Center</span>
+                  <span className="mock-title">EducaCora Control Center</span>
                 </div>
                 <span className="mock-badge">Centro activo</span>
               </div>
@@ -501,7 +501,7 @@ export default function HomePage() {
           <div className="module-panel">
             <div className="section-kicker">Centros conectados</div>
             <h3>Accede a tu centro educativo</h3>
-            <p>Selecciona el centro al que perteneces para acceder a tu plataforma EduCore.</p>
+            <p>Selecciona el centro al que perteneces para acceder a tu plataforma EducaCora.</p>
           </div>
           <div className="module-list" style={{ gridTemplateColumns: "1fr" }}>
             {schools.map((school) => (
@@ -523,9 +523,9 @@ export default function HomePage() {
       <section id="resuelve">
         <div className="container solution-grid">
           <div className="module-panel">
-            <div className="section-kicker">Qué resuelve EduCore</div>
+            <div className="section-kicker">Qué resuelve EducaCora</div>
             <h2>Menos ruido operativo. Más centro educativo.</h2>
-            <p>EduCore reúne comunicación, evaluación, asistencia, boletines y supervisión en una única experiencia coherente para centros escolares.</p>
+            <p>EducaCora reúne comunicación, evaluación, asistencia, boletines y supervisión en una única experiencia coherente para centros escolares.</p>
           </div>
           <div className="solution-list">
             {solvedItems.map((item, index) => (
@@ -574,7 +574,7 @@ export default function HomePage() {
 
       <section>
         <div className="container brand-note">
-          <Image src="/brand/educore/logo.svg" alt="EduCore" width={512} height={150} style={{ width: 178, height: "auto" }} />
+          <Image src="/brand/educore/logo.svg" alt="EducaCora" width={512} height={150} style={{ width: 178, height: "auto" }} />
           <p>Una identidad propia para una plataforma SaaS educativa: sobria, cercana y preparada para crecer con nuevos centros.</p>
         </div>
       </section>
@@ -583,7 +583,7 @@ export default function HomePage() {
         <div className="container app-card">
           <div>
             <div className="section-kicker" style={{ color: "var(--gold-300)" }}>App instalable</div>
-            <h2>Instala EduCore en móvil, tablet u ordenador.</h2>
+            <h2>Instala EducaCora en móvil, tablet u ordenador.</h2>
             <p>Acceso rápido para docentes, familias, dirección y administración desde cualquier dispositivo.</p>
             <div className="hero-actions">
               <a className="btn btn-gold" href="#demo">Solicitar demo</a>
@@ -618,11 +618,11 @@ export default function HomePage() {
       <section className="cta" id="demo">
         <div className="container">
           <div className="cta-card">
-            <div className="eyebrow">EduCore SaaS educativo</div>
+            <div className="eyebrow">EducaCora SaaS educativo</div>
             <h2>Convierte tu centro en una comunidad conectada.</h2>
             <p>Solicita una demo y descubre cómo centralizar comunicación, evaluación, asistencia y supervisión en una única plataforma.</p>
             <div className="hero-actions" style={{ justifyContent: "center" }}>
-              <a className="btn btn-gold" href="mailto:demo@educore.es">Solicitar demo</a>
+              <a className="btn btn-gold" href="mailto:demo@educacora.es">Solicitar demo</a>
               <a className="btn btn-soft" href="#acceso">Accede a tu centro</a>
             </div>
           </div>
@@ -631,8 +631,8 @@ export default function HomePage() {
 
       <footer>
         <div className="container footer-inner">
-          <Image src="/brand/educore/logo.svg" alt="EduCore" width={512} height={150} style={{ width: 132, height: "auto" }} />
-          <div>© 2026 EduCore · El corazón de tu centro educativo.</div>
+          <Image src="/brand/educore/logo.svg" alt="EducaCora" width={512} height={150} style={{ width: 132, height: "auto" }} />
+          <div>© 2026 EducaCora · El corazón de tu centro educativo.</div>
         </div>
       </footer>
     </main>

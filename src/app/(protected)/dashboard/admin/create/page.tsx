@@ -207,7 +207,7 @@ export default async function AdminCreatePage({
 
             <CreationSummary
               title="Resumen antes de crear"
-              description="La familia recibirá un usuario con contraseña temporal y deberá cambiarla en el primer acceso. El teléfono no se solicita en EduCore."
+              description="La familia recibirá un usuario con contraseña temporal y deberá cambiarla en el primer acceso. El teléfono no se solicita en EducaCora."
               actionLabel="Crear familia"
             />
           </form>
@@ -282,7 +282,7 @@ export default async function AdminCreatePage({
                     <GradebookBadge tone="gray">Asignación opcional</GradebookBadge>
                   </div>
                   <p className="mt-1 text-sm text-slate-500">
-                    Si seleccionas cursos y materias, EduCore creará automáticamente todas las combinaciones. Si lo dejas vacío, podrás asignarlas después desde Asignación docente.
+                    Si seleccionas cursos y materias, EducaCora creará automáticamente todas las combinaciones. Si lo dejas vacío, podrás asignarlas después desde Asignación docente.
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row lg:shrink-0">

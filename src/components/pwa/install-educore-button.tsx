@@ -41,7 +41,7 @@ export function InstallEduCoreButton({ className }: { className?: string }) {
   return (
     <span className="install-wrap">
       <button className={className ?? "btn btn-soft"} type="button" onClick={handleInstall}>
-        Instalar EduCore
+        Instalar EducaCora
       </button>
       {showHelp ? (
         <span className="install-help" role="status">

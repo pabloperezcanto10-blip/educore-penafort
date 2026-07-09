@@ -5,8 +5,8 @@
     <path d="M186.5 112.7C165.3 115.5 146.3 129.4 137 147.9V185.7C157.8 174.6 176 159.9 186.5 139.9V112.7Z" fill="url(#rightPage)"/>
     <path d="M78 154.8C94.7 163.1 110.7 174.8 128 198.1C145.3 174.8 161.3 163.1 178 154.8" stroke="url(#bookLine)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
-  <text x="130" y="212" text-anchor="middle" fill="#0F1B2E" font-family="Inter, Poppins, Arial, sans-serif" font-size="45" font-weight="700" letter-spacing="-2">Edu<tspan fill="#2F8A70">Core</tspan></text>
-  <text x="130" y="238" text-anchor="middle" fill="#6B737C" font-family="Inter, Poppins, Arial, sans-serif" font-size="15" font-weight="400" letter-spacing=".9">El corazón de tu centro</text>
+  <text x="130" y="212" text-anchor="middle" fill="#0F1B2E" font-family="Inter, Poppins, Arial, sans-serif" font-size="37" font-weight="700" letter-spacing="-2">Educa<tspan fill="#2F8A70">Cora</tspan></text>
+  <text x="130" y="238" text-anchor="middle" fill="#6B737C" font-family="Inter, Poppins, Arial, sans-serif" font-size="12" font-weight="400" letter-spacing=".45">El corazón de tu centro educativo.</text>
   <defs>
     <linearGradient id="heartGradient" x1="27" y1="44" x2="227" y2="212" gradientUnits="userSpaceOnUse"><stop stop-color="#0F1B2E"/><stop offset=".35" stop-color="#2F8A70"/><stop offset=".68" stop-color="#D2A657"/><stop offset="1" stop-color="#2F8A70"/></linearGradient>
     <linearGradient id="leftPage" x1="67" y1="118" x2="123" y2="183" gradientUnits="userSpaceOnUse"><stop stop-color="#2F8A70"/><stop offset="1" stop-color="#155F4A"/></linearGradient>

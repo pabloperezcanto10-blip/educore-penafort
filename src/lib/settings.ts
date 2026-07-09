@@ -1,6 +1,6 @@
 export const platformSettings = {
-  name: "EduCore",
-  tagline: "Gesti\u00f3n educativa inteligente"
+  name: "EducaCora",
+  tagline: "El corazón de tu centro educativo."
 };
 
 export const schoolSettings = {

@@ -1,6 +1,6 @@
 # Despliegue en Vercel
 
-Guia para desplegar EduCore - Colegio Penafort como entorno online de pruebas.
+Guia para desplegar EducaCora - Colegio Penafort como entorno online de pruebas.
 
 ## 1. Preparar el repositorio
 
@@ -48,7 +48,7 @@ Si el proyecto no tiene Git todavia:
 ```bash
 git init
 git add .
-git commit -m "Initial EduCore project"
+git commit -m "Initial EducaCora project"
 git remote add origin https://github.com/TU_USUARIO/TU_REPOSITORIO.git
 git branch -M main
 git push -u origin main
@@ -133,4 +133,3 @@ Comprueba:
 - No pegar `SUPABASE_SERVICE_ROLE_KEY` en componentes cliente.
 - Revisar `git status` antes de hacer commit.
 - Mantener RLS activo en Supabase.
-

@@ -1,4 +1,4 @@
-﻿# Configurar EduCore AI
+﻿# Configurar Corium AI
 
 ## PASO 1
 
@@ -39,6 +39,6 @@ OPENAI_API_KEY=sk-xxxxxx
 
 Hacer redeploy del proyecto en Vercel para que la variable quede cargada.
 
-Si la variable no existe o esta vacia, EduCore AI mostrara:
+Si la variable no existe o esta vacia, Corium AI mostrara:
 
 "El asistente todavía no está configurado."

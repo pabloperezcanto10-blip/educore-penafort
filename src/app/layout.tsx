@@ -3,10 +3,21 @@ import { AppProviders } from "@/components/providers/app-providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "EduCore",
-  description: "Gestión educativa inteligente para centros educativos",
-  applicationName: "EduCore",
+  metadataBase: new URL("https://educacora.es"),
+  title: "EducaCora | El corazón de tu centro educativo",
+  description: "Plataforma escolar inteligente para conectar dirección, docentes, familias y alumnos desde un único lugar.",
+  applicationName: "EducaCora",
   manifest: "/manifest.json",
+  alternates: {
+    canonical: "https://educacora.es"
+  },
+  openGraph: {
+    title: "EducaCora | El corazón de tu centro educativo",
+    description: "Plataforma escolar inteligente para conectar dirección, docentes, familias y alumnos desde un único lugar.",
+    url: "https://educacora.es",
+    siteName: "EducaCora",
+    type: "website"
+  },
   icons: {
     icon: [
       { url: "/brand/educore/favicon.svg", type: "image/svg+xml" },
@@ -17,7 +28,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    title: "EduCore",
+    title: "EducaCora",
     statusBarStyle: "black-translucent"
   },
   other: {

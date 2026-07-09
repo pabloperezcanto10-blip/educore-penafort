@@ -79,7 +79,7 @@ export function AppShell({ profile, academicYearName, children }: AppShellProps)
           </nav>
           <div className="border-t border-border p-3">
             <div className="rounded-lg border border-border bg-slate-50 p-3">
-              <p className="text-xs font-semibold text-slate-700">EduCore</p>
+              <p className="text-xs font-semibold text-slate-700">{platformSettings.name}</p>
               <p className="mt-1 text-xs text-muted-foreground">Navegación global del centro.</p>
             </div>
           </div>

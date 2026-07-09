@@ -42,7 +42,7 @@ export default async function DirectorStudentsPage({ searchParams }: DirectorStu
       <StudentDirectoryHeader
         eyebrow="Supervisión"
         title="Alumnos"
-        description="Busca alumnos, filtra por curso y accede a una ficha de supervisión consistente con EduCore."
+        description="Busca alumnos, filtra por curso y accede a una ficha de supervisión consistente con EducaCora."
       >
         <GradebookBadge tone="blue">{filteredStudents.length} alumnos</GradebookBadge>
       </StudentDirectoryHeader>

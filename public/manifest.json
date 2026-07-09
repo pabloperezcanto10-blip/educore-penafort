@@ -1,7 +1,7 @@
 {
-  "name": "EduCore",
-  "short_name": "EduCore",
-  "description": "Gestión educativa inteligente para centros educativos.",
+  "name": "EducaCora",
+  "short_name": "EducaCora",
+  "description": "Plataforma escolar inteligente para conectar dirección, docentes, familias y alumnos.",
   "id": "/app",
   "start_url": "/app",
   "scope": "/",

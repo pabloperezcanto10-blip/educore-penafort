@@ -1,4 +1,4 @@
-﻿# Arquitectura EduCore
+﻿# Arquitectura EducaCora
 
 ## Stack
 
@@ -21,18 +21,18 @@ Ese layout:
 5. carga el curso escolar activo;
 6. renderiza `AppShell`.
 
-`src/components/layout/app-shell.tsx` centraliza el header global y monta el widget flotante `EduCoreAssistantButton` cuando:
+`src/components/layout/app-shell.tsx` centraliza el header global y monta el widget flotante de Corium AI cuando:
 
 - `AI_ASSISTANT_ENABLED === "true"`;
 - el rol es `tutor`, `director` o `superadmin`.
 
-## EduCore AI
+## Corium AI
 
 El cliente nunca llama directamente a proveedores externos.
 
 Flujo:
 
-1. `EduCoreAssistantButton` mantiene historial local en memoria de sesión.
+1. El botón flotante de Corium AI mantiene historial local en memoria de sesión.
 2. El widget envía peticiones a `/api/ai/chat`.
 3. El endpoint valida sesión, rol y flag.
 4. El endpoint selecciona proveedor mediante `src/lib/ai/providers.ts`.

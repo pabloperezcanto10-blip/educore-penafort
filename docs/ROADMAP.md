@@ -1,4 +1,4 @@
-﻿# Roadmap EduCore
+﻿# Roadmap EducaCora
 
 ## Completado
 
@@ -13,17 +13,17 @@
 - Importación masiva.
 - Horario docente.
 - Auditoría básica.
-- EduCore AI fase 1: asistente flotante sin contexto sensible automático.
+- Corium AI fase 1: asistente flotante sin contexto sensible automático.
 
 ## Próximas fases recomendadas
 
-1. EduCore AI contextual con permisos explícitos.
+1. Corium AI contextual con permisos explícitos.
 2. Panel de configuración AI para superadmin.
 3. Plantillas institucionales para mensajes y boletines.
 4. Mejoras de reporting académico.
 5. Exportaciones oficiales y flujos administrativos avanzados.
 
-## EduCore AI futuro
+## Corium AI futuro
 
 La futura versión contextual deberá:
 

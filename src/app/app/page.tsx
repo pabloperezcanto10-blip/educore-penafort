@@ -19,29 +19,29 @@ export default function EduCoreAppLauncherPage() {
           <div className="flex flex-col items-center text-center">
             <Image
               src="/brand/educore/logo-vertical.svg"
-              alt="EduCore"
+              alt="EducaCora"
               width={320}
               height={320}
               priority
               className="h-auto w-56 sm:w-64"
             />
             <p className="mt-4 text-sm font-semibold uppercase tracking-[0.18em] text-[#2F8A70]">
-              El corazón de tu centro
+              El corazón de tu centro educativo.
             </p>
             <h1 className="mt-8 text-3xl font-semibold tracking-[-0.04em] text-[#0F1B2E] sm:text-5xl">
               Selecciona tu centro educativo
             </h1>
             <p className="mt-4 max-w-xl text-base leading-7 text-[#4E5B61]">
-              Accede a la plataforma de tu colegio desde EduCore.
+              Accede a la plataforma de tu colegio desde EducaCora.
             </p>
           </div>
 
           <EduCoreCenterLauncher centers={centers} />
 
           <div className="mt-8 text-center">
-            <p className="text-sm font-medium text-[#6B737C]">¿Tu centro aún no utiliza EduCore?</p>
+            <p className="text-sm font-medium text-[#6B737C]">¿Tu centro aún no utiliza EducaCora?</p>
             <a
-              href="mailto:demo@educore.es"
+              href="mailto:demo@educacora.es"
               className="mt-1 inline-flex text-sm font-semibold text-[#2F8A70] underline-offset-4 hover:underline"
             >
               Solicitar una demo →

@@ -6,7 +6,7 @@ Históricamente hubo problemas de caché CSS/Next cuando el proyecto estaba en O
 
 `C:\Proyectos\Colegio-Penafort-Platform`
 
-## EduCore AI
+## Corium AI
 
 - Si `AI_ASSISTANT_ENABLED=false`, el botón no aparece.
 - Si falta la clave del proveedor seleccionado, el endpoint devuelve: `El asistente todavía no está configurado.`

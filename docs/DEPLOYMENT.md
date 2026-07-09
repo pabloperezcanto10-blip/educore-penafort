@@ -1,14 +1,14 @@
-# Despliegue de EduCore en Vercel
+# Despliegue de EducaCora en Vercel
 
-EduCore se despliega desde GitHub a Vercel. El objetivo del flujo es que el enlace principal de producción no cambie nunca, aunque se publiquen nuevas versiones.
+EducaCora se despliega desde GitHub a Vercel. El objetivo del flujo es que el enlace principal de producción no cambie nunca, aunque se publiquen nuevas versiones.
 
 ## URL de producción
 
 URL fija actual:
 
-`https://educore-wine-kappa.vercel.app`
+`https://educacora.es`
 
-Esta es la URL que debe compartirse con colegios, docentes, familias o personas que necesiten ver EduCore en producción.
+Esta es la URL que debe compartirse con colegios, docentes, familias o personas que necesiten ver EducaCora en producción.
 
 No se deben compartir URLs temporales de deployments, porque cada despliegue genera una URL distinta para revisión técnica.
 
@@ -27,7 +27,7 @@ Vercel detecta el push
 ↓
 Vercel despliega automáticamente
 ↓
-https://educore-wine-kappa.vercel.app queda actualizado
+https://educacora.es queda actualizado
 ```
 
 ## GitHub conectado a Vercel
@@ -55,7 +55,7 @@ Production es el despliegue principal del proyecto.
 
 URL actual:
 
-`https://educore-wine-kappa.vercel.app`
+`https://educacora.es`
 
 ### Preview
 
@@ -74,7 +74,7 @@ La Production Branch debe ser:
 
 Comprobación en Vercel:
 
-1. Abrir el proyecto EduCore en Vercel.
+1. Abrir el proyecto EducaCora en Vercel.
 2. Ir a `Settings`.
 3. Entrar en `Git`.
 4. Revisar `Production Branch`.
@@ -86,11 +86,11 @@ Si aparece otra rama, cambiarla a `main`.
 
 Compartir siempre:
 
-`https://educore-wine-kappa.vercel.app`
+`https://educacora.es`
 
 No compartir URLs con este patrón:
 
-`https://educore-xxxxx.vercel.app`
+`https://educacora-preview.vercel.app`
 
 si corresponden a previews o deployments concretos.
 
@@ -122,7 +122,7 @@ git push origin main
 
 6. Abrir la URL fija:
 
-`https://educore-wine-kappa.vercel.app`
+`https://educacora.es`
 
 ## Variables de entorno
 
@@ -140,4 +140,4 @@ El archivo `.env.local` debe mantenerse fuera de Git.
 - Rama local principal: `main`.
 - `.vercel/` está ignorado por Git.
 - `vercel.json` declara el framework `nextjs`.
-- La URL pública `https://educore-wine-kappa.vercel.app` responde correctamente.
+- La URL pública `https://educacora.es` responde correctamente.

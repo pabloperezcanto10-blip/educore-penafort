@@ -1,6 +1,6 @@
-﻿# Proveedores de IA para EduCore AI
+﻿# Proveedores de IA para Corium AI
 
-EduCore AI puede usar distintos proveedores sin exponer claves al navegador. Todas las claves deben configurarse solo en variables de entorno de servidor, nunca con `NEXT_PUBLIC_`.
+Corium AI puede usar distintos proveedores sin exponer claves al navegador. Todas las claves deben configurarse solo en variables de entorno de servidor, nunca con `NEXT_PUBLIC_`.
 
 ## Configuración recomendada para MVP
 
@@ -66,9 +66,9 @@ AI_PROVIDER=openai
 OPENAI_API_KEY=sk-xxxxxx
 ```
 
-Si `AI_PROVIDER` no es `openai`, EduCore AI no llama a OpenAI.
+Si `AI_PROVIDER` no es `openai`, Corium AI no llama a OpenAI.
 
-## Desactivar EduCore AI
+## Desactivar Corium AI
 
 Para evitar cualquier llamada externa:
 
@@ -82,7 +82,7 @@ Con este valor, el botón no aparece y `/api/ai/chat` devuelve:
 
 ## Errores controlados
 
-Si el proveedor seleccionado no tiene clave configurada, EduCore AI devuelve:
+Si el proveedor seleccionado no tiene clave configurada, Corium AI devuelve:
 
 "El asistente todavía no está configurado."
 
@@ -92,7 +92,7 @@ Los límites gratuitos dependen del proveedor, la cuenta y sus políticas vigent
 
 ## Privacidad en Fase 1
 
-EduCore AI no consulta automáticamente notas, asistencia, incidencias, expedientes, datos familiares ni comunicaciones completas. Solo envía al proveedor:
+Corium AI no consulta automáticamente notas, asistencia, incidencias, expedientes, datos familiares ni comunicaciones completas. Solo envía al proveedor:
 
 - rol del usuario
 - ruta actual

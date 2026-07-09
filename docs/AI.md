@@ -1,8 +1,8 @@
-﻿# EduCore AI
+﻿# Corium AI
 
 ## Estado actual
 
-EduCore AI fase 1 está implementado como asistente flotante para usuarios internos autenticados.
+Corium AI fase 1 está implementado como asistente flotante para usuarios internos autenticados.
 
 Aparece en las rutas protegidas cuando:
 
@@ -60,8 +60,8 @@ Componente:
 
 Características:
 
-- botón flotante inferior derecho `EduCore AI`;
-- panel lateral con título `EduCore Assistant`;
+- botón flotante inferior derecho `Corium AI`;
+- panel lateral con título `Corium AI`;
 - texto inicial `¿En qué te ayudo?`;
 - historial local durante la sesión;
 - textarea con límite de 2000 caracteres;
@@ -124,7 +124,7 @@ Solo se envía al proveedor:
 
 ## Prompt del sistema
 
-El asistente se comporta como asistente educativo profesional de EduCore. Ayuda a redactar, mejorar, resumir y estructurar textos escolares. Responde en español claro, formal y prudente. No inventa datos del alumno o del centro. Si falta información, la pide. Genera borradores revisables por un humano, no decisiones automáticas.
+El asistente se comporta como asistente educativo profesional de EducaCora. Ayuda a redactar, mejorar, resumir y estructurar textos escolares. Responde en español claro, formal y prudente. No inventa datos del alumno o del centro. Si falta información, la pide. Genera borradores revisables por un humano, no decisiones automáticas.
 
 ## Funcionalidades pospuestas
 

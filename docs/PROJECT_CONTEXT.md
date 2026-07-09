@@ -1,6 +1,6 @@
-﻿# EduCore - Contexto del proyecto
+﻿# EducaCora - Contexto del proyecto
 
-EduCore es una plataforma SaaS educativa configurada actualmente para la instancia Colegio Peñafort.
+EducaCora es una plataforma SaaS educativa configurada actualmente para la instancia Colegio Peñafort.
 
 ## Estado funcional actual
 
@@ -23,11 +23,11 @@ La plataforma incluye módulos operativos para:
 - importación masiva;
 - horario docente;
 - auditoría básica;
-- EduCore AI fase 1.
+- Corium AI fase 1.
 
-## EduCore AI fase 1
+## Corium AI fase 1
 
-EduCore AI está disponible como asistente flotante para roles internos cuando `AI_ASSISTANT_ENABLED=true`.
+Corium AI está disponible como asistente flotante para roles internos cuando `AI_ASSISTANT_ENABLED=true`.
 
 Roles con acceso:
 

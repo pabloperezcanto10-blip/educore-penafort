@@ -133,10 +133,10 @@ export function EduCoreAssistantButton({ userName, role }: { userName: string | 
         type="button"
         onClick={() => setOpen(true)}
         className="fixed bottom-5 right-5 z-40 inline-flex h-11 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/15 transition hover:-translate-y-0.5 hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-primary/30"
-        aria-label="Abrir EduCore AI"
+        aria-label="Abrir Corium AI"
       >
         <Bot className="h-5 w-5" aria-hidden="true" />
-        EduCore AI
+        Corium AI
       </button>
 
       {open ? (
@@ -149,7 +149,7 @@ export function EduCoreAssistantButton({ userName, role }: { userName: string | 
                     <Bot className="h-5 w-5" aria-hidden="true" />
                   </span>
                   <div>
-                    <h2 className="text-base font-semibold text-foreground">Asistente EduCore</h2>
+                    <h2 className="text-base font-semibold text-foreground">Corium AI</h2>
                     <p className="text-xs text-muted-foreground">{role} - {userName ?? "Usuario"}</p>
                   </div>
                 </div>
@@ -210,7 +210,7 @@ export function EduCoreAssistantButton({ userName, role }: { userName: string | 
                 <article key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
                   <div className={`max-w-[86%] rounded-2xl border px-4 py-3 text-sm shadow-sm ${message.role === "user" ? "border-primary/25 bg-primary/10 text-foreground" : "border-border bg-white text-foreground"}`}>
                     <div className="mb-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
-                      <span className="font-semibold text-foreground">{message.role === "user" ? "Tu" : "EduCore AI"}</span>
+                      <span className="font-semibold text-foreground">{message.role === "user" ? "Tu" : "Corium AI"}</span>
                       {message.role === "assistant" ? (
                         <button
                           type="button"
@@ -244,7 +244,7 @@ export function EduCoreAssistantButton({ userName, role }: { userName: string | 
                 void sendMessage(input);
               }}
             >
-              <label className="sr-only" htmlFor="educore-ai-message">Mensaje para EduCore AI</label>
+              <label className="sr-only" htmlFor="educore-ai-message">Mensaje para Corium AI</label>
               <textarea
                 id="educore-ai-message"
                 value={input}
