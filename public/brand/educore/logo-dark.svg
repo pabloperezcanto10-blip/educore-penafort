@@ -1,10 +1,15 @@
-<svg width="512" height="150" viewBox="0 0 512 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <g transform="translate(4 10) scale(.52)">
-    <path d="M128 212C83.7 172.1 41.2 139.8 28.9 99.9C19.2 68.5 39.4 39.1 72.5 37.7C95.4 36.7 114.3 49.2 128 70.9C141.7 49.2 160.6 36.7 183.5 37.7C216.6 39.1 236.8 68.5 227.1 99.9C214.8 139.8 172.3 172.1 128 212Z" stroke="#0F1B2E" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M69.5 112.7C90.7 115.5 109.7 129.4 119 147.9V185.7C98.2 174.6 80 159.9 69.5 139.9V112.7Z" fill="#0F1B2E"/>
-    <path d="M186.5 112.7C165.3 115.5 146.3 129.4 137 147.9V185.7C157.8 174.6 176 159.9 186.5 139.9V112.7Z" fill="#0F1B2E"/>
-    <path d="M78 154.8C94.7 163.1 110.7 174.8 128 198.1C145.3 174.8 161.3 163.1 178 154.8" stroke="#0F1B2E" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
-  </g>
-  <text x="154" y="80" fill="#0F1B2E" font-family="Inter, Poppins, Arial, sans-serif" font-size="58" font-weight="700" letter-spacing="-3">Educa<tspan fill="#2F8A70">Cora</tspan></text>
-  <text x="158" y="120" fill="#6B737C" font-family="Inter, Poppins, Arial, sans-serif" font-size="22" font-weight="400" letter-spacing="1.1">El corazón de tu centro educativo.</text>
+<svg width="760" height="220" viewBox="0 0 760 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(18 -16) scale(.88)">
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M128 205C88 169 54 138 46 100C38 62 69 36 101 49C113 54 122 64 128 75C134 64 143 54 155 49C187 36 218 62 210 100C202 138 168 169 128 205Z" stroke="#0F172A" stroke-width="12"/>
+    <path d="M128 205C168 169 202 138 210 100C218 62 187 36 155 49C143 54 134 64 128 75" stroke="#0F172A" stroke-width="12"/>
+    <path d="M58 124C88 132 112 153 128 190C102 178 75 157 58 124Z" fill="#0F172A" stroke="#0F172A" stroke-width="5"/>
+    <path d="M198 124C168 132 144 153 128 190C154 178 181 157 198 124Z" fill="#0F172A" stroke="#0F172A" stroke-width="5"/>
+    <path d="M70 151C91 160 110 174 128 202" stroke="#F5F3EE" stroke-width="5"/>
+    <path d="M186 151C165 160 146 174 128 202" stroke="#F5F3EE" stroke-width="5"/>
+    <path d="M60 212C89 210 111 216 128 228C145 216 167 210 196 212" stroke="#0F172A" stroke-width="11"/>
+    <path d="M128 204V226" stroke="#0F172A" stroke-width="8"/>
+  </g></g>
+  <text x="252" y="105" fill="#0F172A" font-family="Inter, Poppins, Montserrat, Arial, sans-serif" font-size="82" font-weight="800" letter-spacing="-5">Educa<tspan fill="#0F172A">C</tspan><tspan fill="#0F172A">ora</tspan></text>
+  <text x="256" y="154" fill="#6B7280" font-family="Inter, Poppins, Montserrat, Arial, sans-serif" font-size="26" font-weight="400" letter-spacing=".2">El corazón de tu centro educativo.</text>
 </svg>
