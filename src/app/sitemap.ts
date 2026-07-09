@@ -1,11 +1,10 @@
 import type { MetadataRoute } from "next";
-
-const siteUrl = "https://educacora.es";
+import { SITE_URL } from "@/lib/site-config";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
-      url: siteUrl,
+      url: SITE_URL,
       lastModified: new Date(),
       changeFrequency: "weekly",
       priority: 1

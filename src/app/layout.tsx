@@ -1,21 +1,16 @@
 import type { Metadata, Viewport } from "next";
 import { AppProviders } from "@/components/providers/app-providers";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_OG_IMAGE, SITE_TITLE, SITE_URL } from "@/lib/site-config";
 import "./globals.css";
 
-const siteUrl = "https://educacora.es";
-const siteTitle = "EducaCora | El corazón de tu centro educativo";
-const siteDescription =
-  "EducaCora es una plataforma inteligente para centros educativos que conecta dirección, docentes, familias y alumnado en un único entorno digital.";
-const ogImage = "/og-image.png";
-
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  title: siteTitle,
-  description: siteDescription,
-  applicationName: "EducaCora",
-  authors: [{ name: "EducaCora", url: siteUrl }],
-  creator: "EducaCora",
-  publisher: "EducaCora",
+  metadataBase: new URL(SITE_URL),
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  authors: [{ name: SITE_NAME, url: SITE_URL }],
+  creator: SITE_NAME,
+  publisher: SITE_NAME,
   manifest: "/manifest.json",
   alternates: {
     canonical: "/",
@@ -35,15 +30,15 @@ export const metadata: Metadata = {
     }
   },
   openGraph: {
-    title: siteTitle,
-    description: siteDescription,
-    url: siteUrl,
-    siteName: "EducaCora",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: SITE_URL,
+    siteName: SITE_NAME,
     locale: "es_ES",
     type: "website",
     images: [
       {
-        url: ogImage,
+        url: SITE_OG_IMAGE,
         width: 1200,
         height: 630,
         alt: "EducaCora | El corazón de tu centro educativo"
@@ -52,9 +47,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: siteTitle,
-    description: siteDescription,
-    images: [ogImage]
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: [SITE_OG_IMAGE]
   },
   icons: {
     icon: [

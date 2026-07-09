@@ -1,46 +1,45 @@
 import Image from "next/image";
 import Link from "next/link";
 import { InstallEduCoreButton } from "@/components/pwa/install-educore-button";
-
-const siteUrl = "https://educacora.es";
-const siteDescription =
-  "EducaCora es una plataforma inteligente para centros educativos que conecta dirección, docentes, familias y alumnado en un único entorno digital.";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_OG_IMAGE_URL, SITE_URL } from "@/lib/site-config";
 
 const structuredData = [
   {
     "@context": "https://schema.org",
     "@type": "Organization",
-    name: "EducaCora",
-    url: siteUrl,
-    logo: `${siteUrl}/brand/educore/logo.svg`,
-    description: siteDescription
+    name: SITE_NAME,
+    url: SITE_URL,
+    logo: `${SITE_URL}/brand/educore/logo.svg`,
+    image: SITE_OG_IMAGE_URL,
+    description: SITE_DESCRIPTION
   },
   {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    name: "EducaCora",
-    url: siteUrl,
-    description: siteDescription,
+    name: SITE_NAME,
+    url: SITE_URL,
+    description: SITE_DESCRIPTION,
     inLanguage: "es"
   },
   {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    name: "EducaCora",
-    url: siteUrl,
-    description: siteDescription,
+    name: SITE_NAME,
+    url: SITE_URL,
+    image: SITE_OG_IMAGE_URL,
+    description: SITE_DESCRIPTION,
     applicationCategory: "EducationalApplication",
     operatingSystem: "Web, iOS, Android, Windows, macOS",
     offers: {
       "@type": "Offer",
-      url: siteUrl,
+      url: SITE_URL,
       priceCurrency: "EUR",
       availability: "https://schema.org/InStock"
     },
     publisher: {
       "@type": "Organization",
-      name: "EducaCora",
-      url: siteUrl
+      name: SITE_NAME,
+      url: SITE_URL
     }
   }
 ];
