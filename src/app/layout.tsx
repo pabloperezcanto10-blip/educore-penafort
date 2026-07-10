@@ -1,7 +1,11 @@
 import type { Metadata, Viewport } from "next";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import { AppProviders } from "@/components/providers/app-providers";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_OG_IMAGE, SITE_TITLE, SITE_URL } from "@/lib/site-config";
 import "./globals.css";
+
+const GA_MEASUREMENT_ID = "G-VH4LRRGNCY";
+const shouldLoadAnalytics = process.env.NODE_ENV === "production";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -88,6 +92,7 @@ export default function RootLayout({
       <body className="font-sans antialiased">
         {children}
         <AppProviders />
+        {shouldLoadAnalytics ? <GoogleAnalytics gaId={GA_MEASUREMENT_ID} /> : null}
       </body>
     </html>
   );
