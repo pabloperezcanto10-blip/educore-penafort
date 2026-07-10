@@ -21,14 +21,14 @@ const maxMessageLength = 2000;
 const suggestions: Suggestion[] = [
   {
     label: "Redactar mensaje a familia",
-    prompt: "Ayudame a redactar un mensaje formal y cercano para una familia. Contexto: [describe aqui la situacion]. Objetivo del mensaje: [indica que necesitas comunicar]."
+    prompt: "Ayúdame a redactar un mensaje formal y cercano para una familia. Contexto: [describe aquí la situación]. Objetivo del mensaje: [indica qué necesitas comunicar]."
   },
   {
-    label: "Mejorar observacion",
-    prompt: "Mejora esta observacion docente para que sea clara, profesional y util para la familia. Texto original: [pega aqui la observacion]."
+    label: "Mejorar observación",
+    prompt: "Mejora esta observación docente para que sea clara, profesional y útil para la familia. Texto original: [pega aquí la observación]."
   },
   {
-    label: "Generar recomendacion de refuerzo",
+    label: "Generar recomendación de refuerzo",
     prompt: "Genera recomendaciones educativas de refuerzo para este caso. Datos aportados por el docente: [describe la dificultad o necesidad]."
   },
   {
@@ -37,11 +37,11 @@ const suggestions: Suggestion[] = [
   },
   {
     label: "Preparar actividad",
-    prompt: "Ayudame a preparar una actividad educativa. Curso: [indica curso]. Materia: [indica materia]. Objetivo: [indica objetivo]. Duracion aproximada: [indica tiempo]."
+    prompt: "Ayúdame a preparar una actividad educativa. Curso: [indica curso]. Materia: [indica materia]. Objetivo: [indica objetivo]. Duración aproximada: [indica tiempo]."
   },
   {
     label: "Redactar comunicado",
-    prompt: "Redacta un comunicado claro y formal para familias sobre este tema: [describe el asunto]. Debe ser breve, institucional y facil de entender."
+    prompt: "Redacta un comunicado claro y formal para familias sobre este tema: [describe el asunto]. Debe ser breve, institucional y fácil de entender."
   }
 ];
 
@@ -75,7 +75,7 @@ export function EduCoreAssistantButton({ userName, role }: { userName: string | 
     }
 
     if (trimmed.length > maxMessageLength) {
-      setError(`El mensaje es demasiado largo. Maximo ${maxMessageLength} caracteres.`);
+      setError(`El mensaje es demasiado largo. Máximo ${maxMessageLength} caracteres.`);
       return;
     }
 
@@ -105,7 +105,7 @@ export function EduCoreAssistantButton({ userName, role }: { userName: string | 
       const data = (await response.json()) as { reply?: string; error?: string };
 
       if (!response.ok || !data.reply) {
-        throw new Error(data.error ?? "No se pudo generar la respuesta. Intentalo de nuevo.");
+        throw new Error(data.error ?? "No se pudo generar la respuesta. Inténtalo de nuevo.");
       }
 
       const reply = data.reply;
@@ -118,7 +118,7 @@ export function EduCoreAssistantButton({ userName, role }: { userName: string | 
         }
       ]);
     } catch (sendError) {
-      setError(sendError instanceof Error ? sendError.message : "No se pudo generar la respuesta. Intentalo de nuevo.");
+      setError(sendError instanceof Error ? sendError.message : "No se pudo generar la respuesta. Inténtalo de nuevo.");
     } finally {
       setLoading(false);
     }
@@ -142,7 +142,7 @@ export function EduCoreAssistantButton({ userName, role }: { userName: string | 
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="group fixed bottom-5 right-5 z-40 inline-flex h-14 items-center gap-2 rounded-full border border-[#D4A64F]/40 bg-white px-3 pr-4 text-sm font-semibold text-[#0F172A] shadow-lg shadow-primary/15 transition hover:-translate-y-0.5 hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-primary/30"
+        className="group fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-[calc(1.25rem+env(safe-area-inset-right))] z-40 inline-flex h-14 items-center gap-2 rounded-full border border-[#D4A64F]/40 bg-white px-3 pr-4 text-sm font-semibold text-[#0F172A] shadow-lg shadow-primary/15 transition hover:-translate-y-0.5 hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-primary/30"
         aria-label="Abrir Corium AI"
         title="Corium AI. Tu asistente inteligente"
       >
@@ -192,14 +192,14 @@ export function EduCoreAssistantButton({ userName, role }: { userName: string | 
 
             <div className="border-b border-border bg-[#f8fafc] px-5 py-3">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Sugerencias rapidas</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Sugerencias rápidas</p>
                 {hasConversationContent ? (
                   <button
                     type="button"
                     onClick={resetConversation}
                     className="rounded-md border border-border bg-white px-2.5 py-1 text-xs font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
                   >
-                    Nueva conversacion
+                    Nueva conversación
                   </button>
                 ) : null}
               </div>
@@ -225,7 +225,7 @@ export function EduCoreAssistantButton({ userName, role }: { userName: string | 
                 <div className="rounded-lg border border-dashed border-border bg-white p-4 text-sm text-muted-foreground shadow-sm">
                   <p className="font-semibold text-foreground">{"\u00bfEn qu\u00e9 te ayudo?"}</p>
                   <p className="mt-2">
-                    Escribe una peticion o usa una sugerencia. En esta version no se cargan datos de alumnos, notas, incidencias ni comunicaciones automaticamente.
+                    Escribe una petición o usa una sugerencia. En esta versión no se cargan datos de alumnos, notas, incidencias ni comunicaciones automáticamente.
                   </p>
                 </div>
               ) : null}
@@ -277,10 +277,10 @@ export function EduCoreAssistantButton({ userName, role }: { userName: string | 
                 }}
                 maxLength={maxMessageLength + 1}
                 rows={3}
-                placeholder="Escribe tu peticion..."
+                placeholder="Escribe tu petición..."
                 className="w-full resize-none rounded-md border border-border bg-white px-3 py-2 text-sm leading-relaxed outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
               />
-              <p className="mt-2 text-xs text-muted-foreground">La conversacion solo se conserva en esta sesion y no se guarda.</p>
+              <p className="mt-2 text-xs text-muted-foreground">La conversación solo se conserva en esta sesión y no se guarda.</p>
               <div className="mt-2 flex items-center justify-between gap-3">
                 <p className={`text-xs ${remainingCharacters < 0 ? "text-red-600" : "text-muted-foreground"}`}>
                   {remainingCharacters < 0 ? `Sobran ${Math.abs(remainingCharacters)} caracteres` : `${remainingCharacters} caracteres restantes`}
