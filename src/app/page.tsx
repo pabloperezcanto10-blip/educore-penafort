@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { CoriumAvatar } from "@/components/ai/corium-avatar";
 import { InstallEduCoreButton } from "@/components/pwa/install-educore-button";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_OG_IMAGE_URL, SITE_URL } from "@/lib/site-config";
 
@@ -337,6 +338,51 @@ export default function HomePage() {
         .educore-public-page .module-card { border-radius: 20px; padding: 20px; }
         .educore-public-page .module-card strong { display: block; color: var(--navy-950); margin-bottom: 7px; letter-spacing: -.03em; }
         .educore-public-page .module-card span { color: var(--stone-700); font-size: 13px; line-height: 1.55; }
+        .educore-public-page .corium-card {
+          display: grid;
+          grid-template-columns: .9fr 1.1fr;
+          gap: 28px;
+          align-items: center;
+          border-radius: 36px;
+          border: 1px solid var(--stone-200);
+          background: white;
+          box-shadow: var(--shadow-md);
+          padding: 34px;
+          overflow: hidden;
+        }
+        .educore-public-page .corium-visual {
+          display: grid;
+          place-items: center;
+          min-height: 320px;
+          border-radius: 30px;
+          background: linear-gradient(145deg, rgba(246,243,236,.92), rgba(255,255,255,.78));
+          border: 1px solid rgba(231,235,238,.8);
+        }
+        .educore-public-page .corium-logo {
+          width: min(100%, 520px);
+          height: auto;
+          border-radius: 24px;
+        }
+        .educore-public-page .corium-mascot {
+          width: min(240px, 72%);
+          height: auto;
+          filter: drop-shadow(0 18px 30px rgba(15, 23, 42, .10));
+        }
+        .educore-public-page .corium-points {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
+          margin-top: 22px;
+        }
+        .educore-public-page .corium-point {
+          border-radius: 16px;
+          border: 1px solid var(--stone-200);
+          background: rgba(246,243,236,.58);
+          padding: 12px 14px;
+          color: var(--stone-700);
+          font-size: 13px;
+          font-weight: 700;
+        }
         .educore-public-page .access-grid { display: grid; grid-template-columns: .9fr 1.1fr; gap: 24px; align-items: stretch; }
         .educore-public-page .access-card {
           display: flex;
@@ -442,6 +488,7 @@ export default function HomePage() {
           .educore-public-page .nav-links { display: none; }
           .educore-public-page .hero-grid,
           .educore-public-page .solution-grid,
+          .educore-public-page .corium-card,
           .educore-public-page .app-card,
           .educore-public-page .access-grid { grid-template-columns: 1fr; }
           .educore-public-page .features,
@@ -460,6 +507,7 @@ export default function HomePage() {
           .educore-public-page .mock-side { display: none; }
           .educore-public-page .features,
           .educore-public-page .module-list,
+          .educore-public-page .corium-points,
           .educore-public-page .roles,
           .educore-public-page .security { grid-template-columns: 1fr; }
           .educore-public-page .brand-note,
@@ -600,6 +648,40 @@ export default function HomePage() {
                 <span>{description}</span>
               </article>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="corium-ai">
+        <div className="container">
+          <div className="corium-card">
+            <div>
+              <div className="section-kicker">Corium AI</div>
+              <Image
+                src="/brand/corium/corium-logo-horizontal.png"
+                alt="Corium AI. El corazón inteligente de EducaCora"
+                width={675}
+                height={258}
+                className="corium-logo"
+              />
+              <h2 className="mt-6 text-[clamp(32px,4vw,48px)] font-semibold leading-[1.05] tracking-[-0.055em] text-[#0f1b2e]">
+                Conoce a Corium AI
+              </h2>
+              <p className="mt-4 text-[17px] leading-7 text-[#4e5b61]">
+                El corazón inteligente de EducaCora. Ayuda a la comunidad educativa a redactar, estructurar y preparar mejor su trabajo diario, siempre a partir del texto que cada usuario aporta.
+              </p>
+              <div className="corium-points" aria-label="Ámbitos de ayuda de Corium AI">
+                <span className="corium-point">Profesorado</span>
+                <span className="corium-point">Dirección</span>
+                <span className="corium-point">Familias</span>
+                <span className="corium-point">Alumnado</span>
+                <span className="corium-point">Comunicación</span>
+                <span className="corium-point">Evaluación</span>
+              </div>
+            </div>
+            <div className="corium-visual">
+              <CoriumAvatar variant="waving" className="corium-mascot" />
+            </div>
           </div>
         </div>
       </section>

@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Bot, Clipboard, Loader2, Send, X } from "lucide-react";
+import { Clipboard, Loader2, Send, X } from "lucide-react";
+import { CoriumAvatar } from "@/components/ai/corium-avatar";
 
 type ChatMessage = {
   id: string;
@@ -56,6 +57,15 @@ export function EduCoreAssistantButton({ userName, role }: { userName: string | 
   const recentMessages = useMemo(() => messages.slice(-8), [messages]);
   const remainingCharacters = maxMessageLength - input.length;
   const hasConversationContent = messages.length > 0 || input.trim().length > 0 || Boolean(error);
+  const isConfigurationError = error?.toLowerCase().includes("configur") ?? false;
+  const assistantStatus = loading ? "Escribiendo" : isConfigurationError ? "Configurando" : error ? "Sin conexión" : "Disponible";
+  const assistantStatusTone = loading
+    ? "bg-amber-100 text-amber-700"
+    : isConfigurationError
+      ? "bg-sky-50 text-sky-700"
+      : error
+        ? "bg-red-50 text-red-700"
+        : "bg-emerald-50 text-emerald-700";
 
   async function sendMessage(text: string) {
     const trimmed = text.trim();
@@ -132,11 +142,22 @@ export function EduCoreAssistantButton({ userName, role }: { userName: string | 
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-5 right-5 z-40 inline-flex h-11 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/15 transition hover:-translate-y-0.5 hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-primary/30"
+        className="group fixed bottom-5 right-5 z-40 inline-flex h-14 items-center gap-2 rounded-full border border-[#D4A64F]/40 bg-white px-3 pr-4 text-sm font-semibold text-[#0F172A] shadow-lg shadow-primary/15 transition hover:-translate-y-0.5 hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-primary/30"
         aria-label="Abrir Corium AI"
+        title="Corium AI. Tu asistente inteligente"
       >
-        <Bot className="h-5 w-5" aria-hidden="true" />
-        Corium AI
+        <span className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-white">
+          <CoriumAvatar className="h-10 w-10 object-cover" />
+          <span className="absolute bottom-0.5 right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500" aria-hidden="true" />
+        </span>
+        <span className="hidden leading-tight sm:block">
+          <span className="block">Corium AI</span>
+          <span className="block text-[11px] font-medium text-muted-foreground">Tu asistente inteligente</span>
+        </span>
+        <span className="pointer-events-none absolute bottom-full right-0 mb-2 hidden min-w-44 rounded-lg border border-border bg-white px-3 py-2 text-left text-xs text-foreground shadow-lg group-hover:block group-focus-visible:block">
+          <span className="block font-semibold">Corium AI</span>
+          <span className="block text-muted-foreground">Tu asistente inteligente</span>
+        </span>
       </button>
 
       {open ? (
@@ -145,17 +166,19 @@ export function EduCoreAssistantButton({ userName, role }: { userName: string | 
             <header className="flex items-start justify-between gap-4 border-b border-primary/15 bg-white px-5 py-4">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-sm">
-                    <Bot className="h-5 w-5" aria-hidden="true" />
+                  <span className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-[#D4A64F]/30 bg-white shadow-sm">
+                    <CoriumAvatar className="h-11 w-11 object-cover" priority />
+                    <span className="absolute bottom-0.5 right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500" aria-hidden="true" />
                   </span>
                   <div>
                     <h2 className="text-base font-semibold text-foreground">Corium AI</h2>
-                    <p className="text-xs text-muted-foreground">{role} - {userName ?? "Usuario"}</p>
+                    <p className="text-xs text-muted-foreground">El corazón inteligente de EducaCora</p>
                   </div>
                 </div>
-                <p className="mt-3 text-sm text-muted-foreground">
-                  Ayuda para redactar, resumir y preparar comunicaciones educativas.
-                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${assistantStatusTone}`}>{assistantStatus}</span>
+                  <span className="text-xs text-muted-foreground">{role} - {userName ?? "Usuario"}</span>
+                </div>
               </div>
               <button
                 type="button"
@@ -244,9 +267,9 @@ export function EduCoreAssistantButton({ userName, role }: { userName: string | 
                 void sendMessage(input);
               }}
             >
-              <label className="sr-only" htmlFor="educore-ai-message">Mensaje para Corium AI</label>
+              <label className="sr-only" htmlFor="corium-ai-message">Mensaje para Corium AI</label>
               <textarea
-                id="educore-ai-message"
+                id="corium-ai-message"
                 value={input}
                 onChange={(event) => {
                   setInput(event.target.value);
