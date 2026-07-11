@@ -95,7 +95,7 @@ function createNotifications(): DashboardNotification[] {
       source: "communication",
       title: "Comunicación pendiente",
       body: "Familia Vidal · consulta sobre hábitos de estudio.",
-      href: "/experience/docente?work_tab=comunicaciones",
+      href: "/experience/docente?work_tab=comunicaciones&demo=communications",
       read: false,
       created_at: isoMinutesAgo(16)
     },
@@ -104,7 +104,7 @@ function createNotifications(): DashboardNotification[] {
       source: "internal",
       title: "Criterio sin completar",
       body: "Matemáticas · 6º Primaria B · 4 alumnos pendientes.",
-      href: "/experience/docente?work_tab=cuaderno",
+      href: "/experience/docente?work_tab=cuaderno&demo=gradebook",
       read: false,
       created_at: isoMinutesAgo(44)
     },
@@ -113,7 +113,7 @@ function createNotifications(): DashboardNotification[] {
       source: "communication",
       title: "Respuesta de familia",
       body: "Familia Robles · justificante recibido.",
-      href: "/experience/docente?work_tab=comunicaciones",
+      href: "/experience/docente?work_tab=comunicaciones&demo=communications",
       read: true,
       created_at: isoMinutesAgo(90)
     }

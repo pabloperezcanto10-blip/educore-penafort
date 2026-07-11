@@ -14,6 +14,8 @@ type ExperienceRolePageProps = {
     role: string;
   };
   searchParams?: {
+    demo?: string;
+    guide?: string;
     work_tab?: string;
   };
 };
@@ -44,15 +46,17 @@ export default function ExperienceRolePage({ params, searchParams }: ExperienceR
     notFound();
   }
 
+  const startGuide = searchParams?.guide === "1";
+
   if (role === "director") {
-    return <DirectorExperienceDashboard activeTab={normalizeDirectorTab(searchParams?.work_tab)} />;
+    return <DirectorExperienceDashboard activeTab={normalizeDirectorTab(searchParams?.work_tab)} demoPanel={searchParams?.demo} startGuide={startGuide} />;
   }
 
   if (role === "docente") {
-    return <TutorExperienceDashboard activeTab={normalizeTutorTab(searchParams?.work_tab)} />;
+    return <TutorExperienceDashboard activeTab={normalizeTutorTab(searchParams?.work_tab)} demoPanel={searchParams?.demo} startGuide={startGuide} />;
   }
 
-  return <FamilyExperienceDashboard />;
+  return <FamilyExperienceDashboard demoPanel={searchParams?.demo} startGuide={startGuide} />;
 }
 
 function parseRole(value: string): ExperienceRole | null {

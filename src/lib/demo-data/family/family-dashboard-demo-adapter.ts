@@ -71,7 +71,7 @@ function createDashboardNotifications(): DashboardNotification[] {
       source: "communication",
       title: "Respuesta de la tutora",
       body: "Irene Soler ha respondido a vuestra consulta sobre matemáticas.",
-      href: "/experience/familia",
+      href: "/experience/familia?demo=communications",
       read: false,
       created_at: isoMinutesAgo(22)
     },
@@ -80,7 +80,7 @@ function createDashboardNotifications(): DashboardNotification[] {
       source: "internal",
       title: "Boletín disponible",
       body: "Ya podéis consultar las calificaciones visibles de la evaluación.",
-      href: "/experience/familia",
+      href: "/experience/familia?demo=grades",
       read: false,
       created_at: isoMinutesAgo(95)
     }

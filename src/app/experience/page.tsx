@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowRight, RotateCcw, ShieldCheck } from "lucide-react";
 import { CoriumAvatar } from "@/components/ai/corium-avatar";
 import { experienceRoles } from "@/components/experience/experience-data";
+import { experienceWelcomeGuide } from "@/lib/experience/guide-content";
 
 export const metadata: Metadata = {
   title: "EducaCora Experience | Prueba la plataforma",
@@ -49,15 +50,24 @@ export default function ExperiencePage() {
               <CoriumAvatar variant="waving" className="h-32 w-28 object-contain" priority />
               <div>
                 <p className="text-sm font-bold uppercase tracking-[0.16em] text-amber-700">Corium AI</p>
-                <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-slate-950">¿Qué papel desempeñas en tu centro educativo?</h2>
+                <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-slate-950">{experienceWelcomeGuide.title}</h2>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Elige un perfil para explorar el funcionamiento de EducaCora desde esa perspectiva.
+                  {experienceWelcomeGuide.message}
                 </p>
+                <p className="mt-3 text-sm font-semibold text-slate-950">{experienceWelcomeGuide.question}</p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Link href="/experience/director?guide=1" className="inline-flex h-9 items-center justify-center rounded-xl bg-slate-950 px-3 text-xs font-bold text-white transition hover:bg-slate-800">
+                    Empezar guía
+                  </Link>
+                  <a href="#experience-roles" className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 transition hover:bg-slate-50">
+                    Explorar por mi cuenta
+                  </a>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="mt-4 grid gap-3">
+          <div id="experience-roles" className="mt-4 grid scroll-mt-6 gap-3">
             {experienceRoles.map((role) => {
               const Icon = role.icon;
               return (

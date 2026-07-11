@@ -43,11 +43,11 @@ export const experienceRoles: Array<{
 ];
 
 export const experienceNavigation = [
-  { label: "Panel", icon: Home },
-  { label: "Comunicaciones", icon: MessageSquare },
-  { label: "Alumnado", icon: Users },
-  { label: "Cuaderno", icon: BookOpen },
-  { label: "Asistencia", icon: ClipboardList },
-  { label: "Calendario", icon: CalendarDays },
-  { label: "Corium AI", icon: Bell }
+  { id: "panel", label: "Panel", icon: Home },
+  { id: "communications", label: "Comunicaciones", icon: MessageSquare },
+  { id: "students", label: "Alumnado", icon: Users },
+  { id: "gradebook", label: "Cuaderno", icon: BookOpen },
+  { id: "attendance", label: "Asistencia", icon: ClipboardList },
+  { id: "calendar", label: "Calendario", icon: CalendarDays },
+  { id: "corium", label: "Corium AI", icon: Bell }
 ];
