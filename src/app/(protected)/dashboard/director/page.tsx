@@ -1,34 +1,25 @@
-﻿import Link from "next/link";
 import {
-  AlertCircle,
-  BookOpenCheck,
-  CalendarDays,
-  CheckCircle2,
-  ClipboardList,
-  FileCheck2,
-  Inbox,
-  MessageSquareText,
-  Users
-} from "lucide-react";
-
+  DirectorDashboardView,
+  directorDashboardTabs,
+  productionDirectorDashboardRoutes,
+  type DirectorDashboardTab,
+  type DirectorSignals
+} from "@/components/dashboards/director/director-dashboard-view";
 import {
-  CenterActivityTimeline,
   type CenterActivityItem,
   type CenterActivityKind,
   type CenterActivityPriority,
   type CenterActivityTone
 } from "@/components/dashboard/center-activity-timeline";
-import { WorkCenterTabs } from "@/components/dashboard/work-center-tabs";
-import { GradebookBadge, GradebookCard, GradebookCardHeader } from "@/components/grades/gradebook-design";
 import { requireRole } from "@/lib/auth/session";
 import { getDashboardCalendarEvents, type CalendarEventSummary } from "@/lib/calendar/ical";
 import { getDirectorCommunications, type DirectorCommunication } from "@/lib/communications/notifications";
 import type { Database } from "@/lib/database.types";
 import type { DashboardNotification } from "@/lib/internal-notifications";
 import { getDashboardNotifications } from "@/lib/internal-notifications";
+import { penafortBrand } from "@/lib/branding/brand-config";
 import { createClient } from "@/lib/supabase/server";
 
-type DirectorDashboardTab = "prioridades" | "alumnos" | "comunicaciones" | "evaluacion" | "calendario";
 type AuditLog = Database["public"]["Tables"]["audit_logs"]["Row"];
 type InternalNotification = Database["public"]["Tables"]["internal_notifications"]["Row"];
 type CommunicationSignal = Pick<Database["public"]["Tables"]["notifications"]["Row"], "id" | "sender_id" | "receiver_id" | "read" | "created_at">;
@@ -38,14 +29,6 @@ type DirectorDashboardPageProps = {
     work_tab?: string;
   };
 };
-
-const directorTabs: Array<{ id: DirectorDashboardTab; label: string }> = [
-  { id: "prioridades", label: "Prioridades" },
-  { id: "alumnos", label: "Alumnos" },
-  { id: "comunicaciones", label: "Comunicaciones" },
-  { id: "evaluacion", label: "Evaluación" },
-  { id: "calendario", label: "Calendario" }
-];
 
 export default async function DirectorDashboardPage({ searchParams }: DirectorDashboardPageProps) {
   const profile = await requireRole("director");
@@ -59,7 +42,7 @@ export default async function DirectorDashboardPage({ searchParams }: DirectorDa
     getDashboardNotifications({
       userId: profile.id,
       role: "director",
-      communicationHref: "/dashboard/director/communications"
+      communicationHref: productionDirectorDashboardRoutes.communications
     }),
     getDashboardCalendarEvents(),
     getDirectorSignals(profile.id),
@@ -74,331 +57,24 @@ export default async function DirectorDashboardPage({ searchParams }: DirectorDa
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
-    <section className="space-y-5">
-      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-950">Buenos días</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Centro de control para supervisar actividad, comunicaciones y cierres del colegio.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {signals.communicationsPending > 0 ? <GradebookBadge tone="amber">{signals.communicationsPending} comunicaciones pendientes</GradebookBadge> : null}
-          {signals.activeIncidents > 0 ? <GradebookBadge tone="amber">{signals.activeIncidents} incidencias activas</GradebookBadge> : null}
-          {signals.openEvaluations > 0 ? <GradebookBadge tone="blue">{signals.openEvaluations} evaluaciones abiertas</GradebookBadge> : null}
-          {signals.pendingClosures > 0 ? <GradebookBadge tone="amber">{signals.pendingClosures} cierres pendientes</GradebookBadge> : null}
-          {signals.pendingPublications > 0 ? <GradebookBadge tone="red">{signals.pendingPublications} publicaciones pendientes</GradebookBadge> : null}
-          {signals.totalActionable === 0 ? <GradebookBadge tone="green">Todo al día</GradebookBadge> : null}
-        </div>
-      </div>
-
-      {errorMessage ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          No se pudo cargar parte del panel: {errorMessage}
-        </div>
-      ) : null}
-
-      <div className="grid gap-4 xl:grid-cols-2">
-        <CompactNotifications notifications={notifications} unreadCount={unreadCount} />
-        <CompactCalendar todayEvents={todayEvents} upcomingEvents={upcomingEvents} errorMessage={calendarError} />
-      </div>
-
-      <GradebookCard>
-        <GradebookCardHeader title="Centro de supervisión">
-          <GradebookBadge tone={signals.totalActionable > 0 ? "amber" : "green"}>
-            {signals.totalActionable > 0 ? `${signals.totalActionable} prioridades` : "Sin bloqueos"}
-          </GradebookBadge>
-        </GradebookCardHeader>
-        <WorkCenterTabs
-          initialTab={activeTab}
-          tabs={directorTabs}
-          basePath="/dashboard/director"
-          ariaLabel="Centro de supervisión de dirección"
-          panels={[
-            {
-              id: "prioridades",
-              content: <PrioritiesPanel signals={signals} />
-            },
-            {
-              id: "alumnos",
-              content: <StudentsPanel signals={signals} />
-            },
-            {
-              id: "comunicaciones",
-              content: <CommunicationsPanel signals={signals} />
-            },
-            {
-              id: "evaluacion",
-              content: <EvaluationPanel signals={signals} />
-            },
-            {
-              id: "calendario",
-              content: <CalendarPanel events={calendarEvents} errorMessage={calendarError} />
-            }
-          ]}
-        />
-      </GradebookCard>
-
-      <CenterActivityTimeline items={activityItems} />
-    </section>
+    <DirectorDashboardView
+      activeTab={activeTab}
+      activityItems={activityItems}
+      brand={penafortBrand}
+      calendarError={calendarError}
+      calendarEvents={calendarEvents}
+      errorMessage={errorMessage}
+      mode="production"
+      notifications={notifications}
+      routes={productionDirectorDashboardRoutes}
+      signals={signals}
+      subtitle="Centro de control para supervisar actividad, comunicaciones y cierres del colegio."
+      todayEvents={todayEvents}
+      unreadCount={unreadCount}
+      upcomingEvents={upcomingEvents}
+    />
   );
 }
-
-function CompactNotifications({ notifications, unreadCount }: { notifications: DashboardNotification[]; unreadCount: number }) {
-  return (
-    <GradebookCard className="p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-700">
-            <Inbox className="h-5 w-5" aria-hidden="true" />
-          </span>
-          <div>
-            <h2 className="text-sm font-semibold text-slate-950">Novedades</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              {unreadCount > 0 ? `${unreadCount} aviso${unreadCount === 1 ? "" : "s"} pendiente${unreadCount === 1 ? "" : "s"}.` : "Todo al día. No hay avisos pendientes."}
-            </p>
-          </div>
-        </div>
-        <GradebookBadge tone={unreadCount > 0 ? "amber" : "green"}>{unreadCount > 0 ? "Pendiente" : "Todo al día"}</GradebookBadge>
-      </div>
-      {notifications.length > 0 ? (
-        <div className="mt-3 space-y-2">
-          {notifications.slice(0, 2).map((notification) => (
-            <Link key={`${notification.source}-${notification.id}`} href={notification.href} className="block rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 transition hover:bg-white">
-              <p className="text-sm font-semibold text-slate-950">{notification.title}</p>
-              <p className="mt-1 line-clamp-1 text-xs text-slate-500">{notification.body}</p>
-            </Link>
-          ))}
-        </div>
-      ) : null}
-    </GradebookCard>
-  );
-}
-
-function CompactCalendar({ todayEvents, upcomingEvents, errorMessage }: { todayEvents: CalendarEventSummary[]; upcomingEvents: CalendarEventSummary[]; errorMessage: string | null }) {
-  const events = [...todayEvents, ...upcomingEvents].slice(0, 3);
-
-  return (
-    <GradebookCard className="p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
-            <CalendarDays className="h-5 w-5" aria-hidden="true" />
-          </span>
-          <div>
-            <h2 className="text-sm font-semibold text-slate-950">Hoy y próximos eventos</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              {errorMessage ? "No se pudieron cargar los próximos eventos." : events.length > 0 ? "Agenda oficial del centro." : "No hay eventos programados para hoy ni los próximos días."}
-            </p>
-          </div>
-        </div>
-        <Link href="/dashboard/director/calendar" className="inline-flex h-9 shrink-0 items-center justify-center rounded-xl bg-sky-700 px-3 text-xs font-semibold text-white transition hover:bg-sky-800">
-          Ver calendario
-        </Link>
-      </div>
-      {events.length > 0 ? (
-        <div className="mt-3 grid gap-2 md:grid-cols-3">
-          {events.map((event) => (
-            <article key={event.id} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-              <p className="line-clamp-1 text-sm font-semibold text-slate-950">{event.title}</p>
-              <p className="mt-1 text-xs text-slate-500">{formatCalendarEventDate(event)}</p>
-            </article>
-          ))}
-        </div>
-      ) : null}
-    </GradebookCard>
-  );
-}
-
-function PrioritiesPanel({ signals }: { signals: DirectorSignals }) {
-  const priorities = [
-    signals.directorCommunicationsPending > 0
-      ? { title: "Comunicación dirigida a Dirección", description: `${signals.directorCommunicationsPending} mensaje${signals.directorCommunicationsPending === 1 ? "" : "s"} requiere${signals.directorCommunicationsPending === 1 ? "" : "n"} respuesta o supervisión directa.`, href: "/dashboard/director/communications?director_only=1", icon: MessageSquareText, tone: "amber" as const }
-      : null,
-    signals.pendingPublications > 0
-      ? { title: "Publicaciones pendientes", description: `${signals.pendingPublications} boletín${signals.pendingPublications === 1 ? "" : "es"} o evaluación pendiente de publicación.`, href: "/dashboard/director/gradebook", icon: FileCheck2, tone: "amber" as const }
-      : null,
-    signals.activeIncidents > 0
-      ? { title: "Incidencias activas", description: `${signals.activeIncidents} incidencia${signals.activeIncidents === 1 ? "" : "s"} requiere seguimiento.`, href: "/dashboard/director/students", icon: AlertCircle, tone: "amber" as const }
-      : null,
-    signals.pendingClosures > 0
-      ? { title: "Cierres trimestrales", description: `${signals.pendingClosures} cierre${signals.pendingClosures === 1 ? "" : "s"} pendiente${signals.pendingClosures === 1 ? "" : "s"} de revisión.`, href: "/dashboard/director/gradebook", icon: ClipboardList, tone: "blue" as const }
-      : null,
-    signals.communicationsPending > 0
-      ? { title: "Comunicaciones pendientes", description: `${signals.communicationsPending} comunicación${signals.communicationsPending === 1 ? "" : "es"} esperan revisión o respuesta.`, href: "/dashboard/director/communications", icon: MessageSquareText, tone: "amber" as const }
-      : null
-  ].filter(Boolean);
-
-  if (priorities.length === 0) {
-    return <EmptyPanel title="Centro funcionando con normalidad." description="No existen actuaciones pendientes." icon={CheckCircle2} />;
-  }
-
-  return (
-    <div className="grid gap-3 md:grid-cols-2">
-      {priorities.map((priority) => priority ? <ActionRow key={priority.title} {...priority} /> : null)}
-    </div>
-  );
-}
-
-function StudentsPanel({ signals }: { signals: DirectorSignals }) {
-  return (
-    <div className="grid gap-3 lg:grid-cols-[1fr_220px]">
-      <div className="grid gap-3 md:grid-cols-3">
-        <MetricBox label="Alumnos" value={signals.studentsTotal} tone="blue" />
-        <MetricBox label="Incidencias" value={signals.activeIncidents} tone={signals.activeIncidents > 0 ? "amber" : "green"} />
-        <MetricBox label="Seguimientos recientes" value={signals.recentFollowUps} tone="blue" />
-      </div>
-      <ActionLink href="/dashboard/director/students" icon={Users} label="Abrir supervisión de alumnos" />
-    </div>
-  );
-}
-
-function CommunicationsPanel({ signals }: { signals: DirectorSignals }) {
-  return (
-    <div className="grid gap-3 lg:grid-cols-[1fr_220px]">
-      <div className="grid gap-3 md:grid-cols-3">
-        <MetricBox label="Abiertas" value={signals.openConversations} tone="blue" />
-        <MetricBox label="Pendientes" value={signals.communicationsPending} tone={signals.communicationsPending > 0 ? "amber" : "green"} />
-        <MetricBox label="Respuestas recientes" value={signals.recentCommunicationActivity} tone="blue" />
-      </div>
-      <ActionLink href="/dashboard/director/communications" icon={MessageSquareText} label="Abrir comunicaciones" />
-    </div>
-  );
-}
-
-function EvaluationPanel({ signals }: { signals: DirectorSignals }) {
-  return (
-    <div className="grid gap-3 lg:grid-cols-[1fr_220px]">
-      <div className="grid gap-3 md:grid-cols-3">
-        <MetricBox label="Materias abiertas" value={signals.openEvaluations} tone="blue" />
-        <MetricBox label="Cierres" value={signals.pendingClosures} tone={signals.pendingClosures > 0 ? "amber" : "green"} />
-        <MetricBox label="Publicaciones" value={signals.pendingPublications} tone={signals.pendingPublications > 0 ? "amber" : "green"} />
-      </div>
-      <ActionLink href="/dashboard/director/gradebook" icon={BookOpenCheck} label="Abrir evaluación" />
-    </div>
-  );
-}
-
-function CalendarPanel({ events, errorMessage }: { events: CalendarEventSummary[]; errorMessage: string | null }) {
-  if (errorMessage) {
-    return <EmptyPanel title="Calendario no disponible" description="Consulta el calendario completo para revisar fechas importantes." icon={CalendarDays} href="/dashboard/director/calendar" />;
-  }
-
-  if (events.length === 0) {
-    return <EmptyPanel title="Sin eventos próximos" description="No hay reuniones, evaluaciones o salidas próximas en el calendario." icon={CalendarDays} href="/dashboard/director/calendar" />;
-  }
-
-  return (
-    <div className="grid gap-3 lg:grid-cols-[1fr_220px]">
-      <div className="grid gap-2 md:grid-cols-2">
-        {events.map((event) => (
-          <article key={event.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-            <p className="line-clamp-1 text-sm font-semibold text-slate-950">{event.title}</p>
-            <p className="mt-1 text-xs text-slate-500">{formatCalendarEventDate(event)}</p>
-          </article>
-        ))}
-      </div>
-      <ActionLink href="/dashboard/director/calendar" icon={CalendarDays} label="Abrir calendario" />
-    </div>
-  );
-}
-
-function ActionRow({
-  title,
-  description,
-  href,
-  icon: Icon,
-  tone
-}: {
-  title: string;
-  description: string;
-  href: string;
-  icon: typeof AlertCircle;
-  tone: "blue" | "amber";
-}) {
-  const toneClass = tone === "amber" ? "bg-amber-50 text-amber-700" : "bg-sky-50 text-sky-700";
-
-  return (
-    <Link href={href} className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:bg-slate-50">
-      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${toneClass}`}>
-        <Icon className="h-5 w-5" aria-hidden="true" />
-      </span>
-      <span className="min-w-0">
-        <span className="block text-sm font-semibold text-slate-950">{title}</span>
-        <span className="mt-1 block text-xs text-slate-500">{description}</span>
-      </span>
-    </Link>
-  );
-}
-
-function ActionLink({ href, icon: Icon, label }: { href: string; icon: typeof Users; label: string }) {
-  return (
-    <Link href={href} className="inline-flex h-full min-h-[92px] items-center justify-center gap-2 rounded-xl bg-sky-700 px-4 text-sm font-semibold text-white transition hover:bg-sky-800">
-      <Icon className="h-4 w-4" aria-hidden="true" />
-      {label}
-    </Link>
-  );
-}
-
-function MetricBox({ label, value, tone }: { label: string; value: number; tone: "blue" | "green" | "amber" }) {
-  const toneClass = {
-    blue: "bg-sky-50 text-sky-700",
-    green: "bg-emerald-50 text-emerald-700",
-    amber: "bg-amber-50 text-amber-700"
-  }[tone];
-
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4">
-      <span className={`inline-flex h-9 min-w-9 items-center justify-center rounded-xl px-2 text-sm font-bold ${toneClass}`}>{value}</span>
-      <p className="mt-3 text-sm font-semibold text-slate-950">{label}</p>
-    </div>
-  );
-}
-
-function EmptyPanel({
-  title,
-  description,
-  icon: Icon,
-  href
-}: {
-  title: string;
-  description: string;
-  icon: typeof CheckCircle2;
-  href?: string;
-}) {
-  return (
-    <div className="flex flex-col gap-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 md:flex-row md:items-center md:justify-between">
-      <div className="flex items-start gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-slate-500">
-          <Icon className="h-5 w-5" aria-hidden="true" />
-        </span>
-        <div>
-          <p className="text-sm font-semibold text-slate-950">{title}</p>
-          <p className="mt-1 text-sm text-slate-500">{description}</p>
-        </div>
-      </div>
-      {href ? (
-        <Link href={href} className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-100">
-          Abrir módulo
-        </Link>
-      ) : null}
-    </div>
-  );
-}
-
-type DirectorSignals = {
-  communicationsPending: number;
-  directorCommunicationsPending: number;
-  activeIncidents: number;
-  openEvaluations: number;
-  pendingClosures: number;
-  pendingPublications: number;
-  studentsTotal: number;
-  recentFollowUps: number;
-  openConversations: number;
-  recentCommunicationActivity: number;
-  totalActionable: number;
-};
 
 async function getDirectorSignals(userId: string): Promise<{ signals: DirectorSignals; errorMessage: string | null }> {
   const supabase = await createClient();
@@ -457,22 +133,22 @@ async function getCenterActivity(): Promise<{ items: CenterActivityItem[]; error
   const [{ communications, errorMessage: communicationsError }, auditResult] = await Promise.all([
     getDirectorCommunications(),
     supabase
-    .from("audit_logs")
-    .select("id,actor_user_id,actor_role,action,module,entity_type,entity_id,after_data,created_at")
-    .in("action", [
-      "communication_sent",
-      "communication_read",
-      "communication_closed",
-      "communication_reopened",
-      "attendance_created",
-      "attendance_updated",
-      "grade_updated",
-      "term_grade_closed",
-      "term_grade_reopened",
-      "evaluation_published"
-    ])
-    .order("created_at", { ascending: false })
-    .limit(10)
+      .from("audit_logs")
+      .select("id,actor_user_id,actor_role,action,module,entity_type,entity_id,after_data,created_at")
+      .in("action", [
+        "communication_sent",
+        "communication_read",
+        "communication_closed",
+        "communication_reopened",
+        "attendance_created",
+        "attendance_updated",
+        "grade_updated",
+        "term_grade_closed",
+        "term_grade_reopened",
+        "evaluation_published"
+      ])
+      .order("created_at", { ascending: false })
+      .limit(10)
       .returns<AuditLog[]>()
   ]);
 
@@ -512,7 +188,7 @@ function toCommunicationActivityItem(communication: DirectorCommunication): Cent
     title,
     meta: context,
     date: communication.created_at,
-    href: `/dashboard/director/communications?c=${encodeURIComponent(conversationId)}`,
+    href: `${productionDirectorDashboardRoutes.communications}?c=${encodeURIComponent(conversationId)}`,
     actionLabel: "Ver conversación",
     tone: closed ? "green" : "blue",
     kind: isReply ? "reply" : "communication",
@@ -561,6 +237,7 @@ function cleanCommunicationValue(value: string | null | undefined, emptyValue?: 
   if (!cleaned || cleaned === emptyValue) return null;
   return cleaned;
 }
+
 function toActivityItem(log: AuditLog, actorName: string): CenterActivityItem {
   const label = auditActionLabel(log.action);
 
@@ -591,15 +268,15 @@ function auditActionLabel(action: string): {
   groupKey: string;
 } {
   const labels: Record<string, ReturnType<typeof auditActionLabel>> = {
-    attendance_created: { title: "Se registró una asistencia.", meta: "Registro de aula", href: "/dashboard/director/students", actionLabel: "Abrir alumno", tone: "green", kind: "attendance", category: "academic", priority: "info", groupKey: "attendance" },
-    attendance_updated: { title: "Se actualizó una asistencia.", meta: "Registro de aula", href: "/dashboard/director/students", actionLabel: "Abrir alumno", tone: "green", kind: "attendance", category: "academic", priority: "followup", groupKey: "attendance" },
-    grade_updated: { title: "Se registró una calificación.", meta: "Actividad académica", href: "/dashboard/director/gradebook", actionLabel: "Abrir evaluación", tone: "blue", kind: "grade", category: "academic", priority: "info", groupKey: "grades" },
-    term_grade_closed: { title: "Se cerró una evaluación.", meta: "Cierre académico", href: "/dashboard/director/gradebook", actionLabel: "Abrir evaluación", tone: "green", kind: "grade", category: "academic", priority: "followup", groupKey: "evaluation" },
-    term_grade_reopened: { title: "Se reabrió una evaluación.", meta: "Cierre académico", href: "/dashboard/director/gradebook", actionLabel: "Abrir evaluación", tone: "amber", kind: "grade", category: "academic", priority: "attention", groupKey: "evaluation" },
-    evaluation_published: { title: "Se publicó un boletín.", meta: "Publicación académica", href: "/dashboard/director/gradebook", actionLabel: "Ver boletín", tone: "green", kind: "report", category: "academic", priority: "followup", groupKey: "reports" }
+    attendance_created: { title: "Se registró una asistencia.", meta: "Registro de aula", href: productionDirectorDashboardRoutes.students, actionLabel: "Abrir alumno", tone: "green", kind: "attendance", category: "academic", priority: "info", groupKey: "attendance" },
+    attendance_updated: { title: "Se actualizó una asistencia.", meta: "Registro de aula", href: productionDirectorDashboardRoutes.students, actionLabel: "Abrir alumno", tone: "green", kind: "attendance", category: "academic", priority: "followup", groupKey: "attendance" },
+    grade_updated: { title: "Se registró una calificación.", meta: "Actividad académica", href: productionDirectorDashboardRoutes.gradebook, actionLabel: "Abrir evaluación", tone: "blue", kind: "grade", category: "academic", priority: "info", groupKey: "grades" },
+    term_grade_closed: { title: "Se cerró una evaluación.", meta: "Cierre académico", href: productionDirectorDashboardRoutes.gradebook, actionLabel: "Abrir evaluación", tone: "green", kind: "grade", category: "academic", priority: "followup", groupKey: "evaluation" },
+    term_grade_reopened: { title: "Se reabrió una evaluación.", meta: "Cierre académico", href: productionDirectorDashboardRoutes.gradebook, actionLabel: "Abrir evaluación", tone: "amber", kind: "grade", category: "academic", priority: "attention", groupKey: "evaluation" },
+    evaluation_published: { title: "Se publicó un boletín.", meta: "Publicación académica", href: productionDirectorDashboardRoutes.gradebook, actionLabel: "Ver boletín", tone: "green", kind: "report", category: "academic", priority: "followup", groupKey: "reports" }
   };
 
-  return labels[action] ?? { title: "Se registró una actividad del centro.", meta: "Movimiento del centro", href: "/dashboard/director", actionLabel: "Ver panel", tone: "gray", kind: "system", category: "academic", priority: "info", groupKey: "system" };
+  return labels[action] ?? { title: "Se registró una actividad del centro.", meta: "Movimiento del centro", href: productionDirectorDashboardRoutes.root, actionLabel: "Ver panel", tone: "gray", kind: "system", category: "academic", priority: "info", groupKey: "system" };
 }
 
 function buildNotificationActivity(notifications: DashboardNotification[]): CenterActivityItem[] {
@@ -624,7 +301,7 @@ function toCalendarActivityItem(event: CalendarEventSummary): CenterActivityItem
     title: `Está programado: ${event.title}.`,
     meta: formatCalendarEventDate(event),
     date: event.startsAt.toISOString(),
-    href: "/dashboard/director/calendar",
+    href: productionDirectorDashboardRoutes.calendar,
     actionLabel: "Abrir calendario",
     tone: "gray",
     kind: "calendar",
@@ -635,7 +312,7 @@ function toCalendarActivityItem(event: CalendarEventSummary): CenterActivityItem
 }
 
 function normalizeDirectorTab(value: string | undefined): DirectorDashboardTab {
-  return directorTabs.some((tab) => tab.id === value) ? (value as DirectorDashboardTab) : "prioridades";
+  return directorDashboardTabs.some((tab) => tab.id === value) ? (value as DirectorDashboardTab) : "prioridades";
 }
 
 function labelRole(role: string | null) {
@@ -658,15 +335,6 @@ function normalizeSubject(value: string) {
   return value.replace(/^re:\s*/i, "").replace(/^\[importante\]\s*/i, "").trim() || "Sin asunto";
 }
 
-function formatTimelineDate(value: string) {
-  return new Intl.DateTimeFormat("es-ES", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit"
-  }).format(new Date(value));
-}
-
 function formatCalendarEventDate(event: CalendarEventSummary) {
   const date = new Intl.DateTimeFormat("es-ES", {
     weekday: "short",
@@ -685,8 +353,3 @@ function formatCalendarEventDate(event: CalendarEventSummary) {
 
   return `${date} · ${time}`;
 }
-
-
-
-
-

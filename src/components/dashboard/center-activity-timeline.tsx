@@ -26,6 +26,8 @@ export type CenterActivityItem = {
   groupKey?: string;
 };
 
+export type CenterActivityGroupRoutes = Partial<Record<"communications" | "academic" | "incidents" | "calendar", string>>;
+
 const filters: Array<{ id: CenterActivityCategory; label: string }> = [
   { id: "all", label: "Todo" },
   { id: "communications", label: "Comunicaciones" },
@@ -35,7 +37,7 @@ const filters: Array<{ id: CenterActivityCategory; label: string }> = [
   { id: "attention", label: "Requiere atención" }
 ];
 
-export function CenterActivityTimeline({ items }: { items: CenterActivityItem[] }) {
+export function CenterActivityTimeline({ items, groupRoutes }: { items: CenterActivityItem[]; groupRoutes?: CenterActivityGroupRoutes }) {
   const [activeFilter, setActiveFilter] = useState<CenterActivityCategory>("all");
   const visibleItems = useMemo(() => {
     const filtered = items.filter((item) => {
@@ -44,8 +46,8 @@ export function CenterActivityTimeline({ items }: { items: CenterActivityItem[] 
       return item.category === activeFilter;
     });
 
-    return groupActivityItems(filtered);
-  }, [activeFilter, items]);
+    return groupActivityItems(filtered, groupRoutes);
+  }, [activeFilter, groupRoutes, items]);
 
   return (
     <GradebookCard>
@@ -135,7 +137,7 @@ function PriorityBadge({ priority }: { priority: CenterActivityPriority }) {
   return <GradebookBadge tone={tone}>{label}</GradebookBadge>;
 }
 
-function groupActivityItems(items: CenterActivityItem[]) {
+function groupActivityItems(items: CenterActivityItem[], groupRoutes?: CenterActivityGroupRoutes) {
   const grouped: CenterActivityItem[] = [];
   let index = 0;
 
@@ -156,7 +158,7 @@ function groupActivityItems(items: CenterActivityItem[]) {
         id: `${groupKey}-${group.length}`,
         title: buildGroupedTitle(current, group.length),
         meta: `${group.length} movimientos relacionados en poco tiempo.`,
-        href: hrefForGroup(current),
+        href: hrefForGroup(current, groupRoutes),
         actionLabel: "Ver detalle"
       });
     } else {
@@ -177,11 +179,11 @@ function buildGroupedTitle(item: CenterActivityItem, count: number) {
   return `${count} movimientos del centro`;
 }
 
-function hrefForGroup(item: CenterActivityItem) {
-  if (item.category === "communications") return "/dashboard/director/communications";
-  if (item.category === "academic") return "/dashboard/director/gradebook";
-  if (item.category === "incidents") return "/dashboard/director/students";
-  if (item.category === "calendar") return "/dashboard/director/calendar";
+function hrefForGroup(item: CenterActivityItem, groupRoutes?: CenterActivityGroupRoutes) {
+  if (item.category === "communications") return groupRoutes?.communications ?? "/dashboard/director/communications";
+  if (item.category === "academic") return groupRoutes?.academic ?? "/dashboard/director/gradebook";
+  if (item.category === "incidents") return groupRoutes?.incidents ?? "/dashboard/director/students";
+  if (item.category === "calendar") return groupRoutes?.calendar ?? "/dashboard/director/calendar";
   return item.href;
 }
 

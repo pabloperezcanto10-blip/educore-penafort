@@ -527,12 +527,13 @@ export default function HomePage() {
             <a href="#modulos">Módulos</a>
             <a href="#roles">Roles</a>
             <a href="#acceso">Centros</a>
+            <Link href="/experience">Experience</Link>
             <a href="#seguridad">Seguridad</a>
           </nav>
           <div className="nav-actions">
             <InstallEduCoreButton className="btn btn-soft" />
             <a className="btn btn-soft" href="#acceso">Accede a tu centro</a>
-            <a className="btn btn-primary" href="#demo">Solicitar demo</a>
+            <Link className="btn btn-primary" href="/experience">Probar EducaCora</Link>
           </div>
         </div>
       </header>
@@ -544,6 +545,7 @@ export default function HomePage() {
             <h1>EducaCora conecta toda la <span className="gradient">comunidad educativa</span>.</h1>
             <p>Una plataforma escolar inteligente, elegante y centralizada para coordinar dirección, docentes, familias y alumnos desde un único lugar.</p>
             <div className="hero-actions">
+              <Link className="btn btn-primary" href="/experience">Probar EducaCora</Link>
               <a className="btn btn-gold" href="#demo">Solicitar una demo</a>
               <a className="btn btn-soft" href="#acceso">Accede a tu centro</a>
               <InstallEduCoreButton className="btn btn-soft" />
