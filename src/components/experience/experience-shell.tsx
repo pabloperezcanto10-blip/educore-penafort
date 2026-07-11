@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, CheckCircle2, Compass, Mail, MessageCircleQuestion, RotateCcw, X } from "lucide-react";
 import { CoriumAvatar } from "@/components/ai/corium-avatar";
 import { CoriumExperienceGuide } from "@/components/experience/corium-experience-guide";
@@ -26,6 +26,7 @@ const transitionCopy: Record<ExperienceRole, string> = {
 
 export function ExperienceShell({ brand, role, onReset, startGuide = false, children }: ExperienceShellProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [interestOpen, setInterestOpen] = useState(false);
   const [interestMessage, setInterestMessage] = useState<string | null>(null);
   const [guideOpen, setGuideOpen] = useState(startGuide);
@@ -93,13 +94,15 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
             {experienceNavigation.map((item, index) => {
               const Icon = item.icon;
               const href = getExperienceNavigationHref(role, item.id);
+              const isActive = getActiveExperienceNavigationItem(role, searchParams.get("demo")) === item.id;
               return (
                 <Link
                   key={item.label}
                   href={href}
                   className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
-                    index === 0 ? "bg-slate-950 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
+                    isActive ? "bg-slate-950 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
                   }`}
+                  aria-current={isActive ? "page" : undefined}
                 >
                   <Icon className="h-4 w-4" aria-hidden="true" />
                   {item.label}
@@ -365,4 +368,19 @@ function getExperienceNavigationHref(role: ExperienceRole, itemId: string) {
   }
 
   return `/experience/familia?demo=${itemId}`;
+}
+
+function getActiveExperienceNavigationItem(role: ExperienceRole, demo: string | null) {
+  if (!demo) return "panel";
+  if (demo === "prioridades" || demo === "pendientes" || demo === "student") return "panel";
+  if (demo === "comunicaciones") return "communications";
+  if (demo === "alumnos") return "students";
+  if (demo === "evaluacion" || demo === "cuaderno" || demo === "grades") return "gradebook";
+  if (demo === "asistencia") return "attendance";
+  if (demo === "calendario") return "calendar";
+
+  const knownItems = new Set(experienceNavigation.map((item) => item.id));
+  if (knownItems.has(demo)) return demo;
+
+  return role === "familia" ? "panel" : "panel";
 }

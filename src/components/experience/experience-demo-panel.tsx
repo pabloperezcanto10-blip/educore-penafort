@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   BookOpenCheck,
   CalendarDays,
@@ -8,12 +9,29 @@ import {
   ClipboardList,
   Inbox,
   MessageSquareText,
+  Send,
   ShieldCheck,
   UserRound,
   Users
 } from "lucide-react";
+import {
+  CommunicationMessageBubble,
+  CommunicationSummaryBadges,
+  CommunicationWorkspace,
+  ConversationContextGrid,
+  ConversationListCard
+} from "@/components/communications/communication-design";
 import { GradebookBadge, GradebookCard, GradebookCardHeader, ProgressBar, StudentAvatar } from "@/components/grades/gradebook-design";
+import { EvaluationCriteriaReadonly, GradebookReadonly, QuarterFinalGradesReadonly } from "@/components/grades/gradebook-readonly";
+import {
+  StudentActivityTimeline,
+  StudentProfileHeader,
+  StudentProfileTabs,
+  StudentQuickActions,
+  StudentStatusDashboard
+} from "@/components/students/student-profile";
 import { readExperienceStorage, resetExperienceStorage, writeExperienceStorage } from "@/lib/experience/demo-storage";
+import type { EvaluationCriterionWithLabels, GradeTerm, GradeWithLabels, QuarterFinalGradeWithLabels } from "@/lib/grades/grades";
 import type { ExperienceProfile } from "@/lib/experience/mode";
 
 type ExperienceDemoPanelProps = {
@@ -48,8 +66,40 @@ const messages = [
   { id: "msg-2", from: "Irene Soler", subject: "Respuesta enviada", detail: "La tutora ha compartido un plan de refuerzo." }
 ];
 
+const demoGrades: GradeWithLabels[] = [
+  createDemoGrade("grade-1", "Lucía Romero", "Matemáticas", "Resolución de problemas", 8.4, "Buen progreso en estrategias de cálculo."),
+  createDemoGrade("grade-2", "Lucía Romero", "Ciencias", "Proyecto de ecosistemas", 9.1, "Trabajo muy completo y bien presentado."),
+  createDemoGrade("grade-3", "Mateo Molina", "Lengua", "Comprensión lectora", 7.8, "Conviene reforzar inferencias.")
+];
+
+const demoCriteria: EvaluationCriterionWithLabels[] = [
+  createDemoCriterion("criterion-1", "Matemáticas", "6º Primaria A", "Resolución de problemas", 40, "parcial"),
+  createDemoCriterion("criterion-2", "Matemáticas", "6º Primaria A", "Cálculo mental", 30, "parcial"),
+  createDemoCriterion("criterion-3", "Ciencias", "6º Primaria A", "Proyecto de ecosistemas", 30, "proyecto")
+];
+
+const demoFinalGrades: QuarterFinalGradeWithLabels[] = [
+  {
+    id: "final-1",
+    student_id: "lucia",
+    subject_id: "math",
+    teacher_id: "irene",
+    course_id: "course-6a",
+    term: "2",
+    calculated_grade: 8.4,
+    final_grade: 8,
+    teacher_observation: "Buen trimestre. Mantiene una evolución positiva.",
+    created_at: new Date().toISOString(),
+    studentName: "Lucía Romero",
+    subjectName: "Matemáticas",
+    courseName: "6º Primaria A",
+    teacherName: "Irene Soler"
+  }
+];
+
 export function ExperienceDemoPanel({ role, panel }: ExperienceDemoPanelProps) {
   const normalizedPanel = normalizePanel(role, panel);
+  const panelHref = `/experience/${role}`;
   const [state, setState] = useState<DemoPanelState>(() => readExperienceStorage<DemoPanelState>(role) ?? initialState);
   const [feedback, setFeedback] = useState<string | null>(null);
 
@@ -107,7 +157,7 @@ export function ExperienceDemoPanel({ role, panel }: ExperienceDemoPanelProps) {
       return <CoriumPreparationPanel />;
     }
 
-    if (role === "director") {
+  if (role === "director") {
       return (
         <DirectorPanel
           panel={normalizedPanel}
@@ -124,6 +174,7 @@ export function ExperienceDemoPanel({ role, panel }: ExperienceDemoPanelProps) {
         <TutorPanel
           panel={normalizedPanel}
           attendance={state.attendance}
+          reviewedItems={state.reviewedItems}
           readMessages={state.readMessages}
           onAttendanceChange={setAttendance}
           onMessageRead={markMessageRead}
@@ -147,6 +198,14 @@ export function ExperienceDemoPanel({ role, panel }: ExperienceDemoPanelProps) {
     <GradebookCard className="experience-fade-up mt-5">
       <GradebookCardHeader title="Acción demo">
         <div className="flex items-center gap-2">
+          {panel ? (
+            <Link
+              href={panelHref}
+              className="inline-flex h-8 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            >
+              Volver al panel
+            </Link>
+          ) : null}
           <GradebookBadge tone="green">Interactiva</GradebookBadge>
           <button
             type="button"
@@ -190,25 +249,19 @@ function DirectorPanel({
   onReviewed: (id: string, message?: string) => void;
 }) {
   if (panel === "communications" || panel === "comunicaciones") {
-    return <MessagesPanel readMessages={readMessages} onMessageRead={onMessageRead} title="Comunicaciones del centro" />;
+    return <ExperienceCommunicationsModule readMessages={readMessages} onMessageRead={onMessageRead} title="Comunicaciones del centro" />;
   }
 
   if (panel === "students" || panel === "alumnos" || panel === "attendance") {
-    return (
-      <div className="grid gap-3 md:grid-cols-3">
-        {students.map((student) => (
-          <StudentMiniCard key={student.id} student={student} action="Abrir seguimiento" onAction={() => onReviewed(`student-${student.id}`, "Seguimiento de alumno abierto en la Experience.")} />
-        ))}
-      </div>
-    );
+    return <ExperienceStudentProfileModule role="director" onReviewed={() => onReviewed("student-profile", "Ficha del alumno abierta en la Experience.")} />;
   }
 
   if (panel === "gradebook" || panel === "evaluacion") {
-    return <AcademicDemoPanel onReviewed={() => onReviewed("academic-publication", "Publicación revisada en la Experience.")} reviewed={reviewedItems.includes("academic-publication")} />;
+    return <ExperienceGradebookModule onReviewed={() => onReviewed("academic-publication", "Publicación revisada en la Experience.")} reviewed={reviewedItems.includes("academic-publication")} />;
   }
 
   if (panel === "calendar" || panel === "calendario") {
-    return <CalendarDemoPanel onReviewed={() => onReviewed("calendar-review", "Evento revisado en la Experience.")} reviewed={reviewedItems.includes("calendar-review")} />;
+    return <ExperienceCalendarModule onReviewed={() => onReviewed("calendar-review", "Evento revisado en la Experience.")} reviewed={reviewedItems.includes("calendar-review")} />;
   }
 
   return (
@@ -226,6 +279,7 @@ function DirectorPanel({
 function TutorPanel({
   panel,
   attendance,
+  reviewedItems,
   readMessages,
   onAttendanceChange,
   onMessageRead,
@@ -233,6 +287,7 @@ function TutorPanel({
 }: {
   panel: string;
   attendance: Record<string, AttendanceStatus>;
+  reviewedItems: string[];
   readMessages: string[];
   onAttendanceChange: (studentId: string, status: AttendanceStatus) => void;
   onMessageRead: (id: string) => void;
@@ -243,25 +298,19 @@ function TutorPanel({
   }
 
   if (panel === "communications" || panel === "comunicaciones") {
-    return <MessagesPanel readMessages={readMessages} onMessageRead={onMessageRead} title="Comunicaciones del docente" />;
+    return <ExperienceCommunicationsModule readMessages={readMessages} onMessageRead={onMessageRead} title="Comunicaciones del docente" />;
   }
 
   if (panel === "students" || panel === "alumnos") {
-    return (
-      <div className="grid gap-3 md:grid-cols-3">
-        {students.map((student) => (
-          <StudentMiniCard key={student.id} student={student} action="Ver ficha demo" onAction={() => onReviewed(`tutor-student-${student.id}`, "Ficha demo abierta.")} />
-        ))}
-      </div>
-    );
+    return <ExperienceStudentProfileModule role="docente" onReviewed={() => onReviewed("tutor-student-profile", "Ficha demo abierta.")} />;
   }
 
   if (panel === "gradebook" || panel === "cuaderno") {
-    return <AcademicDemoPanel onReviewed={() => onReviewed("teacher-gradebook", "Cuaderno demo revisado.")} reviewed={false} />;
+    return <ExperienceGradebookModule onReviewed={() => onReviewed("teacher-gradebook", "Cuaderno demo revisado.")} reviewed={reviewedItems.includes("teacher-gradebook")} />;
   }
 
   if (panel === "calendar" || panel === "calendario") {
-    return <CalendarDemoPanel onReviewed={() => onReviewed("teacher-calendar", "Evento del docente revisado.")} reviewed={false} />;
+    return <ExperienceCalendarModule onReviewed={() => onReviewed("teacher-calendar", "Evento del docente revisado.")} reviewed={reviewedItems.includes("teacher-calendar")} />;
   }
 
   return <AttendanceDemoPanel attendance={attendance} onAttendanceChange={onAttendanceChange} />;
@@ -281,7 +330,7 @@ function FamilyPanel({
   onMessageRead: (id: string) => void;
 }) {
   if (panel === "communications") {
-    return <MessagesPanel readMessages={readMessages} onMessageRead={onMessageRead} title="Comunicaciones familiares" />;
+    return <ExperienceCommunicationsModule readMessages={readMessages} onMessageRead={onMessageRead} title="Comunicaciones familiares" />;
   }
 
   if (panel === "gradebook" || panel === "grades") {
@@ -308,22 +357,11 @@ function FamilyPanel({
   }
 
   if (panel === "calendar") {
-    return <CalendarDemoPanel onReviewed={() => undefined} reviewed={false} />;
+    return <ExperienceCalendarModule onReviewed={() => undefined} reviewed={false} />;
   }
 
   return (
-    <div className="grid gap-3 md:grid-cols-[1fr_1.2fr]">
-      <StudentMiniCard student={students[0]} action="Consultar perfil" onAction={() => undefined} />
-      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-        <p className="text-sm font-semibold text-slate-950">Boletín demo disponible</p>
-        <p className="mt-1 text-sm text-slate-500">Calificaciones visibles, observaciones por materia y próximos eventos familiares.</p>
-        <div className="mt-4 grid gap-2 sm:grid-cols-3">
-          <Metric label="Notas visibles" value="3" />
-          <Metric label="Asistencia" value="2 avisos" />
-          <Metric label="Boletín" value="Disponible" />
-        </div>
-      </div>
-    </div>
+    <ExperienceStudentProfileModule role="familia" onReviewed={() => undefined} readOnly />
   );
 }
 
@@ -410,6 +448,198 @@ function MessagesPanel({
   );
 }
 
+function ExperienceCommunicationsModule({
+  title,
+  readMessages,
+  onMessageRead
+}: {
+  title: string;
+  readMessages: string[];
+  onMessageRead: (id: string) => void;
+}) {
+  const activeMessage = messages[0];
+
+  return (
+    <div className="space-y-4">
+      <InfoHeader icon={MessageSquareText} title={title} description="Vista real de comunicación reutilizada con conversaciones ficticias y respuestas simuladas." />
+      <CommunicationSummaryBadges
+        items={[
+          { label: "Abiertas", value: 2, tone: "blue" },
+          { label: "Sin leer", value: messages.filter((message) => !readMessages.includes(message.id)).length, tone: "amber" },
+          { label: "Respuestas", value: 1, tone: "green" }
+        ]}
+      />
+      <CommunicationWorkspace>
+        <aside className="space-y-2 border-b border-slate-200 bg-slate-50 p-3 xl:border-b-0 xl:border-r">
+          {messages.map((message, index) => (
+            <ConversationListCard
+              key={message.id}
+              href="#experience-conversation"
+              active={index === 0}
+              title={message.from}
+              subtitle={message.subject}
+              date={index === 0 ? "Hoy · 09:40" : "Ayer · 18:20"}
+              preview={message.detail}
+              unreadCount={readMessages.includes(message.id) ? 0 : 1}
+              badges={[
+                { label: "Familia", tone: "blue" },
+                { label: index === 0 ? "Abierta" : "Respondida", tone: index === 0 ? "amber" : "green" }
+              ]}
+            />
+          ))}
+        </aside>
+        <section id="experience-conversation" className="flex flex-col">
+          <div className="border-b border-slate-200 p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-sm font-bold text-slate-950">{activeMessage.subject}</p>
+                <p className="mt-1 text-sm text-slate-500">{activeMessage.detail}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => onMessageRead(activeMessage.id)}
+                className="inline-flex h-9 items-center justify-center rounded-xl bg-sky-700 px-3 text-xs font-bold text-white transition hover:bg-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
+              >
+                {readMessages.includes(activeMessage.id) ? "Leída" : "Marcar como leída"}
+              </button>
+            </div>
+            <ConversationContextGrid
+              items={[
+                { label: "Alumno", value: "Sofía Vega" },
+                { label: "Curso", value: "6º Primaria A" },
+                { label: "Tutor", value: "Irene Soler" },
+                { label: "Categoría", value: "Seguimiento" }
+              ]}
+            />
+          </div>
+          <div className="flex-1 space-y-3 bg-white p-4">
+            <CommunicationMessageBubble
+              title="Familia Vega"
+              meta="Hoy · 09:40"
+              message="Nos gustaría revisar el seguimiento académico de Sofía y coordinar una reunión breve."
+              badges={[{ label: "Recibida", tone: readMessages.includes(activeMessage.id) ? "green" : "amber" }]}
+            />
+            <CommunicationMessageBubble
+              sent
+              title="Irene Soler"
+              meta="Hoy · 10:05"
+              message="Gracias por escribir. He preparado un plan de refuerzo y podemos comentarlo esta semana."
+              badges={[{ label: "Respuesta simulada", tone: "blue" }]}
+            />
+          </div>
+        </section>
+      </CommunicationWorkspace>
+    </div>
+  );
+}
+
+function ExperienceStudentProfileModule({ role, onReviewed, readOnly = false }: { role: ExperienceProfile; onReviewed: () => void; readOnly?: boolean }) {
+  const communicationsHref = `/experience/${role}?demo=communications`;
+  const gradebookHref = role === "familia" ? "/experience/familia?demo=grades" : `/experience/${role}?demo=gradebook`;
+  const studentHref = `/experience/${role}?demo=students`;
+  const panelHref = `/experience/${role}`;
+  const tabs = [
+    { id: "resumen", label: "Resumen", href: studentHref, icon: UserRound },
+    { id: "calificaciones", label: "Calificaciones", href: gradebookHref, icon: BookOpenCheck },
+    { id: "comunicacion", label: "Comunicación", href: communicationsHref, icon: MessageSquareText }
+  ];
+
+  return (
+    <div id="experience-student-profile" className="space-y-4">
+      <StudentProfileHeader
+        backHref={panelHref}
+        backLabel="Volver al panel"
+        studentName="Lucía Romero"
+        courseName="6º Primaria A"
+        tutorName="Irene Soler"
+        active
+      />
+      {!readOnly ? (
+        <StudentQuickActions
+          actions={[
+            { label: "Comunicar", href: communicationsHref, icon: Send, primary: true },
+            { label: "Abrir cuaderno", href: gradebookHref, icon: BookOpenCheck }
+          ]}
+        />
+      ) : null}
+      <StudentProfileTabs tabs={tabs} activeTab="resumen" />
+      <StudentStatusDashboard
+        averageGrade="8,4"
+        latestGrade="9,1"
+        latestGradeMeta="Ciencias · Proyecto de ecosistemas"
+        progressCompleted={5}
+        progressTotal={6}
+        progressPercent={83}
+        attendanceValue="2"
+        attendanceHint="Avisos del trimestre"
+        attendanceTone="amber"
+        incidents={1}
+        observations={2}
+        communications={3}
+      />
+      <StudentActivityTimeline
+        items={[
+          { id: "activity-1", title: "Calificación registrada", meta: "Ciencias · Proyecto de ecosistemas", date: new Date().toISOString(), tone: "green", kind: "grade" },
+          { id: "activity-2", title: "Comunicación familiar", meta: "Solicitud de reunión de seguimiento", date: new Date(Date.now() - 86400000).toISOString(), tone: "blue", kind: "communication" },
+          { id: "activity-3", title: "Observación interna", meta: "Buen progreso en matemáticas", date: new Date(Date.now() - 172800000).toISOString(), tone: "amber", kind: "observation" }
+        ]}
+        empty="Sin movimientos recientes registrados."
+      />
+      <button
+        type="button"
+        onClick={onReviewed}
+        className="inline-flex h-9 items-center justify-center rounded-xl bg-sky-700 px-3 text-xs font-bold text-white transition hover:bg-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
+      >
+        Marcar ficha como revisada
+      </button>
+    </div>
+  );
+}
+
+function ExperienceGradebookModule({ reviewed, onReviewed }: { reviewed: boolean; onReviewed: () => void }) {
+  return (
+    <div id="experience-gradebook" className="space-y-4">
+      <InfoHeader icon={BookOpenCheck} title="Cuaderno de Calificaciones" description="Componentes reales del cuaderno en modo lectura, alimentados con datos ficticios." />
+      <div className="grid gap-3 md:grid-cols-3">
+        <Metric label="Criterios completados" value="82%" />
+        <Metric label="Materias abiertas" value="5" />
+        <Metric label="Publicaciones" value={reviewed ? "Revisada" : "Pendiente"} />
+      </div>
+      <ProgressBar value={82} />
+      <GradebookReadonly grades={demoGrades} />
+      <EvaluationCriteriaReadonly criteria={demoCriteria} />
+      <QuarterFinalGradesReadonly finalGrades={demoFinalGrades} />
+      <button
+        type="button"
+        onClick={onReviewed}
+        className="inline-flex h-9 items-center justify-center rounded-xl bg-sky-700 px-3 text-xs font-bold text-white transition hover:bg-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
+      >
+        Revisar publicación
+      </button>
+    </div>
+  );
+}
+
+function ExperienceCalendarModule({ reviewed, onReviewed }: { reviewed: boolean; onReviewed: () => void }) {
+  return (
+    <div className="space-y-3">
+      <InfoHeader icon={CalendarDays} title="Calendario Experience" description="Agenda navegable con eventos ficticios. No sincroniza Google Calendar ni escribe datos reales." />
+      <div className="grid gap-3 md:grid-cols-3">
+        {["Reunión de coordinación", "Actividad de ciencias", "Publicación de boletines"].map((event, index) => (
+          <div key={event} className="experience-card-motion rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm font-semibold text-slate-950">{event}</p>
+            <p className="mt-1 text-xs text-slate-500">{index === 0 ? "Hoy · 12:30" : `${index + 1} días`}</p>
+            <GradebookBadge tone={reviewed ? "green" : "blue"}>{reviewed ? "Revisado" : "Programado"}</GradebookBadge>
+          </div>
+        ))}
+      </div>
+      <button type="button" onClick={onReviewed} className="inline-flex h-9 items-center justify-center rounded-xl bg-sky-700 px-3 text-xs font-bold text-white transition hover:bg-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-500">
+        Revisar evento
+      </button>
+    </div>
+  );
+}
+
 function AcademicDemoPanel({ reviewed, onReviewed }: { reviewed: boolean; onReviewed: () => void }) {
   return (
     <div className="space-y-3">
@@ -478,9 +708,9 @@ function CoriumPreparationPanel() {
           <ShieldCheck className="h-5 w-5" aria-hidden="true" />
         </span>
         <div>
-          <p className="text-sm font-semibold text-slate-950">Corium AI se integrará como guía contextual.</p>
+          <p className="text-sm font-semibold text-slate-950">Corium AI está disponible como guía contextual.</p>
           <p className="mt-1 text-sm text-slate-500">
-            En el siguiente sprint podrá explicar botones, resolver dudas frecuentes y acompañar cada recorrido sin llamadas reales a proveedores.
+            Usa el botón flotante o la opción “Guía de Corium” para pedir orientación, iniciar el recorrido guiado o hacer una pregunta basada en FAQs.
           </p>
         </div>
       </div>
@@ -579,6 +809,54 @@ function Metric({ label, value }: { label: string; value: string }) {
       <p className="mt-1 text-lg font-bold text-slate-950">{value}</p>
     </div>
   );
+}
+
+function createDemoGrade(id: string, studentName: string, subjectName: string, assessmentName: string, grade: number, comment: string): GradeWithLabels {
+  return {
+    id,
+    student_id: studentName.toLowerCase().replace(/\s+/g, "-"),
+    teacher_id: "irene",
+    subject_id: subjectName.toLowerCase(),
+    course_id: "course-6a",
+    term: "2" satisfies GradeTerm,
+    assessment_type: "parcial",
+    assessment_name: assessmentName,
+    grade,
+    assessment_date: new Date().toISOString(),
+    comment,
+    recommendation: "Mantener el seguimiento semanal y revisar la organización del trabajo.",
+    visible_to_family: true,
+    created_at: new Date().toISOString(),
+    studentName,
+    subjectName,
+    teacherName: "Irene Soler"
+  };
+}
+
+function createDemoCriterion(
+  id: string,
+  subjectName: string,
+  courseName: string,
+  name: string,
+  weight: number,
+  criterionType: EvaluationCriterionWithLabels["criterion_type"]
+): EvaluationCriterionWithLabels {
+  return {
+    id,
+    teacher_id: "irene",
+    course_id: "course-6a",
+    subject_id: subjectName.toLowerCase(),
+    term: "2",
+    name,
+    weight,
+    criterion_type: criterionType,
+    visible_to_family: true,
+    active: true,
+    created_at: new Date().toISOString(),
+    subjectName,
+    courseName,
+    teacherName: "Irene Soler"
+  };
 }
 
 function statusLabel(status: AttendanceStatus) {

@@ -47,6 +47,8 @@ export function CoriumExperienceGuide({ role, open, onClose, onInterest }: Coriu
   const [questionBoxOpen, setQuestionBoxOpen] = useState(false);
   const [freeQuestion, setFreeQuestion] = useState("");
   const [freeAnswer, setFreeAnswer] = useState<string | null>(null);
+  const [guidedOpen, setGuidedOpen] = useState(false);
+  const [faqsOpen, setFaqsOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -68,6 +70,8 @@ export function CoriumExperienceGuide({ role, open, onClose, onInterest }: Coriu
 
   function startGuide() {
     updateGuideState({ ...guideState, started: true, closed: false });
+    setGuidedOpen(true);
+    setFaqsOpen(false);
   }
 
   function closeGuide() {
@@ -83,6 +87,8 @@ export function CoriumExperienceGuide({ role, open, onClose, onInterest }: Coriu
   }
 
   function answerQuestion(question: string) {
+    setFaqsOpen(false);
+    setGuidedOpen(false);
     setQuestionBoxOpen(true);
     setFreeQuestion(question);
     setFreeAnswer(findExperienceGuideAnswer(content, question) ?? unansweredMessage);
@@ -131,9 +137,9 @@ export function CoriumExperienceGuide({ role, open, onClose, onInterest }: Coriu
                 <div className="flex items-start gap-3">
                   <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700" aria-hidden="true" />
                   <div>
-                    <p className="text-sm font-semibold text-slate-950">{content.explanation}</p>
+                    <p className="text-sm font-semibold text-slate-950">Puedo guiarte por este recorrido, responder una duda o dejarte explorar a tu ritmo.</p>
                     <p className="mt-2 text-sm leading-6 text-emerald-800">
-                      La guía es opcional: puedes probar acciones, cambiar de perfil o cerrar este panel cuando quieras.
+                      No bloqueo la navegación y no llamo a proveedores externos durante la Experience.
                     </p>
                   </div>
                 </div>
@@ -141,33 +147,69 @@ export function CoriumExperienceGuide({ role, open, onClose, onInterest }: Coriu
 
               <div>
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <h3 className="text-sm font-bold text-slate-950">Preguntas rápidas</h3>
+                  <h3 className="text-sm font-bold text-slate-950">¿Qué quieres hacer?</h3>
                   <GradebookBadge tone={guideState.started ? "green" : "blue"}>{guideState.started ? "Guía iniciada" : "Opcional"}</GradebookBadge>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {quickQuestions.map((question) => (
-                    <button
-                      key={question}
-                      type="button"
-                      onClick={() => answerQuestion(question)}
-                      className="inline-flex min-h-9 items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-left text-xs font-bold text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    >
-                      {question}
-                    </button>
-                  ))}
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <button
+                    type="button"
+                    onClick={startGuide}
+                    className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-950 px-3 text-sm font-bold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    Guiarme
+                  </button>
                   <button
                     type="button"
                     onClick={() => {
+                      setGuidedOpen(false);
+                      setFaqsOpen(false);
                       setQuestionBoxOpen(true);
                       setFreeAnswer(null);
                     }}
-                    className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 transition hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 text-sm font-bold text-amber-800 transition hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
                   >
                     <MessageCircleQuestion className="h-3.5 w-3.5" aria-hidden="true" />
-                    Hacer otra pregunta
+                    Hacer una pregunta
+                  </button>
+                  <button
+                    type="button"
+                    onClick={closeGuide}
+                    className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    Cerrar
                   </button>
                 </div>
               </div>
+
+              {guidedOpen ? (
+                <div className="experience-scale-in rounded-2xl border border-emerald-100 bg-white p-4">
+                  <h3 className="text-sm font-bold text-slate-950">Recorrido recomendado</h3>
+                  <ol className="mt-3 space-y-2 text-sm text-slate-600">
+                    {["Panel", "Comunicaciones", "Cuaderno", "Ficha del alumno", "Calendario", "Final del recorrido"].map((step, index) => (
+                      <li key={step} className="flex items-center gap-2">
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-xs font-bold text-emerald-700">{index + 1}</span>
+                        {step}
+                      </li>
+                    ))}
+                  </ol>
+                  <div className="mt-4 grid gap-2">
+                    {content.actions.map((action) => (
+                      <Link
+                        key={action.href}
+                        href={action.href}
+                        onClick={() => onClose()}
+                        className="group flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-left transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      >
+                        <span>
+                          <span className="block text-sm font-semibold text-slate-950">{action.label}</span>
+                          <span className="mt-1 block text-xs text-slate-500">{action.description}</span>
+                        </span>
+                        <ArrowRight className="h-4 w-4 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-emerald-700" aria-hidden="true" />
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
 
               {questionBoxOpen ? (
                 <form onSubmit={handleFreeQuestionSubmit} className="experience-scale-in rounded-2xl border border-slate-200 bg-slate-50 p-3">
@@ -192,73 +234,78 @@ export function CoriumExperienceGuide({ role, open, onClose, onInterest }: Coriu
                     </button>
                   </div>
                   {freeAnswer ? <p className="experience-feedback-in mt-3 rounded-xl border border-white bg-white px-3 py-2 text-sm leading-6 text-slate-600 shadow-sm">{freeAnswer}</p> : null}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {quickQuestions.slice(0, 4).map((question) => (
+                      <button
+                        key={question}
+                        type="button"
+                        onClick={() => answerQuestion(question)}
+                        className="inline-flex min-h-8 items-center rounded-full border border-slate-200 bg-white px-3 text-left text-xs font-bold text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      >
+                        {question}
+                      </button>
+                    ))}
+                  </div>
                 </form>
               ) : null}
 
-              <div>
-                <h3 className="mb-2 text-sm font-bold text-slate-950">Funciones clave</h3>
-                <div className="grid gap-2">
-                  {content.highlights.map((highlight) => (
-                    <div key={highlight} className="flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
-                      <p className="text-sm text-slate-600">{highlight}</p>
-                    </div>
-                  ))}
+              {guidedOpen ? (
+                <div className="experience-scale-in">
+                  <h3 className="mb-2 text-sm font-bold text-slate-950">Funciones clave</h3>
+                  <div className="grid gap-2">
+                    {content.highlights.map((highlight) => (
+                      <div key={highlight} className="flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
+                        <p className="text-sm text-slate-600">{highlight}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-
-              <div>
-                <h3 className="mb-2 text-sm font-bold text-slate-950">Acciones sugeridas</h3>
-                <div className="grid gap-2">
-                  {content.actions.map((action) => (
-                    <Link
-                      key={action.href}
-                      href={action.href}
-                      onClick={() => {
-                        startGuide();
-                        onClose();
-                      }}
-                      className="group flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3 text-left transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    >
-                      <span>
-                        <span className="block text-sm font-semibold text-slate-950">{action.label}</span>
-                        <span className="mt-1 block text-xs text-slate-500">{action.description}</span>
-                      </span>
-                      <ArrowRight className="h-4 w-4 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-emerald-700" aria-hidden="true" />
-                    </Link>
-                  ))}
-                </div>
-              </div>
+              ) : null}
             </section>
 
             <section className="space-y-4">
               <div>
-                <h3 className="mb-2 text-sm font-bold text-slate-950">Preguntas frecuentes</h3>
-                <div className="space-y-2">
-                  {content.faqs.slice(0, 8).map((faq) => {
-                    const isOpen = activeFaq === faq.question;
-                    return (
-                      <div key={faq.question} className="rounded-xl border border-slate-200 bg-slate-50">
-                        <button
-                          type="button"
-                          onClick={() => toggleFaq(faq.question)}
-                          className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm font-semibold text-slate-950 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                          aria-expanded={isOpen}
-                        >
-                          <span className="flex items-center gap-2">
-                            <HelpCircle className="h-4 w-4 shrink-0 text-sky-700" aria-hidden="true" />
-                            {faq.question}
-                          </span>
-                          <span className="text-xs text-slate-400">{isOpen ? "Cerrar" : "Ver"}</span>
-                        </button>
-                        {isOpen ? <p className="border-t border-slate-200 px-3 py-2 text-sm leading-6 text-slate-600">{faq.answer}</p> : null}
-                      </div>
-                    );
-                  })}
-                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFaqsOpen((value) => !value);
+                    setQuestionBoxOpen(false);
+                    setGuidedOpen(false);
+                  }}
+                  className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  aria-expanded={faqsOpen}
+                >
+                  <HelpCircle className="h-4 w-4 text-sky-700" aria-hidden="true" />
+                  {faqsOpen ? "Ocultar preguntas frecuentes" : "Consultar preguntas frecuentes"}
+                </button>
+                {faqsOpen ? (
+                  <div className="experience-scale-in mt-3 space-y-2">
+                    {content.faqs.slice(0, 8).map((faq) => {
+                      const isOpen = activeFaq === faq.question;
+                      return (
+                        <div key={faq.question} className="rounded-xl border border-slate-200 bg-slate-50">
+                          <button
+                            type="button"
+                            onClick={() => toggleFaq(faq.question)}
+                            className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm font-semibold text-slate-950 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            aria-expanded={isOpen}
+                          >
+                            <span className="flex items-center gap-2">
+                              <HelpCircle className="h-4 w-4 shrink-0 text-sky-700" aria-hidden="true" />
+                              {faq.question}
+                            </span>
+                            <span className="text-xs text-slate-400">{isOpen ? "Cerrar" : "Ver"}</span>
+                          </button>
+                          {isOpen ? <p className="border-t border-slate-200 px-3 py-2 text-sm leading-6 text-slate-600">{faq.answer}</p> : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : null}
               </div>
 
-              <div className="rounded-2xl border border-amber-100 bg-amber-50/70 p-4">
+              {guidedOpen ? <div className="experience-scale-in rounded-2xl border border-amber-100 bg-amber-50/70 p-4">
                 <p className="text-sm font-bold text-slate-950">Cierre del recorrido</p>
                 <p className="mt-2 text-sm leading-6 text-slate-600">{content.closing}</p>
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -287,7 +334,7 @@ export function CoriumExperienceGuide({ role, open, onClose, onInterest }: Coriu
                     Seguir explorando
                   </button>
                 </div>
-              </div>
+              </div> : null}
             </section>
           </div>
         </div>
