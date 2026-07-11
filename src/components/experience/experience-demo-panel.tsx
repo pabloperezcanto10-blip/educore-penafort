@@ -144,14 +144,14 @@ export function ExperienceDemoPanel({ role, panel }: ExperienceDemoPanelProps) {
   })();
 
   return (
-    <GradebookCard className="mt-5">
+    <GradebookCard className="experience-fade-up mt-5">
       <GradebookCardHeader title="Acción demo">
         <div className="flex items-center gap-2">
           <GradebookBadge tone="green">Interactiva</GradebookBadge>
           <button
             type="button"
             onClick={resetPanel}
-            className="inline-flex h-8 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 transition hover:bg-slate-50"
+            className="inline-flex h-8 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
           >
             Restablecer panel
           </button>
@@ -159,7 +159,7 @@ export function ExperienceDemoPanel({ role, panel }: ExperienceDemoPanelProps) {
       </GradebookCardHeader>
       <div className="space-y-4 p-4">
         {feedback ? (
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800" role="status">
+          <div className="experience-feedback-in rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800" role="status">
             {feedback}
           </div>
         ) : null}
@@ -298,7 +298,7 @@ function FamilyPanel({
           <button
             type="button"
             onClick={() => onJustify("lucia")}
-            className="mt-3 inline-flex h-9 items-center justify-center rounded-xl bg-sky-700 px-3 text-xs font-bold text-white transition hover:bg-sky-800"
+            className="mt-3 inline-flex h-9 items-center justify-center rounded-xl bg-sky-700 px-3 text-xs font-bold text-white transition hover:bg-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
           >
             {justifiedAbsences.includes("lucia") ? "Justificación enviada" : "Simular justificación"}
           </button>
@@ -341,7 +341,7 @@ function AttendanceDemoPanel({
         {students.map((student) => {
           const status = attendance[student.id] ?? "present";
           return (
-            <div key={student.id} className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-center sm:justify-between">
+            <div key={student.id} className="experience-card-motion flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
                 <StudentAvatar name={student.name} />
                 <div>
@@ -355,7 +355,7 @@ function AttendanceDemoPanel({
                     key={option}
                     type="button"
                     onClick={() => onAttendanceChange(student.id, option)}
-                    className={`h-8 rounded-lg px-3 text-xs font-bold transition ${
+                    className={`h-8 rounded-lg px-3 text-xs font-bold transition focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
                       status === option ? statusClass(option) : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
                     }`}
                   >
@@ -385,7 +385,7 @@ function MessagesPanel({
       <InfoHeader icon={MessageSquareText} title={title} description="Lee conversaciones ficticias y simula acciones sin enviar mensajes reales." />
       <div className="grid gap-3 md:grid-cols-2">
         {messages.map((message) => (
-          <div key={message.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <div key={message.id} className="experience-card-motion rounded-xl border border-slate-200 bg-slate-50 p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-slate-950">{message.subject}</p>
@@ -399,7 +399,7 @@ function MessagesPanel({
             <button
               type="button"
               onClick={() => onMessageRead(message.id)}
-              className="mt-4 inline-flex h-9 items-center justify-center rounded-xl bg-sky-700 px-3 text-xs font-bold text-white transition hover:bg-sky-800"
+              className="mt-4 inline-flex h-9 items-center justify-center rounded-xl bg-sky-700 px-3 text-xs font-bold text-white transition hover:bg-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
             >
               Marcar como leída
             </button>
@@ -423,7 +423,7 @@ function AcademicDemoPanel({ reviewed, onReviewed }: { reviewed: boolean; onRevi
       <button
         type="button"
         onClick={onReviewed}
-        className="inline-flex h-9 items-center justify-center rounded-xl bg-sky-700 px-3 text-xs font-bold text-white transition hover:bg-sky-800"
+        className="inline-flex h-9 items-center justify-center rounded-xl bg-sky-700 px-3 text-xs font-bold text-white transition hover:bg-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
       >
         Revisar publicación
       </button>
@@ -440,7 +440,7 @@ function FamilyGradesPanel() {
         ["Ciencias", "9,1", "Proyecto de ecosistemas muy completo."],
         ["Lengua", "7,8", "Conviene reforzar inferencias lectoras."]
       ].map(([subject, grade, comment]) => (
-        <div key={subject} className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-[1fr_90px_1.4fr]">
+        <div key={subject} className="experience-card-motion grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-[1fr_90px_1.4fr]">
           <p className="text-sm font-semibold text-slate-950">{subject}</p>
           <p className="text-sm font-bold text-sky-700">{grade}</p>
           <p className="text-sm text-slate-600">{comment}</p>
@@ -455,7 +455,7 @@ function CalendarDemoPanel({ reviewed, onReviewed }: { reviewed: boolean; onRevi
     <div className="space-y-3">
       <InfoHeader icon={CalendarDays} title="Calendario demo" description="Eventos ficticios del centro para comprobar navegación y seguimiento." />
       {["Reunión de coordinación", "Actividad de ciencias", "Publicación de boletines"].map((event, index) => (
-        <div key={event} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+        <div key={event} className="experience-card-motion flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
           <div>
             <p className="text-sm font-semibold text-slate-950">{event}</p>
             <p className="text-xs text-slate-500">{index === 0 ? "Hoy · 12:30" : `${index + 1} días`}</p>
@@ -463,7 +463,7 @@ function CalendarDemoPanel({ reviewed, onReviewed }: { reviewed: boolean; onRevi
           <GradebookBadge tone={reviewed ? "green" : "blue"}>{reviewed ? "Revisado" : "Programado"}</GradebookBadge>
         </div>
       ))}
-      <button type="button" onClick={onReviewed} className="inline-flex h-9 items-center justify-center rounded-xl bg-sky-700 px-3 text-xs font-bold text-white transition hover:bg-sky-800">
+      <button type="button" onClick={onReviewed} className="inline-flex h-9 items-center justify-center rounded-xl bg-sky-700 px-3 text-xs font-bold text-white transition hover:bg-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-500">
         Revisar evento
       </button>
     </div>
@@ -498,7 +498,7 @@ function StudentMiniCard({
   onAction: () => void;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+    <div className="experience-card-motion rounded-xl border border-slate-200 bg-slate-50 p-4">
       <div className="flex items-center gap-3">
         <StudentAvatar name={student.name} />
         <div>
@@ -509,7 +509,7 @@ function StudentMiniCard({
       <button
         type="button"
         onClick={onAction}
-        className="mt-4 inline-flex h-9 w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 transition hover:bg-slate-100"
+        className="mt-4 inline-flex h-9 w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
       >
         {action}
       </button>
@@ -531,7 +531,7 @@ function ReviewCard({
   onReviewed: (id: string) => void;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+    <div className={`experience-card-motion rounded-xl border p-4 transition ${reviewed ? "border-emerald-200 bg-emerald-50/70" : "border-slate-200 bg-slate-50"}`}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-slate-950">{title}</p>
@@ -542,7 +542,7 @@ function ReviewCard({
       <button
         type="button"
         onClick={() => onReviewed(id)}
-        className="mt-4 inline-flex h-9 items-center justify-center rounded-xl bg-sky-700 px-3 text-xs font-bold text-white transition hover:bg-sky-800"
+        className="mt-4 inline-flex h-9 items-center justify-center rounded-xl bg-sky-700 px-3 text-xs font-bold text-white transition hover:bg-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
       >
         Marcar como revisada
       </button>
@@ -574,7 +574,7 @@ function InfoHeader({
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-3">
+    <div className="experience-card-motion rounded-xl border border-slate-200 bg-white p-3">
       <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
       <p className="mt-1 text-lg font-bold text-slate-950">{value}</p>
     </div>

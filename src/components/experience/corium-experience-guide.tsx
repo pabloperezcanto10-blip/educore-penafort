@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, HelpCircle, Sparkles, X } from "lucide-react";
+import { ArrowRight, CheckCircle2, HelpCircle, MessageCircleQuestion, Search, Sparkles, X } from "lucide-react";
 import { CoriumAvatar } from "@/components/ai/corium-avatar";
 import { GradebookBadge } from "@/components/grades/gradebook-design";
-import { experienceGuideContent } from "@/lib/experience/guide-content";
+import { experienceGuideContent, findExperienceGuideAnswer } from "@/lib/experience/guide-content";
 import { readExperienceStorage, writeExperienceStorage } from "@/lib/experience/demo-storage";
 import type { ExperienceProfile } from "@/lib/experience/mode";
 
@@ -28,10 +28,25 @@ const initialGuideState: CoriumGuideState = {
   viewedFaqs: []
 };
 
+const quickQuestions = [
+  "¿Qué hace este módulo?",
+  "¿Qué puedo hacer aquí?",
+  "¿Cómo cambio de perfil?",
+  "¿Qué datos son reales?",
+  "¿Cómo funciona EducaCora?",
+  "¿Cómo contactar?"
+];
+
+const unansweredMessage =
+  "Esa funcionalidad todavía no está documentada en la Experience. Cuando EducaCora esté implantado en un centro, Corium AI podrá ayudarte con preguntas mucho más avanzadas.";
+
 export function CoriumExperienceGuide({ role, open, onClose, onInterest }: CoriumExperienceGuideProps) {
   const content = experienceGuideContent[role];
   const [guideState, setGuideState] = useState<CoriumGuideState>(() => readExperienceStorage<CoriumGuideState>(role, "guide") ?? initialGuideState);
   const [activeFaq, setActiveFaq] = useState<string | null>(null);
+  const [questionBoxOpen, setQuestionBoxOpen] = useState(false);
+  const [freeQuestion, setFreeQuestion] = useState("");
+  const [freeAnswer, setFreeAnswer] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -67,13 +82,24 @@ export function CoriumExperienceGuide({ role, open, onClose, onInterest }: Coriu
     }
   }
 
+  function answerQuestion(question: string) {
+    setQuestionBoxOpen(true);
+    setFreeQuestion(question);
+    setFreeAnswer(findExperienceGuideAnswer(content, question) ?? unansweredMessage);
+  }
+
+  function handleFreeQuestionSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setFreeAnswer(findExperienceGuideAnswer(content, freeQuestion) ?? unansweredMessage);
+  }
+
   if (!open) {
     return null;
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/45 px-3 py-3 sm:items-center sm:px-4 sm:py-6" role="dialog" aria-modal="true" aria-labelledby="corium-experience-guide-title">
-      <div className="flex max-h-[calc(100vh-24px)] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+    <div className="experience-fade-in fixed inset-0 z-50 flex items-end justify-center bg-slate-950/45 px-3 py-3 sm:items-center sm:px-4 sm:py-6" role="dialog" aria-modal="true" aria-labelledby="corium-experience-guide-title">
+      <div className="experience-scale-in flex max-h-[calc(100vh-24px)] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
         <header className="flex items-start justify-between gap-4 border-b border-slate-200 bg-white px-4 py-4 sm:px-5">
           <div className="flex items-start gap-3">
             <span className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-amber-200 bg-white shadow-sm">
@@ -83,15 +109,15 @@ export function CoriumExperienceGuide({ role, open, onClose, onInterest }: Coriu
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">Guía de Corium</p>
               <h2 id="corium-experience-guide-title" className="mt-1 text-xl font-bold tracking-tight text-slate-950">
-                {content.title}
+                Hola, soy Corium.
               </h2>
-              <p className="mt-1 text-sm text-slate-500">{content.message}</p>
+              <p className="mt-1 text-sm text-slate-500">Puedo ayudarte a entender este dashboard y orientarte durante la Experience.</p>
             </div>
           </div>
           <button
             type="button"
             onClick={closeGuide}
-            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             aria-label="Cerrar guía de Corium"
           >
             <X className="h-4 w-4" aria-hidden="true" />
@@ -115,9 +141,62 @@ export function CoriumExperienceGuide({ role, open, onClose, onInterest }: Coriu
 
               <div>
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <h3 className="text-sm font-bold text-slate-950">Funciones clave</h3>
+                  <h3 className="text-sm font-bold text-slate-950">Preguntas rápidas</h3>
                   <GradebookBadge tone={guideState.started ? "green" : "blue"}>{guideState.started ? "Guía iniciada" : "Opcional"}</GradebookBadge>
                 </div>
+                <div className="flex flex-wrap gap-2">
+                  {quickQuestions.map((question) => (
+                    <button
+                      key={question}
+                      type="button"
+                      onClick={() => answerQuestion(question)}
+                      className="inline-flex min-h-9 items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-left text-xs font-bold text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    >
+                      {question}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuestionBoxOpen(true);
+                      setFreeAnswer(null);
+                    }}
+                    className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 transition hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  >
+                    <MessageCircleQuestion className="h-3.5 w-3.5" aria-hidden="true" />
+                    Hacer otra pregunta
+                  </button>
+                </div>
+              </div>
+
+              {questionBoxOpen ? (
+                <form onSubmit={handleFreeQuestionSubmit} className="experience-scale-in rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                  <label htmlFor="corium-free-question" className="text-sm font-bold text-slate-950">
+                    Pregunta a Corium
+                  </label>
+                  <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                    <input
+                      id="corium-free-question"
+                      value={freeQuestion}
+                      onChange={(event) => setFreeQuestion(event.target.value)}
+                      placeholder="Escribe una duda sobre la Experience"
+                      className="min-h-10 flex-1 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                    />
+                    <button
+                      type="submit"
+                      disabled={!freeQuestion.trim()}
+                      className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <Search className="h-4 w-4" aria-hidden="true" />
+                      Buscar
+                    </button>
+                  </div>
+                  {freeAnswer ? <p className="experience-feedback-in mt-3 rounded-xl border border-white bg-white px-3 py-2 text-sm leading-6 text-slate-600 shadow-sm">{freeAnswer}</p> : null}
+                </form>
+              ) : null}
+
+              <div>
+                <h3 className="mb-2 text-sm font-bold text-slate-950">Funciones clave</h3>
                 <div className="grid gap-2">
                   {content.highlights.map((highlight) => (
                     <div key={highlight} className="flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
@@ -139,7 +218,7 @@ export function CoriumExperienceGuide({ role, open, onClose, onInterest }: Coriu
                         startGuide();
                         onClose();
                       }}
-                      className="group flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3 text-left transition hover:bg-slate-50"
+                      className="group flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3 text-left transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     >
                       <span>
                         <span className="block text-sm font-semibold text-slate-950">{action.label}</span>
@@ -156,14 +235,14 @@ export function CoriumExperienceGuide({ role, open, onClose, onInterest }: Coriu
               <div>
                 <h3 className="mb-2 text-sm font-bold text-slate-950">Preguntas frecuentes</h3>
                 <div className="space-y-2">
-                  {content.faqs.slice(0, 6).map((faq) => {
+                  {content.faqs.slice(0, 8).map((faq) => {
                     const isOpen = activeFaq === faq.question;
                     return (
                       <div key={faq.question} className="rounded-xl border border-slate-200 bg-slate-50">
                         <button
                           type="button"
                           onClick={() => toggleFaq(faq.question)}
-                          className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm font-semibold text-slate-950"
+                          className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm font-semibold text-slate-950 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                           aria-expanded={isOpen}
                         >
                           <span className="flex items-center gap-2">
@@ -183,20 +262,27 @@ export function CoriumExperienceGuide({ role, open, onClose, onInterest }: Coriu
                 <p className="text-sm font-bold text-slate-950">Cierre del recorrido</p>
                 <p className="mt-2 text-sm leading-6 text-slate-600">{content.closing}</p>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <Link href="/experience" className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 transition hover:bg-slate-50">
+                  <Link href="/experience" className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500">
                     Explorar otro perfil
                   </Link>
                   <button
                     type="button"
                     onClick={onInterest}
-                    className="inline-flex h-9 items-center justify-center rounded-xl bg-slate-950 px-3 text-xs font-bold text-white transition hover:bg-slate-800"
+                    className="inline-flex h-9 items-center justify-center rounded-xl bg-slate-950 px-3 text-xs font-bold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   >
                     Estoy interesado
                   </button>
                   <button
                     type="button"
+                    onClick={onInterest}
+                    className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    Contactar
+                  </button>
+                  <button
+                    type="button"
                     onClick={closeGuide}
-                    className="inline-flex h-9 items-center justify-center rounded-xl px-3 text-xs font-bold text-slate-600 transition hover:bg-white"
+                    className="inline-flex h-9 items-center justify-center rounded-xl px-3 text-xs font-bold text-slate-600 transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   >
                     Seguir explorando
                   </button>
@@ -212,14 +298,14 @@ export function CoriumExperienceGuide({ role, open, onClose, onInterest }: Coriu
             <button
               type="button"
               onClick={startGuide}
-              className="inline-flex h-9 items-center justify-center rounded-xl bg-sky-700 px-3 text-xs font-bold text-white transition hover:bg-sky-800"
+              className="inline-flex h-9 items-center justify-center rounded-xl bg-sky-700 px-3 text-xs font-bold text-white transition hover:bg-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
             >
               Empezar guía
             </button>
             <button
               type="button"
               onClick={closeGuide}
-              className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
+              className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             >
               Explorar por mi cuenta
             </button>
