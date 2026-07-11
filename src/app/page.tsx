@@ -49,26 +49,25 @@ const structuredData = [
 const schools = [
   {
     name: "Colegio Peñafort",
-    description: "Acceso a la plataforma EducaCora del centro.",
+    description: "Accede a tu plataforma del centro.",
     href: "/login"
   }
 ];
 
 const solvedItems = [
   "Comunicación centralizada entre familias, docentes y dirección.",
-  "Cuaderno de calificaciones, criterios, observaciones y boletines.",
+  "Cuaderno, criterios, observaciones y boletines conectados.",
   "Asistencia y seguimiento diario desde cada sesión.",
-  "Supervisión directiva de actividad, prioridades y publicaciones.",
-  "Acceso familiar claro a notas, boletines y mensajes visibles."
+  "Supervisión directiva de actividad y prioridades."
 ];
 
 const modules = [
-  ["Comunicación", "Conversaciones con estados, trazabilidad y respuesta por roles."],
-  ["Cuaderno", "Evaluación, criterios, notas visibles y observaciones conectadas."],
-  ["Asistencia", "Pasar lista de forma rápida, visual y preparada para seguimiento."],
+  ["Comunicación", "Conversaciones claras entre centro y familias."],
+  ["Cuaderno", "Evaluación, criterios y observaciones conectadas."],
+  ["Asistencia", "Pasar lista y hacer seguimiento diario."],
   ["Boletines", "Vista previa y documentos profesionales para familias."],
-  ["Centro de control", "Actividad del colegio, prioridades y supervisión directiva."],
-  ["Corium AI", "Asistente educativo integrado para redacción y apoyo docente."]
+  ["Centro de control", "Prioridades y supervisión del colegio."],
+  ["Corium AI", "Acompañamiento educativo integrado."]
 ];
 
 export default function HomePage() {
@@ -647,7 +646,6 @@ export default function HomePage() {
             <a href="#seguridad">Seguridad</a>
           </nav>
           <div className="nav-actions">
-            <InstallEduCoreButton className="btn btn-soft" />
             <a className="btn btn-soft" href="#acceso">Accede a tu centro</a>
             <Link className="btn btn-primary" href="/experience">Probar EducaCora</Link>
           </div>
@@ -659,12 +657,10 @@ export default function HomePage() {
           <div className="landing-reveal">
             <div className="eyebrow">● El corazón de tu centro educativo.</div>
             <h1>EducaCora conecta toda la <span className="gradient">comunidad educativa</span>.</h1>
-            <p>Una plataforma escolar inteligente, elegante y centralizada para coordinar dirección, docentes, familias y alumnos desde un único lugar.</p>
+            <p>Una plataforma escolar inteligente y centralizada para dirección, docentes y familias.</p>
             <div className="hero-actions landing-reveal landing-delay-4">
               <Link className="btn btn-primary" href="/experience">Probar EducaCora</Link>
-              <a className="btn btn-gold" href="#demo">Solicitar una demo</a>
               <a className="btn btn-soft" href="#acceso">Accede a tu centro</a>
-              <InstallEduCoreButton className="btn btn-soft" />
             </div>
             <div className="trust-row landing-reveal landing-delay-4">
               <span>Dirección</span><span className="trust-dot" />
@@ -739,7 +735,7 @@ export default function HomePage() {
           <div className="module-panel landing-reveal">
             <div className="section-kicker">Qué resuelve EducaCora</div>
             <h2>Menos ruido operativo. Más centro educativo.</h2>
-            <p>EducaCora reúne comunicación, evaluación, asistencia, boletines y supervisión en una única experiencia coherente para centros escolares.</p>
+            <p>Comunicación, evaluación, asistencia y seguimiento en una única experiencia coherente.</p>
           </div>
           <div className="solution-list landing-reveal landing-delay-1">
             {solvedItems.map((item, index) => (
@@ -757,7 +753,7 @@ export default function HomePage() {
           <div className="section-head landing-reveal">
             <div className="section-kicker">Módulos principales</div>
             <h2>Todo conectado, sin duplicar trabajo.</h2>
-            <p>Cada módulo común se implementa una vez y se adapta por permisos y rol.</p>
+            <p>Los módulos clave trabajan conectados y se adaptan a cada rol.</p>
           </div>
           <div className="module-list landing-reveal landing-delay-1">
             {modules.map(([title, description]) => (
@@ -786,7 +782,7 @@ export default function HomePage() {
                 Conoce a Corium AI
               </h2>
               <p className="mt-4 text-[17px] leading-7 text-[#4e5b61]">
-                El corazón inteligente de EducaCora. Ayuda a la comunidad educativa a redactar, estructurar y preparar mejor su trabajo diario, siempre a partir del texto que cada usuario aporta.
+                El corazón inteligente de EducaCora. Acompaña el trabajo educativo sin invadir la experiencia.
               </p>
               <div className="corium-points" aria-label="Ámbitos de ayuda de Corium AI">
                 <span className="corium-point">Profesorado</span>
@@ -820,10 +816,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section data-corium-message="Una identidad preparada para crecer.">
+      <section id="experience" data-corium-message="Pruébalo como un centro real.">
         <div className="container brand-note landing-reveal">
           <Image src="/brand/educore/logo.svg" alt="EducaCora" width={512} height={150} style={{ width: 178, height: "auto" }} />
-          <p>Una identidad propia para una plataforma SaaS educativa: sobria, cercana y preparada para crecer con nuevos centros.</p>
+          <p>EducaCora Experience no es un vídeo ni una galería de capturas. Es el producto real funcionando con datos ficticios para Dirección, Docentes y Familias.</p>
+          <Link className="btn btn-primary" href="/experience">Probar EducaCora</Link>
         </div>
       </section>
 
@@ -832,9 +829,8 @@ export default function HomePage() {
           <div>
             <div className="section-kicker" style={{ color: "var(--gold-300)" }}>App instalable</div>
             <h2>Instala EducaCora en móvil, tablet u ordenador.</h2>
-            <p>Acceso rápido para docentes, familias, dirección y administración desde cualquier dispositivo.</p>
+            <p>Acceso rápido a tu centro desde cualquier dispositivo.</p>
             <div className="hero-actions">
-              <a className="btn btn-gold" href="#demo">Solicitar demo</a>
               <a className="btn btn-soft" href="#acceso">Accede a tu centro</a>
               <InstallEduCoreButton className="btn btn-soft" />
             </div>
@@ -853,7 +849,7 @@ export default function HomePage() {
         <div className="container">
           <div className="section-head landing-reveal">
             <div className="section-kicker">Confianza</div>
-            <h2>Seguridad, permisos y privacidad desde el diseño.</h2>
+            <h2>Seguridad y privacidad desde el diseño.</h2>
           </div>
           <div className="security landing-reveal landing-delay-1">
             <div className="security-card"><strong>Roles claros</strong><span>Dirección, docentes, administración y familias con experiencias y permisos diferenciados.</span></div>
@@ -867,10 +863,10 @@ export default function HomePage() {
         <div className="container">
           <div className="cta-card landing-reveal">
             <div className="eyebrow">EducaCora SaaS educativo</div>
-            <h2>Convierte tu centro en una comunidad conectada.</h2>
-            <p>Solicita una demo y descubre cómo centralizar comunicación, evaluación, asistencia y supervisión en una única plataforma.</p>
+            <h2>Prueba EducaCora desde dentro.</h2>
+            <p>Entra en EducaCora Experience y recorre la plataforma como dirección, docente o familia.</p>
             <div className="hero-actions" style={{ justifyContent: "center" }}>
-              <a className="btn btn-gold" href="mailto:demo@educacora.es">Solicitar demo</a>
+              <Link className="btn btn-primary" href="/experience">Probar EducaCora</Link>
               <a className="btn btn-soft" href="#acceso">Accede a tu centro</a>
             </div>
           </div>
