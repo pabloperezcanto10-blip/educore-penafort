@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { CoriumAvatar } from "@/components/ai/corium-avatar";
+import { LandingExperienceMotion } from "@/components/landing/landing-experience-motion";
 import { InstallEduCoreButton } from "@/components/pwa/install-educore-button";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_OG_IMAGE_URL, SITE_URL } from "@/lib/site-config";
 
@@ -79,6 +80,7 @@ export default function HomePage() {
           __html: JSON.stringify(structuredData).replace(/</g, "\\u003c")
         }}
       />
+      <LandingExperienceMotion />
       <style>{`
         .educore-public-page {
           --navy-950: #0f1b2e;
@@ -99,6 +101,7 @@ export default function HomePage() {
           --white: #ffffff;
           --shadow-sm: 0 10px 30px rgba(15, 27, 46, .07);
           --shadow-md: 0 22px 70px rgba(15, 27, 46, .12);
+          --shadow-premium: 0 26px 80px rgba(15, 27, 46, .14);
           --radius-xl: 28px;
           --radius-lg: 22px;
           --max: 1180px;
@@ -155,6 +158,51 @@ export default function HomePage() {
           line-height: 1.55;
           text-align: left;
         }
+        .educore-public-page .landing-reveal {
+          opacity: 0;
+          transform: translateY(22px) scale(.992);
+          transition:
+            opacity 620ms cubic-bezier(.22, 1, .36, 1),
+            transform 620ms cubic-bezier(.22, 1, .36, 1);
+          will-change: opacity, transform;
+        }
+        .educore-public-page .landing-reveal.is-visible {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+        .educore-public-page .landing-delay-1 { transition-delay: 80ms; }
+        .educore-public-page .landing-delay-2 { transition-delay: 150ms; }
+        .educore-public-page .landing-delay-3 { transition-delay: 220ms; }
+        .educore-public-page .landing-delay-4 { transition-delay: 290ms; }
+        .educore-public-page .contextual-corium {
+          position: fixed;
+          right: 22px;
+          bottom: 22px;
+          z-index: 45;
+          display: inline-flex;
+          max-width: min(360px, calc(100vw - 36px));
+          align-items: center;
+          gap: 10px;
+          border-radius: 999px;
+          border: 1px solid rgba(47,138,112,.18);
+          background: rgba(255,255,255,.92);
+          padding: 8px 14px 8px 8px;
+          color: var(--navy-950);
+          box-shadow: 0 18px 50px rgba(15,27,46,.13);
+          backdrop-filter: blur(18px);
+          font-size: 13px;
+          font-weight: 750;
+          line-height: 1.35;
+          animation: landing-corium-in 680ms cubic-bezier(.22, 1, .36, 1) both;
+        }
+        .educore-public-page .contextual-corium-avatar {
+          width: 38px;
+          height: 38px;
+          object-fit: cover;
+          border-radius: 999px;
+          box-shadow: 0 0 0 1px rgba(210,166,87,.28), 0 12px 24px rgba(47,138,112,.18);
+          animation: landing-corium-breathe 5600ms ease-in-out infinite;
+        }
         .educore-public-page .btn {
           display: inline-flex;
           align-items: center;
@@ -170,11 +218,15 @@ export default function HomePage() {
           transition: .2s ease;
           white-space: nowrap;
         }
+        .educore-public-page .btn:hover { transform: translateY(-2px); }
+        .educore-public-page .btn:active { transform: translateY(0) scale(.99); }
+        .educore-public-page .btn:focus-visible { outline: 3px solid rgba(47,138,112,.28); outline-offset: 3px; }
         .educore-public-page .btn-primary { background: var(--navy-950); color: white; box-shadow: 0 16px 35px rgba(15, 27, 46, .2); }
-        .educore-public-page .btn-primary:hover { transform: translateY(-1px); background: var(--navy-800); }
+        .educore-public-page .btn-primary:hover { background: var(--navy-800); box-shadow: 0 22px 44px rgba(15, 27, 46, .24); }
         .educore-public-page .btn-soft { background: rgba(255,255,255,.72); color: var(--navy-950); border-color: var(--stone-200); }
-        .educore-public-page .btn-soft:hover { background: white; transform: translateY(-1px); }
+        .educore-public-page .btn-soft:hover { background: white; box-shadow: 0 14px 30px rgba(15,27,46,.08); }
         .educore-public-page .btn-gold { background: linear-gradient(135deg, var(--green-600), var(--gold-500)); color: white; box-shadow: 0 16px 35px rgba(47, 138, 112, .24); }
+        .educore-public-page .btn-gold:hover { box-shadow: 0 22px 44px rgba(47, 138, 112, .28); }
         .educore-public-page .hero {
           position: relative;
           padding: 76px 0 70px;
@@ -188,6 +240,7 @@ export default function HomePage() {
           border-radius: 50%;
           background: radial-gradient(circle, rgba(210,166,87,.24), rgba(47,138,112,.12) 42%, transparent 68%);
           pointer-events: none;
+          animation: landing-soft-light 9400ms ease-in-out infinite alternate;
         }
         .educore-public-page .hero-grid { display: grid; grid-template-columns: 1.02fr .98fr; gap: 58px; align-items: center; position: relative; }
         .educore-public-page .eyebrow {
@@ -234,7 +287,10 @@ export default function HomePage() {
           background: linear-gradient(145deg, rgba(255,255,255,.94), rgba(246,243,236,.72));
           border: 1px solid rgba(255,255,255,.8);
           box-shadow: var(--shadow-md);
+          transform: translateZ(0);
+          transition: transform 360ms cubic-bezier(.22, 1, .36, 1), box-shadow 360ms cubic-bezier(.22, 1, .36, 1), border-color 360ms ease;
         }
+        .educore-public-page .product-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-premium); border-color: rgba(47,138,112,.2); }
         .educore-public-page .product-card::before {
           content: "";
           position: absolute;
@@ -305,7 +361,9 @@ export default function HomePage() {
         .educore-public-page .module-panel {
           border-radius: var(--radius-xl);
           padding: 30px;
+          transition: transform 260ms cubic-bezier(.22, 1, .36, 1), box-shadow 260ms ease, border-color 260ms ease;
         }
+        .educore-public-page .module-panel:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: rgba(47,138,112,.16); }
         .educore-public-page .module-panel h2,
         .educore-public-page .module-panel h3 { margin: 0; color: var(--navy-950); font-size: clamp(31px, 4vw, 46px); line-height: 1.05; letter-spacing: -.055em; }
         .educore-public-page .module-panel p { color: var(--stone-700); line-height: 1.72; margin: 14px 0 0; }
@@ -323,7 +381,9 @@ export default function HomePage() {
           font-size: 14px;
           font-weight: 650;
           line-height: 1.45;
+          transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
         }
+        .educore-public-page .solution-item:hover { transform: translateX(4px); border-color: rgba(47,138,112,.22); box-shadow: 0 14px 30px rgba(15,27,46,.06); }
         .educore-public-page .solution-dot {
           width: 28px;
           height: 28px;
@@ -335,7 +395,11 @@ export default function HomePage() {
           font-weight: 900;
         }
         .educore-public-page .module-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-        .educore-public-page .module-card { border-radius: 20px; padding: 20px; }
+        .educore-public-page .module-card { border-radius: 20px; padding: 20px; position: relative; overflow: hidden; transition: transform 260ms cubic-bezier(.22, 1, .36, 1), box-shadow 260ms ease, border-color 260ms ease; }
+        .educore-public-page .module-card::before { content: ""; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(47,138,112,.08), rgba(210,166,87,.08)); opacity: 0; transition: opacity 260ms ease; pointer-events: none; }
+        .educore-public-page .module-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-md); border-color: rgba(47,138,112,.22); }
+        .educore-public-page .module-card:hover::before { opacity: 1; }
+        .educore-public-page .module-card > * { position: relative; }
         .educore-public-page .module-card strong { display: block; color: var(--navy-950); margin-bottom: 7px; letter-spacing: -.03em; }
         .educore-public-page .module-card span { color: var(--stone-700); font-size: 13px; line-height: 1.55; }
         .educore-public-page .corium-card {
@@ -349,7 +413,9 @@ export default function HomePage() {
           box-shadow: var(--shadow-md);
           padding: 34px;
           overflow: hidden;
+          transition: transform 320ms cubic-bezier(.22, 1, .36, 1), box-shadow 320ms ease, border-color 320ms ease;
         }
+        .educore-public-page .corium-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-premium); border-color: rgba(47,138,112,.18); }
         .educore-public-page .corium-visual {
           display: grid;
           place-items: center;
@@ -367,6 +433,7 @@ export default function HomePage() {
           width: min(240px, 72%);
           height: auto;
           filter: drop-shadow(0 18px 30px rgba(15, 23, 42, .10));
+          animation: landing-corium-breathe 6400ms ease-in-out infinite;
         }
         .educore-public-page .corium-points {
           display: grid;
@@ -396,7 +463,7 @@ export default function HomePage() {
           box-shadow: var(--shadow-sm);
           transition: .2s ease;
         }
-        .educore-public-page .access-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+        .educore-public-page .access-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-premium); border-color: rgba(47,138,112,.22); }
         .educore-public-page .access-card strong { display: block; color: var(--navy-950); font-size: 18px; letter-spacing: -.03em; margin-bottom: 6px; }
         .educore-public-page .access-card span { color: var(--stone-700); font-size: 14px; line-height: 1.55; }
         .educore-public-page .dark-band {
@@ -423,7 +490,9 @@ export default function HomePage() {
           background: rgba(255,255,255,.08);
           border: 1px solid rgba(255,255,255,.12);
           backdrop-filter: blur(12px);
+          transition: transform 260ms ease, background 260ms ease, border-color 260ms ease;
         }
+        .educore-public-page .role-card:hover { transform: translateY(-4px); background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.2); }
         .educore-public-page .role-card h3 { margin: 0 0 10px; font-size: 21px; letter-spacing: -.04em; }
         .educore-public-page .role-card p { margin: 0 0 18px; color: rgba(255,255,255,.72); line-height: 1.58; font-size: 14px; }
         .educore-public-page .role-list { display: flex; flex-wrap: wrap; gap: 8px; color: rgba(255,255,255,.9); font-size: 12px; font-weight: 700; }
@@ -450,7 +519,9 @@ export default function HomePage() {
           box-shadow: var(--shadow-md);
           overflow: hidden;
           position: relative;
+          transition: transform 320ms cubic-bezier(.22, 1, .36, 1), box-shadow 320ms ease;
         }
+        .educore-public-page .app-card:hover { transform: translateY(-4px); box-shadow: 0 30px 90px rgba(15,27,46,.2); }
         .educore-public-page .app-card::after {
           content: "";
           position: absolute;
@@ -475,11 +546,13 @@ export default function HomePage() {
         .educore-public-page .app-preview-line { height: 10px; border-radius: 999px; background: rgba(255,255,255,.22); }
         .educore-public-page .app-preview-line.green { background: linear-gradient(90deg, var(--green-500), var(--gold-500)); width: 72%; }
         .educore-public-page .security { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
-        .educore-public-page .security-card { padding: 24px; border-radius: var(--radius-lg); }
+        .educore-public-page .security-card { padding: 24px; border-radius: var(--radius-lg); transition: transform 240ms ease, box-shadow 240ms ease, border-color 240ms ease; }
+        .educore-public-page .security-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: rgba(47,138,112,.18); }
         .educore-public-page .security-card strong { display: block; margin-bottom: 8px; color: var(--navy-950); }
         .educore-public-page .security-card span { color: var(--stone-700); font-size: 14px; line-height: 1.6; }
         .educore-public-page .cta { padding: 64px 0 82px; }
-        .educore-public-page .cta-card { text-align: center; border-radius: 38px; padding: 54px 34px; background: white; border: 1px solid var(--stone-200); box-shadow: var(--shadow-md); }
+        .educore-public-page .cta-card { text-align: center; border-radius: 38px; padding: 54px 34px; background: white; border: 1px solid var(--stone-200); box-shadow: var(--shadow-md); transition: transform 320ms ease, box-shadow 320ms ease, border-color 320ms ease; }
+        .educore-public-page .cta-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-premium); border-color: rgba(47,138,112,.16); }
         .educore-public-page .cta-card h2 { margin: 0; font-size: clamp(36px, 5vw, 58px); letter-spacing: -.06em; color: var(--navy-950); }
         .educore-public-page .cta-card p { max-width: 650px; margin: 18px auto 30px; color: var(--stone-700); font-size: 17px; line-height: 1.7; }
         .educore-public-page footer { padding: 30px 0 42px; color: var(--stone-500); font-size: 13px; }
@@ -514,6 +587,49 @@ export default function HomePage() {
           .educore-public-page .access-card { align-items: flex-start; flex-direction: column; }
           .educore-public-page .app-card { padding: 30px 22px; border-radius: 28px; }
           .educore-public-page .footer-inner { flex-direction: column; align-items: flex-start; }
+          .educore-public-page .contextual-corium {
+            left: 14px;
+            right: 14px;
+            bottom: 14px;
+            justify-content: flex-start;
+            border-radius: 22px;
+          }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .educore-public-page .landing-reveal,
+          .educore-public-page .landing-reveal.is-visible,
+          .educore-public-page .product-card,
+          .educore-public-page .module-panel,
+          .educore-public-page .solution-item,
+          .educore-public-page .module-card,
+          .educore-public-page .corium-card,
+          .educore-public-page .corium-mascot,
+          .educore-public-page .contextual-corium,
+          .educore-public-page .contextual-corium-avatar,
+          .educore-public-page .access-card,
+          .educore-public-page .role-card,
+          .educore-public-page .app-card,
+          .educore-public-page .security-card,
+          .educore-public-page .cta-card,
+          .educore-public-page .btn,
+          .educore-public-page .hero::before {
+            animation: none;
+            transform: none;
+            transition: none;
+          }
+          .educore-public-page .landing-reveal { opacity: 1; }
+        }
+        @keyframes landing-soft-light {
+          from { transform: translate3d(0, 0, 0) scale(1); opacity: .9; }
+          to { transform: translate3d(-22px, 18px, 0) scale(1.04); opacity: 1; }
+        }
+        @keyframes landing-corium-in {
+          from { opacity: 0; transform: translateY(12px) scale(.98); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes landing-corium-breathe {
+          0%, 100% { transform: translateY(0) scale(1); filter: drop-shadow(0 18px 30px rgba(15,23,42,.10)); }
+          50% { transform: translateY(-3px) scale(1.012); filter: drop-shadow(0 22px 34px rgba(47,138,112,.16)); }
         }
       `}</style>
 
@@ -538,19 +654,19 @@ export default function HomePage() {
         </div>
       </header>
 
-      <section className="hero">
+      <section className="hero" data-corium-message="Bienvenido a EducaCora.">
         <div className="container hero-grid">
-          <div>
+          <div className="landing-reveal">
             <div className="eyebrow">● El corazón de tu centro educativo.</div>
             <h1>EducaCora conecta toda la <span className="gradient">comunidad educativa</span>.</h1>
             <p>Una plataforma escolar inteligente, elegante y centralizada para coordinar dirección, docentes, familias y alumnos desde un único lugar.</p>
-            <div className="hero-actions">
+            <div className="hero-actions landing-reveal landing-delay-4">
               <Link className="btn btn-primary" href="/experience">Probar EducaCora</Link>
               <a className="btn btn-gold" href="#demo">Solicitar una demo</a>
               <a className="btn btn-soft" href="#acceso">Accede a tu centro</a>
               <InstallEduCoreButton className="btn btn-soft" />
             </div>
-            <div className="trust-row">
+            <div className="trust-row landing-reveal landing-delay-4">
               <span>Dirección</span><span className="trust-dot" />
               <span>Docentes</span><span className="trust-dot" />
               <span>Familias</span><span className="trust-dot" />
@@ -558,7 +674,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="product-card" aria-label="Vista conceptual de EducaCora">
+          <div className="product-card landing-reveal landing-delay-3" aria-label="Vista conceptual de EducaCora">
             <div className="mock-screen">
               <div className="mock-top">
                 <div className="brand" style={{ gap: 8 }}>
@@ -594,14 +710,14 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="acceso">
+      <section id="acceso" data-corium-message="Accede a tu centro o prueba la Experience.">
         <div className="container access-grid">
-          <div className="module-panel">
+          <div className="module-panel landing-reveal">
             <div className="section-kicker">Centros conectados</div>
             <h3>Accede a tu centro educativo</h3>
             <p>Selecciona el centro al que perteneces para acceder a tu plataforma EducaCora.</p>
           </div>
-          <div className="module-list" style={{ gridTemplateColumns: "1fr" }}>
+          <div className="module-list landing-reveal landing-delay-1" style={{ gridTemplateColumns: "1fr" }}>
             {schools.map((school) => (
               <Link className="access-card" href={school.href} key={school.name}>
                 <div className="brand" style={{ gap: 14 }}>
@@ -618,14 +734,14 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="resuelve">
+      <section id="resuelve" data-corium-message="Aquí empieza a reducirse el ruido operativo.">
         <div className="container solution-grid">
-          <div className="module-panel">
+          <div className="module-panel landing-reveal">
             <div className="section-kicker">Qué resuelve EducaCora</div>
             <h2>Menos ruido operativo. Más centro educativo.</h2>
             <p>EducaCora reúne comunicación, evaluación, asistencia, boletines y supervisión en una única experiencia coherente para centros escolares.</p>
           </div>
-          <div className="solution-list">
+          <div className="solution-list landing-reveal landing-delay-1">
             {solvedItems.map((item, index) => (
               <div className="solution-item" key={item}>
                 <span className="solution-dot">{index + 1}</span>
@@ -636,14 +752,14 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="modulos">
+      <section id="modulos" data-corium-message="Aquí trabajan los centros educativos cada día.">
         <div className="container">
-          <div className="section-head">
+          <div className="section-head landing-reveal">
             <div className="section-kicker">Módulos principales</div>
             <h2>Todo conectado, sin duplicar trabajo.</h2>
             <p>Cada módulo común se implementa una vez y se adapta por permisos y rol.</p>
           </div>
-          <div className="module-list">
+          <div className="module-list landing-reveal landing-delay-1">
             {modules.map(([title, description]) => (
               <article className="module-card" key={title}>
                 <strong>{title}</strong>
@@ -654,9 +770,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="corium-ai">
+      <section id="corium-ai" data-corium-message="Corium acompaña sin invadir.">
         <div className="container">
-          <div className="corium-card">
+          <div className="corium-card landing-reveal">
             <div>
               <div className="section-kicker">Corium AI</div>
               <Image
@@ -688,14 +804,14 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="dark-band" id="roles">
+      <section className="dark-band" id="roles" data-corium-message="Cada rol ve lo que necesita.">
         <div className="container">
-          <div className="section-head">
+          <div className="section-head landing-reveal">
             <div className="section-kicker">Roles</div>
             <h2>Una plataforma, cuatro experiencias.</h2>
             <p>La misma base visual y funcional adaptada a las responsabilidades reales de cada perfil.</p>
           </div>
-          <div className="roles">
+          <div className="roles landing-reveal landing-delay-1">
             <article className="role-card"><h3>Dirección</h3><p>Supervisa actividad, prioridades, evaluación e incidencias.</p><div className="role-list"><span>Centro de control</span><span>Prioridades</span></div></article>
             <article className="role-card"><h3>Docentes</h3><p>Gestionan asistencia, cuaderno, alumnos y comunicaciones.</p><div className="role-list"><span>Cuaderno</span><span>Mis alumnos</span></div></article>
             <article className="role-card"><h3>Familias</h3><p>Consultan notas visibles, boletines y mensajes del centro.</p><div className="role-list"><span>Boletines</span><span>Comunicación</span></div></article>
@@ -704,15 +820,15 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section>
-        <div className="container brand-note">
+      <section data-corium-message="Una identidad preparada para crecer.">
+        <div className="container brand-note landing-reveal">
           <Image src="/brand/educore/logo.svg" alt="EducaCora" width={512} height={150} style={{ width: 178, height: "auto" }} />
           <p>Una identidad propia para una plataforma SaaS educativa: sobria, cercana y preparada para crecer con nuevos centros.</p>
         </div>
       </section>
 
-      <section className="app-section" id="app">
-        <div className="container app-card">
+      <section className="app-section" id="app" data-corium-message="Lleva EducaCora siempre contigo.">
+        <div className="container app-card landing-reveal">
           <div>
             <div className="section-kicker" style={{ color: "var(--gold-300)" }}>App instalable</div>
             <h2>Instala EducaCora en móvil, tablet u ordenador.</h2>
@@ -733,13 +849,13 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="seguridad">
+      <section id="seguridad" data-corium-message="La confianza se diseña desde el principio.">
         <div className="container">
-          <div className="section-head">
+          <div className="section-head landing-reveal">
             <div className="section-kicker">Confianza</div>
             <h2>Seguridad, permisos y privacidad desde el diseño.</h2>
           </div>
-          <div className="security">
+          <div className="security landing-reveal landing-delay-1">
             <div className="security-card"><strong>Roles claros</strong><span>Dirección, docentes, administración y familias con experiencias y permisos diferenciados.</span></div>
             <div className="security-card"><strong>Datos visibles según permisos</strong><span>Cada usuario accede únicamente a la información que le corresponde.</span></div>
             <div className="security-card"><strong>Preparado para RGPD</strong><span>Arquitectura pensada para trazabilidad, control de acceso y evolución segura.</span></div>
@@ -747,9 +863,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="cta" id="demo">
+      <section className="cta" id="demo" data-corium-message="¿Quieres verlo funcionando?">
         <div className="container">
-          <div className="cta-card">
+          <div className="cta-card landing-reveal">
             <div className="eyebrow">EducaCora SaaS educativo</div>
             <h2>Convierte tu centro en una comunidad conectada.</h2>
             <p>Solicita una demo y descubre cómo centralizar comunicación, evaluación, asistencia y supervisión en una única plataforma.</p>
