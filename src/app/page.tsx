@@ -139,7 +139,11 @@ export default function HomePage() {
           gap: 24px;
         }
         .educore-public-page .nav-links { display: flex; align-items: center; gap: 28px; color: var(--stone-700); font-size: 14px; font-weight: 600; }
+        .educore-public-page .nav-link-button { border: 0; background: transparent; color: inherit; font: inherit; font-weight: inherit; cursor: pointer; padding: 0; }
+        .educore-public-page .nav-link-button:hover { color: var(--navy-950); }
+        .educore-public-page .nav-link-button:focus-visible { outline: 3px solid rgba(47,138,112,.28); outline-offset: 4px; border-radius: 999px; }
         .educore-public-page .nav-actions { display: flex; align-items: center; gap: 12px; }
+        .educore-public-page .nav-contact-mobile { display: none; }
         .educore-public-page .install-wrap { position: relative; display: inline-flex; }
         .educore-public-page .install-help {
           position: absolute;
@@ -555,13 +559,35 @@ export default function HomePage() {
         .educore-public-page .cta-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-premium); border-color: rgba(47,138,112,.16); }
         .educore-public-page .cta-card h2 { margin: 0; font-size: clamp(36px, 5vw, 58px); letter-spacing: -.06em; color: var(--navy-950); }
         .educore-public-page .cta-card p { max-width: 650px; margin: 18px auto 30px; color: var(--stone-700); font-size: 17px; line-height: 1.7; }
+        .educore-public-page .contact-close { padding: 0 0 34px; }
+        .educore-public-page .contact-close-card {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 24px;
+          border-radius: 30px;
+          border: 1px solid var(--stone-200);
+          background: rgba(255,255,255,.82);
+          box-shadow: var(--shadow-sm);
+          padding: 28px 30px;
+        }
+        .educore-public-page .contact-close-card h2 { margin: 0; font-size: clamp(28px, 4vw, 42px); letter-spacing: -.05em; color: var(--navy-950); }
+        .educore-public-page .contact-close-card p { margin: 10px 0 0; max-width: 560px; color: var(--stone-700); font-size: 16px; line-height: 1.65; }
+        .educore-public-page .contact-close-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+        .educore-public-page .contact-email { color: var(--stone-500); font-size: 13px; font-weight: 700; text-decoration: underline; text-underline-offset: 4px; }
+        .educore-public-page .contact-email:hover { color: var(--green-700); }
         .educore-public-page footer { padding: 30px 0 42px; color: var(--stone-500); font-size: 13px; }
         .educore-public-page .footer-inner { display: flex; justify-content: space-between; gap: 20px; align-items: center; border-top: 1px solid var(--stone-200); padding-top: 24px; }
         .educore-public-page .footer-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px 14px; text-align: right; }
         .educore-public-page .footer-link { border: 0; background: transparent; color: var(--stone-700); font: inherit; font-weight: 750; cursor: pointer; padding: 0; }
         .educore-public-page .footer-link:hover { color: var(--green-700); text-decoration: underline; text-underline-offset: 4px; }
+        @media (max-width: 1120px) {
+          .educore-public-page .nav-links { display: none; }
+          .educore-public-page .nav-contact-mobile { display: inline-flex; }
+        }
         @media (max-width: 980px) {
           .educore-public-page .nav-links { display: none; }
+          .educore-public-page .nav-contact-mobile { display: inline-flex; }
           .educore-public-page .hero-grid,
           .educore-public-page .solution-grid,
           .educore-public-page .corium-card,
@@ -589,6 +615,8 @@ export default function HomePage() {
           .educore-public-page .brand-note,
           .educore-public-page .access-card { align-items: flex-start; flex-direction: column; }
           .educore-public-page .app-card { padding: 30px 22px; border-radius: 28px; }
+          .educore-public-page .contact-close-card { align-items: flex-start; flex-direction: column; padding: 24px 22px; }
+          .educore-public-page .contact-close-actions { align-items: flex-start; }
           .educore-public-page .footer-inner { flex-direction: column; align-items: flex-start; }
           .educore-public-page .footer-meta { justify-content: flex-start; text-align: left; }
           .educore-public-page .contextual-corium {
@@ -649,8 +677,14 @@ export default function HomePage() {
             <a href="#acceso">Centros</a>
             <Link href="/experience">Experience</Link>
             <a href="#seguridad">Seguridad</a>
+            <ContactTrigger origin="home_header" originLabel="Home — navegación" className="nav-link-button">
+              Contacto
+            </ContactTrigger>
           </nav>
           <div className="nav-actions">
+            <ContactTrigger origin="home_header" originLabel="Home — navegación móvil" className="nav-link-button nav-contact-mobile">
+              Contacto
+            </ContactTrigger>
             <a className="btn btn-soft" href="#acceso">Accede a tu centro</a>
             <Link className="btn btn-primary" href="/experience">Probar EducaCora</Link>
           </div>
@@ -873,6 +907,23 @@ export default function HomePage() {
             <div className="hero-actions" style={{ justifyContent: "center" }}>
               <Link className="btn btn-primary" href="/experience">Probar EducaCora</Link>
               <a className="btn btn-soft" href="#acceso">Accede a tu centro</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="contact-close" aria-labelledby="home-contact-title">
+        <div className="container">
+          <div className="contact-close-card landing-reveal">
+            <div>
+              <h2 id="home-contact-title">¿Quieres hablar con nosotros?</h2>
+              <p>Cuéntanos las necesidades de tu centro y te responderemos personalmente.</p>
+            </div>
+            <div className="contact-close-actions">
+              <ContactTrigger origin="home_closure" originLabel="Home — cierre" className="btn btn-soft">
+                Contactar
+              </ContactTrigger>
+              <a className="contact-email" href={`mailto:${PUBLIC_CONTACT_EMAIL}`}>{PUBLIC_CONTACT_EMAIL}</a>
             </div>
           </div>
         </div>

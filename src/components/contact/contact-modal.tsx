@@ -80,13 +80,36 @@ const initialState: ContactFormState = {
 
 export function ContactTrigger({ children, className, ...context }: ContactTriggerProps) {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+
+  function openContact() {
+    const analyticsEvent =
+      context.origin === "home_header"
+        ? "contact_opened_from_header"
+        : context.origin === "home_closure"
+          ? "contact_opened_from_home_footer_cta"
+          : "contact_trigger_clicked";
+
+    window.gtag?.("event", analyticsEvent, {
+      origin: context.origin,
+      origin_label: context.originLabel ?? "none"
+    });
+    setOpen(true);
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    setOpen(nextOpen);
+    if (!nextOpen) {
+      window.requestAnimationFrame(() => triggerRef.current?.focus());
+    }
+  }
 
   return (
     <>
-      <button type="button" className={className} onClick={() => setOpen(true)}>
+      <button ref={triggerRef} type="button" className={className} onClick={openContact}>
         {children}
       </button>
-      <ContactModal open={open} onOpenChange={setOpen} {...context} />
+      <ContactModal open={open} onOpenChange={handleOpenChange} {...context} />
     </>
   );
 }
