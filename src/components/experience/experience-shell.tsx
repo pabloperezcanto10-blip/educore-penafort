@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, CheckCircle2, Compass, Mail, MessageCircleQuestion, RotateCcw, X } from "lucide-react";
 import { CoriumAvatar } from "@/components/ai/corium-avatar";
+import { ContactModal } from "@/components/contact/contact-modal";
 import { CoriumExperienceGuide } from "@/components/experience/corium-experience-guide";
 import {
   experienceRoles,
@@ -43,8 +44,8 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
   const searchParams = useSearchParams();
   const mainRef = useRef<HTMLElement | null>(null);
   const moduleTitleRef = useRef<HTMLHeadingElement | null>(null);
-  const [interestOpen, setInterestOpen] = useState(false);
-  const [interestMessage, setInterestMessage] = useState<string | null>(null);
+  const [contactOpen, setContactOpen] = useState(false);
+  const [contactOriginLabel, setContactOriginLabel] = useState("EducaCora Experience");
   const [guideOpen, setGuideOpen] = useState(startGuide);
   const [finalOpen, setFinalOpen] = useState(false);
   const [transitionRole, setTransitionRole] = useState<ExperienceRole | null>(null);
@@ -62,21 +63,17 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
   }, [role]);
 
   useEffect(() => {
-    if (!interestOpen && !finalOpen) return;
+    if (!finalOpen) return;
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        if (interestOpen) {
-          setInterestOpen(false);
-          return;
-        }
         setFinalOpen(false);
       }
     }
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [interestOpen, finalOpen]);
+  }, [finalOpen]);
 
   useEffect(() => {
     if (activeModule === "corium") {
@@ -138,14 +135,9 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
     };
   }, [activeModule, activeModuleConfig.title]);
 
-  function showContactPending() {
-    setInterestMessage("Canal de contacto disponible próximamente.");
-  }
-
-  function openInterest() {
-    setFinalOpen(false);
-    setInterestMessage(null);
-    setInterestOpen(true);
+  function openContact(originLabel: string) {
+    setContactOriginLabel(originLabel);
+    setContactOpen(true);
   }
 
   function handleRoleSwitch(nextRole: ExperienceRole, href: string) {
@@ -261,7 +253,7 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
             </div>
             <button
               type="button"
-              onClick={openInterest}
+              onClick={() => openContact("Estoy interesado")}
               className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-3 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             >
               <Mail className="h-4 w-4" aria-hidden="true" />
@@ -319,7 +311,7 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
         onClose={() => setGuideOpen(false)}
         onInterest={() => {
           setGuideOpen(false);
-          openInterest();
+          openContact("Corium");
         }}
       />
 
@@ -372,14 +364,14 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
               <div className="flex flex-col gap-2 sm:flex-row">
                 <button
                   type="button"
-                  onClick={openInterest}
+                  onClick={() => openContact("Estoy interesado")}
                   className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-bold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 >
                   Estoy interesado
                 </button>
                 <button
                   type="button"
-                  onClick={openInterest}
+                  onClick={() => openContact("Contactar")}
                   className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 >
                   Contactar
@@ -393,59 +385,18 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
         </div>
       ) : null}
 
-      {interestOpen ? (
-        <div className="experience-fade-in fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4 py-6" role="dialog" aria-modal="true" aria-labelledby="experience-interest-title">
-          <div className="experience-scale-in w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">EducaCora Experience</p>
-                <h2 id="experience-interest-title" className="mt-2 text-xl font-bold tracking-tight text-slate-950">
-                  ¿Te interesa EducaCora para tu centro?
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setInterestOpen(false)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                aria-label="Cerrar"
-              >
-                <X className="h-4 w-4" aria-hidden="true" />
-              </button>
-            </div>
-            <p className="mt-3 text-sm leading-6 text-slate-600">
-              Podemos enseñarte cómo se adaptaría EducaCora a la organización y necesidades de tu centro educativo.
-            </p>
-            {interestMessage ? (
-              <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">
-                {interestMessage}
-              </div>
-            ) : null}
-            <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                onClick={showContactPending}
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              >
-                Contactar
-              </button>
-              <button
-                type="button"
-                onClick={showContactPending}
-                className="inline-flex h-10 items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-bold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              >
-                Solicitar una reunión
-              </button>
-              <button
-                type="button"
-                onClick={() => setInterestOpen(false)}
-                className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-bold text-slate-500 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              >
-                Seguir explorando
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <ContactModal
+        open={contactOpen}
+        onOpenChange={setContactOpen}
+        origin="experience"
+        originLabel={contactOriginLabel}
+        experienceRole={role}
+        progress={{
+          explored: exploredCount,
+          total: progressModules.length,
+          visited: progress.visited
+        }}
+      />
 
       {transitionRole ? (
         <div className="experience-fade-in fixed inset-0 z-[60] flex items-center justify-center bg-[#f6f3ec]/88 px-4 backdrop-blur-sm" role="status" aria-live="polite">

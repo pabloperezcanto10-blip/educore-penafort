@@ -368,7 +368,7 @@ El mensaje sera similar a:
 
 Botones:
 
-- Solicitar una reunion
+- Estoy interesado
 - Contactar
 
 En futuras versiones:

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import type { Metadata } from "next";
+import { ContactTrigger } from "@/components/contact/contact-modal";
 import { EduCoreCenterLauncher } from "@/components/pwa/educore-center-launcher";
 
 export const metadata: Metadata = {
@@ -53,12 +54,13 @@ export default function EduCoreAppLauncherPage() {
 
           <div className="mt-8 text-center">
             <p className="text-sm font-medium text-[#6B737C]">¿Tu centro aún no utiliza EducaCora?</p>
-            <a
-              href="mailto:demo@educacora.es"
+            <ContactTrigger
+              origin="pwa_launcher"
+              originLabel="Contacto desde PWA"
               className="mt-1 inline-flex text-sm font-semibold text-[#2F8A70] underline-offset-4 hover:underline"
             >
-              Solicitar una demo →
-            </a>
+              Contactar →
+            </ContactTrigger>
           </div>
         </div>
       </section>

@@ -57,7 +57,7 @@ const sharedFaqs: ExperienceGuideFaq[] = [
   },
   {
     question: "¿Cómo puedo contactar?",
-    answer: "El canal comercial se conectará en una fase posterior. Por ahora puedes usar “Estoy interesado” para ver el flujo previsto."
+    answer: "Usa los botones “Estoy interesado” o “Contactar” para abrir el formulario común de EducaCora. Conservaremos el contexto del perfil que estás explorando para responderte mejor."
   }
 ];
 

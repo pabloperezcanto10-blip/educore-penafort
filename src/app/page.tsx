@@ -1,9 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { CoriumAvatar } from "@/components/ai/corium-avatar";
+import { ContactTrigger } from "@/components/contact/contact-modal";
 import { LandingExperienceMotion } from "@/components/landing/landing-experience-motion";
 import { InstallEduCoreButton } from "@/components/pwa/install-educore-button";
-import { SITE_DESCRIPTION, SITE_NAME, SITE_OG_IMAGE_URL, SITE_URL } from "@/lib/site-config";
+import { PUBLIC_CONTACT_EMAIL, SITE_DESCRIPTION, SITE_NAME, SITE_OG_IMAGE_URL, SITE_URL } from "@/lib/site-config";
 
 const structuredData = [
   {
@@ -556,6 +557,9 @@ export default function HomePage() {
         .educore-public-page .cta-card p { max-width: 650px; margin: 18px auto 30px; color: var(--stone-700); font-size: 17px; line-height: 1.7; }
         .educore-public-page footer { padding: 30px 0 42px; color: var(--stone-500); font-size: 13px; }
         .educore-public-page .footer-inner { display: flex; justify-content: space-between; gap: 20px; align-items: center; border-top: 1px solid var(--stone-200); padding-top: 24px; }
+        .educore-public-page .footer-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px 14px; text-align: right; }
+        .educore-public-page .footer-link { border: 0; background: transparent; color: var(--stone-700); font: inherit; font-weight: 750; cursor: pointer; padding: 0; }
+        .educore-public-page .footer-link:hover { color: var(--green-700); text-decoration: underline; text-underline-offset: 4px; }
         @media (max-width: 980px) {
           .educore-public-page .nav-links { display: none; }
           .educore-public-page .hero-grid,
@@ -586,6 +590,7 @@ export default function HomePage() {
           .educore-public-page .access-card { align-items: flex-start; flex-direction: column; }
           .educore-public-page .app-card { padding: 30px 22px; border-radius: 28px; }
           .educore-public-page .footer-inner { flex-direction: column; align-items: flex-start; }
+          .educore-public-page .footer-meta { justify-content: flex-start; text-align: left; }
           .educore-public-page .contextual-corium {
             left: 14px;
             right: 14px;
@@ -876,7 +881,14 @@ export default function HomePage() {
       <footer>
         <div className="container footer-inner">
           <Image src="/brand/educore/logo.svg" alt="EducaCora" width={512} height={150} style={{ width: 132, height: "auto" }} />
-          <div>© 2026 EducaCora · El corazón de tu centro educativo.</div>
+          <div className="footer-meta">
+            <span>© 2026 EducaCora · El corazón de tu centro educativo.</span>
+            <ContactTrigger origin="home_footer" originLabel="Footer público" className="footer-link">
+              Contactar
+            </ContactTrigger>
+            <a className="footer-link" href={`mailto:${PUBLIC_CONTACT_EMAIL}`}>{PUBLIC_CONTACT_EMAIL}</a>
+            <Link className="footer-link" href="/politica-privacidad">Política de Privacidad</Link>
+          </div>
         </div>
       </footer>
     </main>
