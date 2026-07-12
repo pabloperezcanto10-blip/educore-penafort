@@ -1,7 +1,7 @@
 import type { ExperienceProfile } from "@/lib/experience/mode";
 
 const storagePrefix = "educacora-experience";
-const storageScopes = ["demo", "guide"] as const;
+const storageScopes = ["demo", "guide", "progress"] as const;
 
 type ExperienceStorageScope = (typeof storageScopes)[number];
 

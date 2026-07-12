@@ -1,4 +1,4 @@
-import type { ExperienceRole } from "@/components/experience/experience-data";
+import { getExperienceModuleHref, type ExperienceRole } from "@/components/experience/experience-data";
 
 export type ExperienceGuideAction = {
   label: string;
@@ -76,17 +76,17 @@ export const experienceGuideContent: Record<ExperienceRole, ExperienceGuideConte
     actions: [
       {
         label: "Revisar prioridades",
-        href: "/experience/director?work_tab=prioridades&demo=prioridades",
+        href: getExperienceModuleHref("director", "panel"),
         description: "Marca una prioridad ficticia como revisada."
       },
       {
         label: "Abrir comunicaciones",
-        href: "/experience/director?work_tab=comunicaciones&demo=communications",
+        href: getExperienceModuleHref("director", "communications"),
         description: "Consulta conversaciones demo del centro."
       },
       {
         label: "Consultar calendario",
-        href: "/experience/director?work_tab=calendario&demo=calendar",
+        href: getExperienceModuleHref("director", "calendar"),
         description: "Revisa eventos ficticios de coordinación."
       }
     ],
@@ -113,17 +113,17 @@ export const experienceGuideContent: Record<ExperienceRole, ExperienceGuideConte
     actions: [
       {
         label: "Pasar lista",
-        href: "/experience/docente?work_tab=pendientes&demo=attendance",
+        href: getExperienceModuleHref("docente", "attendance"),
         description: "Marca asistencia ficticia en una clase demo."
       },
       {
         label: "Abrir cuaderno",
-        href: "/experience/docente?work_tab=cuaderno&demo=gradebook",
+        href: getExperienceModuleHref("docente", "gradebook"),
         description: "Consulta el resumen académico demo."
       },
       {
         label: "Revisar alumnado",
-        href: "/experience/docente?work_tab=alumnos&demo=students",
+        href: getExperienceModuleHref("docente", "students"),
         description: "Abre fichas demo de alumnos ficticios."
       }
     ],
@@ -150,17 +150,17 @@ export const experienceGuideContent: Record<ExperienceRole, ExperienceGuideConte
     actions: [
       {
         label: "Ver calificaciones",
-        href: "/experience/familia?demo=grades",
+        href: getExperienceModuleHref("familia", "gradebook"),
         description: "Consulta notas visibles ficticias."
       },
       {
         label: "Revisar asistencia",
-        href: "/experience/familia?demo=attendance",
+        href: getExperienceModuleHref("familia", "attendance"),
         description: "Simula una justificación familiar."
       },
       {
         label: "Leer comunicaciones",
-        href: "/experience/familia?demo=communications",
+        href: getExperienceModuleHref("familia", "communications"),
         description: "Marca una comunicación como leída."
       }
     ],

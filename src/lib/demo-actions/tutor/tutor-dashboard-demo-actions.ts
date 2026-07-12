@@ -1,15 +1,16 @@
 import type { TutorDashboardRoutes } from "@/components/dashboards/tutor/tutor-dashboard-view";
+import { getExperienceModuleHref } from "@/components/experience/experience-data";
 import { createDemoActionResult } from "@/lib/demo-actions/types";
 
 export const tutorDashboardExperienceRoutes: TutorDashboardRoutes = {
   root: "/experience/docente",
-  attendance: "/experience/docente?work_tab=pendientes&demo=attendance",
-  attendanceSlot: () => "/experience/docente?work_tab=pendientes&demo=attendance",
-  calendar: "/experience/docente?work_tab=calendario&demo=calendar",
-  communications: "/experience/docente?work_tab=comunicaciones&demo=communications",
-  gradebook: "/experience/docente?work_tab=cuaderno&demo=gradebook",
-  schedule: "/experience/docente?demo=attendance",
-  students: "/experience/docente?work_tab=alumnos&demo=students"
+  attendance: getExperienceModuleHref("docente", "attendance"),
+  attendanceSlot: () => getExperienceModuleHref("docente", "attendance"),
+  calendar: getExperienceModuleHref("docente", "calendar"),
+  communications: getExperienceModuleHref("docente", "communications"),
+  gradebook: getExperienceModuleHref("docente", "gradebook"),
+  schedule: getExperienceModuleHref("docente", "attendance"),
+  students: getExperienceModuleHref("docente", "students")
 };
 
 export function createTutorDashboardDemoActions() {

@@ -4,6 +4,7 @@ import type { FamilyAttendanceRow } from "@/lib/attendance/attendance";
 import type { FamilyNotification } from "@/lib/communications/notifications";
 import type { GradeWithLabels } from "@/lib/grades/grades";
 import type { DashboardNotification } from "@/lib/internal-notifications";
+import { getExperienceModuleHref } from "@/components/experience/experience-data";
 import { createExperienceMode } from "@/lib/experience/mode";
 
 const baseDate = new Date("2026-07-11T09:00:00+02:00");
@@ -71,7 +72,7 @@ function createDashboardNotifications(): DashboardNotification[] {
       source: "communication",
       title: "Respuesta de la tutora",
       body: "Irene Soler ha respondido a vuestra consulta sobre matemáticas.",
-      href: "/experience/familia?demo=communications",
+      href: getExperienceModuleHref("familia", "communications"),
       read: false,
       created_at: isoMinutesAgo(22)
     },
@@ -80,7 +81,7 @@ function createDashboardNotifications(): DashboardNotification[] {
       source: "internal",
       title: "Boletín disponible",
       body: "Ya podéis consultar las calificaciones visibles de la evaluación.",
-      href: "/experience/familia?demo=grades",
+      href: getExperienceModuleHref("familia", "gradebook"),
       read: false,
       created_at: isoMinutesAgo(95)
     }

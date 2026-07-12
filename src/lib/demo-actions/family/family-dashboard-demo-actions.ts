@@ -1,12 +1,13 @@
 import type { FamilyDashboardRoutes } from "@/components/dashboards/family/family-dashboard-view";
+import { getExperienceModuleHref } from "@/components/experience/experience-data";
 import { createDemoActionResult } from "@/lib/demo-actions/types";
 
 export const familyDashboardExperienceRoutes: FamilyDashboardRoutes = {
   root: "/experience/familia",
-  calendar: "/experience/familia?demo=calendar",
-  communications: "/experience/familia?demo=communications",
-  grades: "/experience/familia?demo=grades",
-  student: "/experience/familia?demo=student"
+  calendar: getExperienceModuleHref("familia", "calendar"),
+  communications: getExperienceModuleHref("familia", "communications"),
+  grades: getExperienceModuleHref("familia", "gradebook"),
+  student: getExperienceModuleHref("familia", "students")
 };
 
 export function createFamilyDashboardDemoActions() {

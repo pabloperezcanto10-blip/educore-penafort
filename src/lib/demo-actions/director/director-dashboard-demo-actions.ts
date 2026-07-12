@@ -1,13 +1,14 @@
 import type { DirectorDashboardRoutes } from "@/components/dashboards/director/director-dashboard-view";
+import { getExperienceModuleHref } from "@/components/experience/experience-data";
 import { createDemoActionResult } from "@/lib/demo-actions/types";
 
 export const directorDashboardExperienceRoutes: DirectorDashboardRoutes = {
   root: "/experience/director",
-  calendar: "/experience/director?work_tab=calendario&demo=calendar",
-  communications: "/experience/director?work_tab=comunicaciones&demo=communications",
-  communicationsDirectorOnly: "/experience/director?work_tab=comunicaciones&demo=communications",
-  gradebook: "/experience/director?work_tab=evaluacion&demo=gradebook",
-  students: "/experience/director?work_tab=alumnos&demo=students"
+  calendar: getExperienceModuleHref("director", "calendar"),
+  communications: getExperienceModuleHref("director", "communications"),
+  communicationsDirectorOnly: getExperienceModuleHref("director", "communications"),
+  gradebook: getExperienceModuleHref("director", "gradebook"),
+  students: getExperienceModuleHref("director", "students")
 };
 
 export function createDirectorDashboardDemoActions() {

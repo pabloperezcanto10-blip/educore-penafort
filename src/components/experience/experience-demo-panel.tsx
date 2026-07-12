@@ -30,6 +30,7 @@ import {
   StudentQuickActions,
   StudentStatusDashboard
 } from "@/components/students/student-profile";
+import { getExperienceModuleHref } from "@/components/experience/experience-data";
 import { readExperienceStorage, resetExperienceStorage, writeExperienceStorage } from "@/lib/experience/demo-storage";
 import type { EvaluationCriterionWithLabels, GradeTerm, GradeWithLabels, QuarterFinalGradeWithLabels } from "@/lib/grades/grades";
 import type { ExperienceProfile } from "@/lib/experience/mode";
@@ -99,7 +100,7 @@ const demoFinalGrades: QuarterFinalGradeWithLabels[] = [
 
 export function ExperienceDemoPanel({ role, panel }: ExperienceDemoPanelProps) {
   const normalizedPanel = normalizePanel(role, panel);
-  const panelHref = `/experience/${role}`;
+  const panelHref = getExperienceModuleHref(role, "panel");
   const [state, setState] = useState<DemoPanelState>(() => readExperienceStorage<DemoPanelState>(role) ?? initialState);
   const [feedback, setFeedback] = useState<string | null>(null);
 
@@ -161,8 +162,10 @@ export function ExperienceDemoPanel({ role, panel }: ExperienceDemoPanelProps) {
       return (
         <DirectorPanel
           panel={normalizedPanel}
+          attendance={state.attendance}
           reviewedItems={state.reviewedItems}
           readMessages={state.readMessages}
+          onAttendanceChange={setAttendance}
           onMessageRead={markMessageRead}
           onReviewed={markReviewed}
         />
@@ -195,6 +198,7 @@ export function ExperienceDemoPanel({ role, panel }: ExperienceDemoPanelProps) {
   })();
 
   return (
+    <div id="experience-demo-panel" className="experience-target-panel scroll-mt-4">
     <GradebookCard className="experience-fade-up mt-5">
       <GradebookCardHeader title="Acción demo">
         <div className="flex items-center gap-2">
@@ -225,6 +229,7 @@ export function ExperienceDemoPanel({ role, panel }: ExperienceDemoPanelProps) {
         {content}
       </div>
     </GradebookCard>
+    </div>
   );
 }
 
@@ -237,14 +242,18 @@ function normalizePanel(role: ExperienceProfile, panel?: string) {
 
 function DirectorPanel({
   panel,
+  attendance,
   reviewedItems,
   readMessages,
+  onAttendanceChange,
   onMessageRead,
   onReviewed
 }: {
   panel: string;
+  attendance: Record<string, AttendanceStatus>;
   reviewedItems: string[];
   readMessages: string[];
+  onAttendanceChange: (studentId: string, status: AttendanceStatus) => void;
   onMessageRead: (id: string) => void;
   onReviewed: (id: string, message?: string) => void;
 }) {
@@ -252,8 +261,12 @@ function DirectorPanel({
     return <ExperienceCommunicationsModule readMessages={readMessages} onMessageRead={onMessageRead} title="Comunicaciones del centro" />;
   }
 
-  if (panel === "students" || panel === "alumnos" || panel === "attendance") {
+  if (panel === "students" || panel === "alumnos") {
     return <ExperienceStudentProfileModule role="director" onReviewed={() => onReviewed("student-profile", "Ficha del alumno abierta en la Experience.")} />;
+  }
+
+  if (panel === "attendance") {
+    return <AttendanceDemoPanel attendance={attendance} onAttendanceChange={onAttendanceChange} />;
   }
 
   if (panel === "gradebook" || panel === "evaluacion") {
@@ -534,10 +547,10 @@ function ExperienceCommunicationsModule({
 }
 
 function ExperienceStudentProfileModule({ role, onReviewed, readOnly = false }: { role: ExperienceProfile; onReviewed: () => void; readOnly?: boolean }) {
-  const communicationsHref = `/experience/${role}?demo=communications`;
-  const gradebookHref = role === "familia" ? "/experience/familia?demo=grades" : `/experience/${role}?demo=gradebook`;
-  const studentHref = `/experience/${role}?demo=students`;
-  const panelHref = `/experience/${role}`;
+  const communicationsHref = getExperienceModuleHref(role, "communications");
+  const gradebookHref = getExperienceModuleHref(role, "gradebook");
+  const studentHref = getExperienceModuleHref(role, "students");
+  const panelHref = getExperienceModuleHref(role, "panel");
   const tabs = [
     { id: "resumen", label: "Resumen", href: studentHref, icon: UserRound },
     { id: "calificaciones", label: "Calificaciones", href: gradebookHref, icon: BookOpenCheck },

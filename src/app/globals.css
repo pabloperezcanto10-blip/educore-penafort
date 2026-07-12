@@ -83,6 +83,10 @@ a {
   .experience-corium-glow {
     animation: experience-corium-glow 520ms ease-out both;
   }
+
+  .experience-target-highlight {
+    animation: experience-target-highlight 1400ms ease-out both;
+  }
 }
 
 @keyframes experience-fade-up {
@@ -141,12 +145,28 @@ a {
   }
 }
 
+@keyframes experience-target-highlight {
+  0% {
+    box-shadow: 0 0 0 0 rgba(46, 125, 90, 0);
+    outline: 1px solid rgba(46, 125, 90, 0);
+  }
+  24% {
+    box-shadow: 0 0 0 5px rgba(46, 125, 90, 0.1);
+    outline: 1px solid rgba(46, 125, 90, 0.25);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(46, 125, 90, 0);
+    outline: 1px solid rgba(46, 125, 90, 0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .experience-fade-up,
   .experience-fade-in,
   .experience-scale-in,
   .experience-feedback-in,
-  .experience-corium-glow {
+  .experience-corium-glow,
+  .experience-target-highlight {
     animation: none;
   }
 
