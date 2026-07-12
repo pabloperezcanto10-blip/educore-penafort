@@ -120,9 +120,14 @@ export function ContactModal({ open, onOpenChange, origin, originLabel, experien
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [turnstileToken, setTurnstileToken] = useState("");
   const [serverError, setServerError] = useState("");
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const bodyRef = useRef<HTMLElement | null>(null);
+  const titleRef = useRef<HTMLHeadingElement | null>(null);
   const firstFieldRef = useRef<HTMLInputElement | null>(null);
   const turnstileRef = useRef<HTMLDivElement | null>(null);
   const widgetIdRef = useRef<string | null>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const statusRef = useRef(status);
   const sourceUrl = typeof window !== "undefined" ? window.location.href : "";
 
   const contextText = useMemo(() => {
@@ -136,18 +141,69 @@ export function ContactModal({ open, onOpenChange, origin, originLabel, experien
   }, [experienceRole]);
 
   useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
+
+  useEffect(() => {
     if (!open) return;
+
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
     window.gtag?.("event", "contact_form_opened", {
       origin,
       experience_role: experienceRole ?? "none"
     });
 
-    const frame = window.requestAnimationFrame(() => firstFieldRef.current?.focus());
+    const scrollY = window.scrollY;
+    const scrollbarGap = window.innerWidth - document.documentElement.clientWidth;
+    const previousBodyStyles = {
+      position: document.body.style.position,
+      top: document.body.style.top,
+      left: document.body.style.left,
+      right: document.body.style.right,
+      width: document.body.style.width,
+      overflow: document.body.style.overflow,
+      paddingRight: document.body.style.paddingRight
+    };
+
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.width = "100%";
+    document.body.style.overflow = "hidden";
+    if (scrollbarGap > 0) {
+      document.body.style.paddingRight = `${scrollbarGap}px`;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      bodyRef.current?.scrollTo({ top: 0, left: 0 });
+      titleRef.current?.focus({ preventScroll: true });
+    });
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape" && status !== "submitting") {
+      if (event.key === "Escape" && statusRef.current !== "submitting") {
         onOpenChange(false);
+        return;
+      }
+
+      if (event.key !== "Tab" || !dialogRef.current) return;
+
+      const focusable = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(
+          "a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])"
+        )
+      ).filter((element) => !element.hasAttribute("disabled") && element.offsetParent !== null);
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (!first || !last) return;
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
       }
     }
 
@@ -155,8 +211,17 @@ export function ContactModal({ open, onOpenChange, origin, originLabel, experien
     return () => {
       window.cancelAnimationFrame(frame);
       window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.position = previousBodyStyles.position;
+      document.body.style.top = previousBodyStyles.top;
+      document.body.style.left = previousBodyStyles.left;
+      document.body.style.right = previousBodyStyles.right;
+      document.body.style.width = previousBodyStyles.width;
+      document.body.style.overflow = previousBodyStyles.overflow;
+      document.body.style.paddingRight = previousBodyStyles.paddingRight;
+      window.scrollTo(0, scrollY);
+      window.requestAnimationFrame(() => previousFocusRef.current?.focus());
     };
-  }, [experienceRole, onOpenChange, open, origin, status]);
+  }, [experienceRole, onOpenChange, open, origin]);
 
   useEffect(() => {
     if (!open || !turnstileSiteKey || !turnstileRef.current) return;
@@ -286,15 +351,26 @@ export function ContactModal({ open, onOpenChange, origin, originLabel, experien
   }
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/50 px-3 py-5" role="dialog" aria-modal="true" aria-labelledby="contact-modal-title">
-      <div className="flex max-h-[calc(100vh-32px)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
-        <header className="flex items-start justify-between gap-4 border-b border-slate-200 px-4 py-4 sm:px-5">
+    <div
+      className="fixed inset-0 z-[70] flex items-start justify-center overflow-hidden bg-slate-950/50 px-3 py-3 sm:px-5 sm:py-6 lg:items-center"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="contact-modal-title"
+      aria-describedby="contact-modal-description"
+      style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))", paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+    >
+      <div
+        ref={dialogRef}
+        className="flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl outline-none"
+        style={{ maxHeight: "calc(100dvh - max(1.5rem, env(safe-area-inset-top)) - max(1.5rem, env(safe-area-inset-bottom)))" }}
+      >
+        <header className="sticky top-0 z-10 flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 bg-white px-4 py-4 sm:px-5">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">Contacto EducaCora</p>
-            <h2 id="contact-modal-title" className="mt-1 text-2xl font-bold tracking-tight text-slate-950">
+            <h2 id="contact-modal-title" ref={titleRef} tabIndex={-1} className="mt-1 text-2xl font-bold tracking-tight text-slate-950 outline-none">
               {status === "success" ? "Solicitud enviada" : "Hablemos de tu centro"}
             </h2>
-            <p className="mt-2 text-sm leading-6 text-slate-500">
+            <p id="contact-modal-description" className="mt-2 text-sm leading-6 text-slate-500">
               {status === "success"
                 ? "Gracias por tu interés en EducaCora. Hemos recibido tu solicitud y te responderemos lo antes posible."
                 : "Déjanos tus datos y nos pondremos en contacto contigo."}
@@ -313,88 +389,97 @@ export function ContactModal({ open, onOpenChange, origin, originLabel, experien
         </header>
 
         {status === "success" ? (
-          <div className="space-y-4 overflow-y-auto px-4 py-5 sm:px-5">
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800" role="status" aria-live="polite">
-              Solicitud enviada correctamente.
+          <>
+            <div ref={(element) => { bodyRef.current = element; }} className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-5 sm:px-5">
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800" role="status" aria-live="polite">
+                Solicitud enviada correctamente.
+              </div>
+              <p className="text-sm leading-6 text-slate-600">
+                Puedes seguir explorando EducaCora o volver a la web principal.
+              </p>
             </div>
-            <div className="flex flex-col gap-2 sm:flex-row">
+            <footer className="sticky bottom-0 z-10 flex shrink-0 flex-col gap-2 border-t border-slate-200 bg-white px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
               <button type="button" onClick={() => onOpenChange(false)} className="inline-flex h-10 items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-bold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
                 Seguir explorando
               </button>
               <Link href="/" className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500">
                 Volver a la web
               </Link>
-            </div>
-          </div>
+            </footer>
+          </>
         ) : (
-          <form
-            className="overflow-y-auto px-4 py-5 sm:px-5"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void submit();
-            }}
-            noValidate
-          >
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Nombre y apellidos" error={errors.fullName} required>
-                <input ref={firstFieldRef} value={form.fullName} onChange={(event) => update("fullName", event.target.value)} autoComplete="name" className={inputClass(errors.fullName)} />
-              </Field>
-              <Field label="Correo electrónico" error={errors.email} required>
-                <input value={form.email} onChange={(event) => update("email", event.target.value)} type="email" autoComplete="email" inputMode="email" className={inputClass(errors.email)} />
-              </Field>
-              <Field label="Centro educativo" error={errors.schoolName} required>
-                <input value={form.schoolName} onChange={(event) => update("schoolName", event.target.value)} autoComplete="organization" className={inputClass(errors.schoolName)} />
-              </Field>
-              <Field label="Cargo o relación con el centro" error={errors.role} required>
-                <select value={form.role} onChange={(event) => update("role", event.target.value)} className={inputClass(errors.role)}>
-                  <option value="">Selecciona una opción</option>
-                  {roleOptions.map((option) => <option key={option} value={option}>{option}</option>)}
-                </select>
-              </Field>
-              {form.role === "Otro" ? (
-                <Field label="Especifica tu relación" error={errors.otherRole} required>
-                  <input value={form.otherRole} onChange={(event) => update("otherRole", event.target.value)} className={inputClass(errors.otherRole)} />
+          <>
+            <form
+              id="contact-request-form"
+              ref={(element) => { bodyRef.current = element; }}
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-5"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void submit();
+              }}
+              noValidate
+            >
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Nombre y apellidos" error={errors.fullName} required>
+                  <input ref={firstFieldRef} value={form.fullName} onChange={(event) => update("fullName", event.target.value)} autoComplete="name" className={inputClass(errors.fullName)} />
                 </Field>
-              ) : null}
-              <Field label="Teléfono" error={errors.phone}>
-                <input value={form.phone} onChange={(event) => update("phone", event.target.value)} type="tel" autoComplete="tel" inputMode="tel" className={inputClass(errors.phone)} />
-              </Field>
-              <Field label="Localidad o provincia" error={errors.location}>
-                <input value={form.location} onChange={(event) => update("location", event.target.value)} autoComplete="address-level2" className={inputClass(errors.location)} />
-              </Field>
-              <Field label="Mensaje" error={errors.message} className="sm:col-span-2">
-                <textarea value={form.message} onChange={(event) => update("message", event.target.value)} rows={4} className={`${inputClass(errors.message)} min-h-28 resize-y py-3`} />
-              </Field>
-            </div>
-
-            <div className="hidden" aria-hidden="true">
-              <label>
-                Web
-                <input tabIndex={-1} autoComplete="off" value={form.website} onChange={(event) => update("website", event.target.value)} />
-              </label>
-            </div>
-
-            <label className="mt-4 flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
-              <input type="checkbox" checked={form.privacyAccepted} onChange={(event) => update("privacyAccepted", event.target.checked)} className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-500" />
-              <span>
-                He leído y acepto la <Link href="/politica-privacidad" className="font-semibold text-emerald-700 underline-offset-4 hover:underline" target="_blank">Política de Privacidad</Link>. Usaremos tus datos únicamente para responder a tu solicitud.
-                {errors.privacyAccepted ? <span className="mt-1 block text-xs font-semibold text-red-600">{errors.privacyAccepted}</span> : null}
-              </span>
-            </label>
-
-            <div className="mt-4">
-              {turnstileSiteKey ? <div ref={turnstileRef} /> : <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">La verificación de seguridad no está configurada en este entorno.</div>}
-              {errors.turnstile ? <p className="mt-2 text-xs font-semibold text-red-600">{errors.turnstile}</p> : null}
-            </div>
-
-            {status === "error" ? (
-              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
-                {serverError || "Ahora mismo no hemos podido enviar tu solicitud."} Puedes intentarlo de nuevo o escribirnos a{" "}
-                <a href={`mailto:${PUBLIC_CONTACT_EMAIL}`} className="font-semibold underline underline-offset-4">{PUBLIC_CONTACT_EMAIL}</a>.
+                <Field label="Correo electrónico" error={errors.email} required>
+                  <input value={form.email} onChange={(event) => update("email", event.target.value)} type="email" autoComplete="email" inputMode="email" className={inputClass(errors.email)} />
+                </Field>
+                <Field label="Centro educativo" error={errors.schoolName} required>
+                  <input value={form.schoolName} onChange={(event) => update("schoolName", event.target.value)} autoComplete="organization" className={inputClass(errors.schoolName)} />
+                </Field>
+                <Field label="Cargo o relación con el centro" error={errors.role} required>
+                  <select value={form.role} onChange={(event) => update("role", event.target.value)} className={inputClass(errors.role)}>
+                    <option value="">Selecciona una opción</option>
+                    {roleOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+                  </select>
+                </Field>
+                {form.role === "Otro" ? (
+                  <Field label="Especifica tu relación" error={errors.otherRole} required>
+                    <input value={form.otherRole} onChange={(event) => update("otherRole", event.target.value)} className={inputClass(errors.otherRole)} />
+                  </Field>
+                ) : null}
+                <Field label="Teléfono" error={errors.phone}>
+                  <input value={form.phone} onChange={(event) => update("phone", event.target.value)} type="tel" autoComplete="tel" inputMode="tel" className={inputClass(errors.phone)} />
+                </Field>
+                <Field label="Localidad o provincia" error={errors.location}>
+                  <input value={form.location} onChange={(event) => update("location", event.target.value)} autoComplete="address-level2" className={inputClass(errors.location)} />
+                </Field>
+                <Field label="Mensaje" error={errors.message} className="sm:col-span-2">
+                  <textarea value={form.message} onChange={(event) => update("message", event.target.value)} rows={4} className={`${inputClass(errors.message)} min-h-28 resize-y py-3`} />
+                </Field>
               </div>
-            ) : null}
 
-            <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="hidden" aria-hidden="true">
+                <label>
+                  Web
+                  <input tabIndex={-1} autoComplete="off" value={form.website} onChange={(event) => update("website", event.target.value)} />
+                </label>
+              </div>
+
+              <label className="mt-4 flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+                <input type="checkbox" checked={form.privacyAccepted} onChange={(event) => update("privacyAccepted", event.target.checked)} className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-500" />
+                <span>
+                  He leído y acepto la <Link href="/politica-privacidad" className="font-semibold text-emerald-700 underline-offset-4 hover:underline" target="_blank">Política de Privacidad</Link>. Usaremos tus datos únicamente para responder a tu solicitud.
+                  {errors.privacyAccepted ? <span className="mt-1 block text-xs font-semibold text-red-600">{errors.privacyAccepted}</span> : null}
+                </span>
+              </label>
+
+              <div className="mt-4">
+                {turnstileSiteKey ? <div className="max-w-full overflow-x-auto"><div ref={turnstileRef} className="min-h-[65px]" /></div> : <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">La verificación de seguridad no está configurada en este entorno.</div>}
+                {errors.turnstile ? <p className="mt-2 text-xs font-semibold text-red-600">{errors.turnstile}</p> : null}
+              </div>
+
+              {status === "error" ? (
+                <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+                  {serverError || "Ahora mismo no hemos podido enviar tu solicitud."} Puedes intentarlo de nuevo o escribirnos a{" "}
+                  <a href={`mailto:${PUBLIC_CONTACT_EMAIL}`} className="font-semibold underline underline-offset-4">{PUBLIC_CONTACT_EMAIL}</a>.
+                </div>
+              ) : null}
+            </form>
+
+            <footer className="sticky bottom-0 z-10 flex shrink-0 flex-col gap-3 border-t border-slate-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
               <a href={`mailto:${PUBLIC_CONTACT_EMAIL}`} className="text-sm font-semibold text-slate-500 underline-offset-4 hover:underline">
                 {PUBLIC_CONTACT_EMAIL}
               </a>
@@ -402,12 +487,12 @@ export function ContactModal({ open, onOpenChange, origin, originLabel, experien
                 <button type="button" onClick={() => onOpenChange(false)} disabled={status === "submitting"} className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50">
                   Cancelar
                 </button>
-                <button type="submit" disabled={status === "submitting"} className="inline-flex h-10 items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-bold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60">
+                <button type="submit" form="contact-request-form" disabled={status === "submitting"} className="inline-flex h-10 items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-bold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60">
                   {status === "submitting" ? "Enviando..." : "Enviar solicitud"}
                 </button>
               </div>
-            </div>
-          </form>
+            </footer>
+          </>
         )}
       </div>
     </div>

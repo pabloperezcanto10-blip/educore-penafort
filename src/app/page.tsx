@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Mail } from "lucide-react";
 import { CoriumAvatar } from "@/components/ai/corium-avatar";
 import { ContactTrigger } from "@/components/contact/contact-modal";
 import { LandingExperienceMotion } from "@/components/landing/landing-experience-motion";
@@ -142,6 +143,25 @@ export default function HomePage() {
         .educore-public-page .nav-link-button { border: 0; background: transparent; color: inherit; font: inherit; font-weight: inherit; cursor: pointer; padding: 0; }
         .educore-public-page .nav-link-button:hover { color: var(--navy-950); }
         .educore-public-page .nav-link-button:focus-visible { outline: 3px solid rgba(47,138,112,.28); outline-offset: 4px; border-radius: 999px; }
+        .educore-public-page .nav-contact {
+          display: inline-flex;
+          min-height: 38px;
+          align-items: center;
+          gap: 7px;
+          border: 1px solid rgba(231,235,238,.95);
+          border-radius: 999px;
+          background: rgba(255,255,255,.52);
+          padding: 0 13px;
+          color: var(--stone-700);
+          transition: background .2s ease, border-color .2s ease, color .2s ease, box-shadow .2s ease;
+        }
+        .educore-public-page .nav-contact:hover {
+          border-color: rgba(47,138,112,.22);
+          background: rgba(255,255,255,.92);
+          color: var(--navy-950);
+          box-shadow: 0 10px 24px rgba(15,27,46,.06);
+        }
+        .educore-public-page .nav-contact svg { width: 15px; height: 15px; color: var(--green-700); }
         .educore-public-page .nav-actions { display: flex; align-items: center; gap: 12px; }
         .educore-public-page .nav-contact-mobile { display: none; }
         .educore-public-page .install-wrap { position: relative; display: inline-flex; }
@@ -677,12 +697,14 @@ export default function HomePage() {
             <a href="#acceso">Centros</a>
             <Link href="/experience">Experience</Link>
             <a href="#seguridad">Seguridad</a>
-            <ContactTrigger origin="home_header" originLabel="Home — navegación" className="nav-link-button">
+            <ContactTrigger origin="home_header" originLabel="Home — navegación" className="nav-link-button nav-contact">
+              <Mail aria-hidden="true" />
               Contacto
             </ContactTrigger>
           </nav>
           <div className="nav-actions">
-            <ContactTrigger origin="home_header" originLabel="Home — navegación móvil" className="nav-link-button nav-contact-mobile">
+            <ContactTrigger origin="home_header" originLabel="Home — navegación móvil" className="nav-link-button nav-contact nav-contact-mobile">
+              <Mail aria-hidden="true" />
               Contacto
             </ContactTrigger>
             <a className="btn btn-soft" href="#acceso">Accede a tu centro</a>
