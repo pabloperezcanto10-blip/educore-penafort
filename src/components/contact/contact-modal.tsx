@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { PUBLIC_CONTACT_EMAIL } from "@/lib/site-config";
 
@@ -115,6 +116,7 @@ export function ContactTrigger({ children, className, ...context }: ContactTrigg
 }
 
 export function ContactModal({ open, onOpenChange, origin, originLabel, experienceRole, progress }: ContactModalProps) {
+  const [mounted, setMounted] = useState(false);
   const [form, setForm] = useState<ContactFormState>(initialState);
   const [errors, setErrors] = useState<ContactErrors>({});
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
@@ -129,6 +131,10 @@ export function ContactModal({ open, onOpenChange, origin, originLabel, experien
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const statusRef = useRef(status);
   const sourceUrl = typeof window !== "undefined" ? window.location.href : "";
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const contextText = useMemo(() => {
     if (!experienceRole) return null;
@@ -281,7 +287,7 @@ export function ContactModal({ open, onOpenChange, origin, originLabel, experien
     };
   }, [open]);
 
-  if (!open) return null;
+  if (!mounted || !open) return null;
 
   function update<K extends keyof ContactFormState>(key: K, value: ContactFormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -350,9 +356,9 @@ export function ContactModal({ open, onOpenChange, origin, originLabel, experien
     }
   }
 
-  return (
+  const modalContent = (
     <div
-      className="fixed inset-0 z-[70] flex items-start justify-center overflow-hidden bg-slate-950/50 px-3 py-3 sm:px-5 sm:py-6 lg:items-center"
+      className="fixed inset-0 z-[90] flex h-dvh w-screen items-start justify-center overflow-hidden bg-slate-950/50 px-3 py-3 sm:px-5 sm:py-6 lg:items-center"
       role="dialog"
       aria-modal="true"
       aria-labelledby="contact-modal-title"
@@ -497,6 +503,8 @@ export function ContactModal({ open, onOpenChange, origin, originLabel, experien
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
 
 function Field({ label, error, required, className, children }: { label: string; error?: string; required?: boolean; className?: string; children: ReactNode }) {
