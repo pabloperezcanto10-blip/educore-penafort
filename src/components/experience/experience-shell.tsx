@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, CheckCircle2, Compass, Mail, MessageCircleQuestion, RotateCcw, X } from "lucide-react";
+import { ArrowRight, CheckCircle2, Compass, Mail, Menu, MessageCircleQuestion, RotateCcw, X } from "lucide-react";
 import { CoriumAvatar } from "@/components/ai/corium-avatar";
 import { ContactModal } from "@/components/contact/contact-modal";
 import { CoriumExperienceGuide } from "@/components/experience/corium-experience-guide";
@@ -44,6 +44,9 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
   const searchParams = useSearchParams();
   const mainRef = useRef<HTMLElement | null>(null);
   const moduleTitleRef = useRef<HTMLHeadingElement | null>(null);
+  const menuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const drawerRef = useRef<HTMLDivElement | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
   const [contactOriginLabel, setContactOriginLabel] = useState("EducaCora Experience");
   const [guideOpen, setGuideOpen] = useState(startGuide);
@@ -61,6 +64,49 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
   useEffect(() => {
     setProgress(readExperienceStorage<ExperienceProgressState>(role, "progress") ?? { visited: [] });
   }, [role]);
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [activeModule, role]);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const frame = window.requestAnimationFrame(() => drawerRef.current?.focus());
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setMobileMenuOpen(false);
+        menuButtonRef.current?.focus();
+        return;
+      }
+
+      if (event.key !== "Tab" || !drawerRef.current) return;
+      const focusable = Array.from(
+        drawerRef.current.querySelectorAll<HTMLElement>("a[href], button:not([disabled]), [tabindex]:not([tabindex='-1'])")
+      ).filter((element) => !element.hasAttribute("disabled"));
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (!first || !last) return;
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [mobileMenuOpen]);
 
   useEffect(() => {
     if (!finalOpen) return;
@@ -115,6 +161,7 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
       highlightedTarget.classList.remove("experience-target-highlight");
       void highlightedTarget.offsetWidth;
       highlightedTarget.classList.add("experience-target-highlight");
+      highlightedTarget.style.scrollMarginTop = window.innerWidth < 1280 ? "96px" : "16px";
       target.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
 
       if (activeModule !== "panel") {
@@ -136,6 +183,7 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
   }, [activeModule, activeModuleConfig.title]);
 
   function openContact(originLabel: string) {
+    setMobileMenuOpen(false);
     setContactOriginLabel(originLabel);
     setContactOpen(true);
   }
@@ -150,9 +198,9 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
   }
 
   return (
-    <div className="min-h-screen bg-[#f6f3ec] text-slate-950">
-      <div className="grid min-h-screen lg:grid-cols-[280px_1fr]">
-        <aside className="experience-fade-in flex flex-col border-r border-slate-200 bg-white/92 shadow-sm lg:sticky lg:top-0 lg:h-screen lg:max-h-screen lg:overflow-hidden">
+    <div className="min-h-dvh bg-[#f6f3ec] text-slate-950">
+      <div className="grid min-h-dvh xl:grid-cols-[280px_1fr]">
+        <aside className="experience-fade-in hidden flex-col border-r border-slate-200 bg-white/92 shadow-sm xl:sticky xl:top-0 xl:flex xl:h-screen xl:max-h-screen xl:overflow-hidden">
           <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
             <Link href="/" className="inline-flex items-center gap-3 rounded-2xl px-2 py-2 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500">
               <Image src={brand.assets.logo} alt={brand.productName} width={512} height={150} className="h-auto w-44" priority />
@@ -171,7 +219,7 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
               </div>
             </div>
 
-            <nav className="mt-5 space-y-1" aria-label="Navegación Experience">
+            <nav className="mt-5 space-y-1" aria-label="Navegacion Experience">
               {roleModules.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeModule === item.key;
@@ -262,17 +310,158 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
           </div>
         </aside>
 
-        <main id="experience-main-start" ref={mainRef} tabIndex={-1} className="experience-fade-up px-4 py-5 outline-none sm:px-6 lg:px-8">
-          <div className="sticky top-3 z-30 mb-3 flex justify-end lg:hidden">
-            <button
-              type="button"
-              onClick={() => setFinalOpen(true)}
-              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-amber-200 bg-white px-3 text-xs font-bold text-amber-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-            >
-              <Compass className="h-4 w-4" aria-hidden="true" />
-              Finalizar recorrido
-            </button>
-          </div>
+        <main id="experience-main-start" ref={mainRef} tabIndex={-1} className="experience-fade-up px-4 pb-5 pt-3 outline-none sm:px-6 xl:px-8 xl:py-5">
+          <header className="sticky top-0 z-30 -mx-4 mb-3 border-b border-slate-200 bg-[#f6f3ec]/95 px-4 py-2 shadow-sm backdrop-blur sm:-mx-6 sm:px-6 xl:hidden" style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}>
+            <div className="flex min-h-12 items-center justify-between gap-2">
+              <button
+                ref={menuButtonRef}
+                type="button"
+                onClick={() => setMobileMenuOpen(true)}
+                className="inline-flex h-10 items-center gap-2 rounded-full border border-slate-200 bg-white px-3 text-xs font-bold text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                aria-label="Abrir menu de Experience"
+                aria-expanded={mobileMenuOpen}
+                aria-controls="experience-mobile-drawer"
+              >
+                <Menu className="h-4 w-4" aria-hidden="true" />
+                Menu
+              </button>
+              <div className="min-w-0 flex-1 text-center">
+                <p className="truncate text-sm font-bold text-slate-950">EducaCora Experience</p>
+                <p className="truncate text-xs font-semibold text-emerald-700">
+                  {experienceRoles.find((item) => item.id === role)?.label ?? "Perfil"} - {exploredCount}/{progressModules.length} exploradas
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFinalOpen(true)}
+                className="inline-flex h-10 items-center justify-center rounded-full border border-amber-200 bg-white px-3 text-xs font-bold text-amber-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+              >
+                Finalizar
+              </button>
+            </div>
+          </header>
+
+          {mobileMenuOpen ? (
+            <div className="fixed inset-0 z-50 xl:hidden" role="presentation">
+              <button
+                type="button"
+                className="absolute inset-0 bg-slate-950/45"
+                aria-label="Cerrar menu"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  menuButtonRef.current?.focus();
+                }}
+              />
+              <div
+                id="experience-mobile-drawer"
+                ref={drawerRef}
+                tabIndex={-1}
+                role="dialog"
+                aria-modal="true"
+                aria-label="Menu de EducaCora Experience"
+                className="experience-scale-in fixed left-0 top-0 flex h-dvh w-[min(88vw,360px)] flex-col overflow-hidden border-r border-slate-200 bg-white shadow-2xl outline-none"
+                style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}
+              >
+                <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-4">
+                  <div className="min-w-0">
+                    <Image src={brand.assets.logo} alt={brand.productName} width={512} height={150} className="h-auto w-40" priority />
+                    <p className="mt-3 text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">Recorrido {exploredCount}/{progressModules.length}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      menuButtonRef.current?.focus();
+                    }}
+                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    aria-label="Cerrar menu"
+                  >
+                    <X className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                </div>
+
+                <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+                  <nav className="space-y-1" aria-label="Navegacion movil Experience">
+                    {roleModules.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = activeModule === item.key;
+                      const className = `flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
+                        isActive ? "bg-slate-950 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
+                      }`;
+
+                      if (item.key === "corium") {
+                        return (
+                          <button
+                            key={item.key}
+                            type="button"
+                            onClick={() => {
+                              setMobileMenuOpen(false);
+                              setGuideOpen(true);
+                            }}
+                            className={className}
+                            aria-current={isActive ? "page" : undefined}
+                          >
+                            <Icon className="h-4 w-4" aria-hidden="true" />
+                            {item.label}
+                          </button>
+                        );
+                      }
+
+                      return (
+                        <Link key={item.key} href={getExperienceModuleHref(role, item.key)} onClick={() => setMobileMenuOpen(false)} className={className} aria-current={isActive ? "page" : undefined}>
+                          <Icon className="h-4 w-4" aria-hidden="true" />
+                          {item.label}
+                        </Link>
+                      );
+                    })}
+                  </nav>
+
+                  <div className="mt-5 border-t border-slate-200 pt-4">
+                    <p className="px-3 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Explorar otro perfil</p>
+                    <div className="mt-2 space-y-1">
+                      {experienceRoles.map((profile) => (
+                        <button
+                          key={profile.id}
+                          type="button"
+                          onClick={() => handleRoleSwitch(profile.id, profile.href)}
+                          disabled={profile.id === role}
+                          className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
+                            profile.id === role ? "bg-amber-50 text-amber-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
+                          }`}
+                        >
+                          {profile.label}
+                          <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-5 border-t border-slate-200 pt-4">
+                    <p className="px-3 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Acciones</p>
+                    <div className="mt-2 space-y-2">
+                      <button
+                        type="button"
+                        onClick={onReset}
+                        className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      >
+                        <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                        Reiniciar recorrido
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openContact("Contactar")}
+                        className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 text-sm font-bold text-emerald-800 transition hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      >
+                        <Mail className="h-4 w-4" aria-hidden="true" />
+                        Contactar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
           {navigationFeedback ? (
             <div className="experience-feedback-in sticky top-3 z-30 mb-3 w-fit rounded-full border border-emerald-100 bg-white px-3 py-2 text-xs font-bold text-emerald-800 shadow-sm" role="status" aria-live="polite">
               {navigationFeedback}
