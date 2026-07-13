@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
@@ -36,9 +36,9 @@ type ExperienceProgressState = {
 };
 
 const transitionCopy: Record<ExperienceRole, string> = {
-  director: "Ahora descubrirÃ¡s EducaCora desde la perspectiva de DirecciÃ³n.",
-  docente: "Ahora verÃ¡s cÃ³mo trabaja un docente en su dÃ­a a dÃ­a.",
-  familia: "Ahora conocerÃ¡s la experiencia de las familias."
+  director: "Ahora descubrirás EducaCora desde la perspectiva de Dirección.",
+  docente: "Ahora verás cómo trabaja un docente en su día a día.",
+  familia: "Ahora conocerás la experiencia de las familias."
 };
 
 export function ExperienceShell({ brand, role, onReset, startGuide = false, children }: ExperienceShellProps) {
@@ -431,7 +431,7 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
                   <p className="text-sm font-bold text-slate-950">EducaCora Experience</p>
                   <p className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700">
                     <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true" />
-                    Demo interactiva Â· {brand.name}
+                    Demo interactiva · {brand.name}
                   </p>
                 </div>
               </div>
@@ -756,7 +756,7 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">Corium</p>
                   <h2 id="experience-final-title" className="mt-1 text-2xl font-bold tracking-tight text-slate-950">
-                    Â¿QuÃ© te ha parecido EducaCora?
+                    ¿Qué te ha parecido EducaCora?
                   </h2>
                 </div>
               </div>
@@ -771,8 +771,8 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
             </div>
 
             <div className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
-              <p>Ya has conocido cÃ³mo funciona EducaCora desde la perspectiva de este perfil.</p>
-              <p>Puedes seguir descubriendo la plataforma desde otros roles o contactar con nosotros si quieres conocer cÃ³mo se adaptarÃ­a EducaCora a vuestro centro.</p>
+              <p>Ya has conocido cómo funciona EducaCora desde la perspectiva de este perfil.</p>
+              <p>Puedes seguir descubriendo la plataforma desde otros roles o contactar con nosotros si quieres conocer cómo se adaptaría EducaCora a vuestro centro.</p>
             </div>
 
             <div className="mt-5 grid gap-2 sm:grid-cols-3">
@@ -784,7 +784,7 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
                   disabled={profile.id === role}
                   className="group flex min-h-12 items-center justify-between rounded-xl border border-slate-200 bg-white px-3 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:bg-amber-50 disabled:text-amber-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 >
-                  {profile.id === "director" ? "Explorar DirecciÃ³n" : profile.id === "docente" ? "Explorar Docente" : "Explorar Familias"}
+                  {profile.id === "director" ? "Explorar Dirección" : profile.id === "docente" ? "Explorar Docente" : "Explorar Familias"}
                   {profile.id === role ? <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> : <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" aria-hidden="true" />}
                 </button>
               ))}

@@ -1,9 +1,9 @@
-﻿import { createAdminClient, hasSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient, hasSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 type CommunicationLabelClient = ReturnType<typeof createAdminClient>;
 
-export type NotificationCategory = "incidencia" | "acadÃ©mico" | "tutorÃ­a" | "general";
+export type NotificationCategory = "incidencia" | "académico" | "tutoría" | "general";
 
 export type FamilyRecipient = {
   parent_id: string;
@@ -713,16 +713,16 @@ async function attachDirectorCommunicationLabels(
 }
 
 function isNotificationCategory(category: string | undefined): category is NotificationCategory {
-  if (category === "acadÃ©mico" || category === "tutorÃ­a") {
+  if (category === "académico" || category === "tutoría") {
     return true;
   }
 
   return (
     category === "incidencia" ||
-    category === "acadÃ©mico" ||
-    category === "acadÃƒÂ©mico" ||
-    category === "tutorÃ­a" ||
-    category === "tutorÃƒÂ­a" ||
+    category === "académico" ||
+    category === "académico" ||
+    category === "tutoría" ||
+    category === "tutoría" ||
     category === "general"
   );
 }

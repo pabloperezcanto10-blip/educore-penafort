@@ -1,4 +1,4 @@
-﻿# EDUCACORA_EXPERIENCE_ARCHITECTURE.md
+# EDUCACORA_EXPERIENCE_ARCHITECTURE.md
 
 Version: 1.0  
 Estado: Documento maestro  
@@ -149,7 +149,7 @@ Presenta brevemente la plataforma.
 
 Pregunta:
 
-"Â¿Que papel desempeÃ±as en tu centro educativo?"
+"¿Que papel desempeñas en tu centro educativo?"
 
 Las rutas iniciales son:
 
@@ -181,9 +181,9 @@ La Experience unicamente modifica cuatro elementos.
 
 ## Branding
 
-Colegio PeÃ±afort
+Colegio Peñafort
 
-â†“
+↓
 
 EducaCora
 
@@ -193,7 +193,7 @@ EducaCora
 
 Datos reales
 
-â†“
+↓
 
 Datos completamente ficticios
 
@@ -203,7 +203,7 @@ Datos completamente ficticios
 
 Login obligatorio
 
-â†“
+↓
 
 Acceso directo
 
@@ -213,7 +213,7 @@ Acceso directo
 
 Persistencia real
 
-â†“
+↓
 
 Persistencia simulada
 
@@ -248,7 +248,7 @@ Se reutilizaran:
 
 # BRANDING
 
-La Experience nunca utilizara la identidad visual del Colegio PeÃ±afort.
+La Experience nunca utilizara la identidad visual del Colegio Peñafort.
 
 Todo el branding sera sustituido por:
 
@@ -257,7 +257,7 @@ Todo el branding sera sustituido por:
 - Nombre EducaCora
 - Centro ficticio
 
-No deberan existir referencias visibles al Colegio PeÃ±afort.
+No deberan existir referencias visibles al Colegio Peñafort.
 
 ---
 
@@ -364,7 +364,7 @@ El mensaje sera similar a:
 
 "Cada centro educativo es diferente."
 
-"Nos encantara enseÃ±arte como EducaCora puede adaptarse a vuestra realidad."
+"Nos encantara enseñarte como EducaCora puede adaptarse a vuestra realidad."
 
 Botones:
 
@@ -446,7 +446,7 @@ El visitante debe olvidar que esta utilizando una demostracion.
 
 ## Principio 8
 
-La Experience debe poder mantenerse durante aÃ±os con un coste minimo.
+La Experience debe poder mantenerse durante años con un coste minimo.
 
 ---
 

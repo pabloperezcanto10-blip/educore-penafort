@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -57,26 +57,26 @@ const initialState: DemoPanelState = {
 };
 
 const students = [
-  { id: "lucia", name: "LucÃ­a Romero", course: "6Âº Primaria A" },
-  { id: "mateo", name: "Mateo Molina", course: "1Âº ESO" },
-  { id: "sofia", name: "SofÃ­a Vega", course: "6Âº Primaria A" }
+  { id: "lucia", name: "Lucía Romero", course: "6º Primaria A" },
+  { id: "mateo", name: "Mateo Molina", course: "1º ESO" },
+  { id: "sofia", name: "Sofía Vega", course: "6º Primaria A" }
 ];
 
 const messages = [
-  { id: "msg-1", from: "Familia Vega", subject: "Solicitud de reuniÃ³n", detail: "Consulta sobre seguimiento acadÃ©mico de SofÃ­a." },
+  { id: "msg-1", from: "Familia Vega", subject: "Solicitud de reunión", detail: "Consulta sobre seguimiento académico de Sofía." },
   { id: "msg-2", from: "Irene Soler", subject: "Respuesta enviada", detail: "La tutora ha compartido un plan de refuerzo." }
 ];
 
 const demoGrades: GradeWithLabels[] = [
-  createDemoGrade("grade-1", "LucÃ­a Romero", "MatemÃ¡ticas", "ResoluciÃ³n de problemas", 8.4, "Buen progreso en estrategias de cÃ¡lculo."),
-  createDemoGrade("grade-2", "LucÃ­a Romero", "Ciencias", "Proyecto de ecosistemas", 9.1, "Trabajo muy completo y bien presentado."),
-  createDemoGrade("grade-3", "Mateo Molina", "Lengua", "ComprensiÃ³n lectora", 7.8, "Conviene reforzar inferencias.")
+  createDemoGrade("grade-1", "Lucía Romero", "Matemáticas", "Resolución de problemas", 8.4, "Buen progreso en estrategias de cálculo."),
+  createDemoGrade("grade-2", "Lucía Romero", "Ciencias", "Proyecto de ecosistemas", 9.1, "Trabajo muy completo y bien presentado."),
+  createDemoGrade("grade-3", "Mateo Molina", "Lengua", "Comprensión lectora", 7.8, "Conviene reforzar inferencias.")
 ];
 
 const demoCriteria: EvaluationCriterionWithLabels[] = [
-  createDemoCriterion("criterion-1", "MatemÃ¡ticas", "6Âº Primaria A", "ResoluciÃ³n de problemas", 40, "parcial"),
-  createDemoCriterion("criterion-2", "MatemÃ¡ticas", "6Âº Primaria A", "CÃ¡lculo mental", 30, "parcial"),
-  createDemoCriterion("criterion-3", "Ciencias", "6Âº Primaria A", "Proyecto de ecosistemas", 30, "proyecto")
+  createDemoCriterion("criterion-1", "Matemáticas", "6º Primaria A", "Resolución de problemas", 40, "parcial"),
+  createDemoCriterion("criterion-2", "Matemáticas", "6º Primaria A", "Cálculo mental", 30, "parcial"),
+  createDemoCriterion("criterion-3", "Ciencias", "6º Primaria A", "Proyecto de ecosistemas", 30, "proyecto")
 ];
 
 const demoFinalGrades: QuarterFinalGradeWithLabels[] = [
@@ -89,11 +89,11 @@ const demoFinalGrades: QuarterFinalGradeWithLabels[] = [
     term: "2",
     calculated_grade: 8.4,
     final_grade: 8,
-    teacher_observation: "Buen trimestre. Mantiene una evoluciÃ³n positiva.",
+    teacher_observation: "Buen trimestre. Mantiene una evolución positiva.",
     created_at: new Date().toISOString(),
-    studentName: "LucÃ­a Romero",
-    subjectName: "MatemÃ¡ticas",
-    courseName: "6Âº Primaria A",
+    studentName: "Lucía Romero",
+    subjectName: "Matemáticas",
+    courseName: "6º Primaria A",
     teacherName: "Irene Soler"
   }
 ];
@@ -121,11 +121,11 @@ export function ExperienceDemoPanel({ role, panel }: ExperienceDemoPanelProps) {
 
   function markMessageRead(id: string) {
     if (state.readMessages.includes(id)) {
-      setFeedback("La comunicaciÃ³n ya estaba marcada como leÃ­da.");
+      setFeedback("La comunicación ya estaba marcada como leída.");
       return;
     }
 
-    updateState({ ...state, readMessages: [...state.readMessages, id] }, "ComunicaciÃ³n marcada como leÃ­da.");
+    updateState({ ...state, readMessages: [...state.readMessages, id] }, "Comunicación marcada como leída.");
   }
 
   function setAttendance(studentId: string, status: AttendanceStatus) {
@@ -137,13 +137,13 @@ export function ExperienceDemoPanel({ role, panel }: ExperienceDemoPanelProps) {
 
   function justifyAbsence(studentId: string) {
     if (state.justifiedAbsences.includes(studentId)) {
-      setFeedback("La justificaciÃ³n ya estaba simulada.");
+      setFeedback("La justificación ya estaba simulada.");
       return;
     }
 
     updateState(
       { ...state, justifiedAbsences: [...state.justifiedAbsences, studentId] },
-      "JustificaciÃ³n simulada correctamente."
+      "Justificación simulada correctamente."
     );
   }
 
@@ -200,7 +200,7 @@ export function ExperienceDemoPanel({ role, panel }: ExperienceDemoPanelProps) {
   return (
     <div id="experience-demo-panel" data-experience-target="demo-panel" className="experience-target-panel scroll-mt-4">
     <GradebookCard className="experience-fade-up mt-5">
-      <GradebookCardHeader title="AcciÃ³n demo">
+      <GradebookCardHeader title="Acción demo">
         <div className="flex items-center gap-2">
           {panel ? (
             <Link
@@ -270,7 +270,7 @@ function DirectorPanel({
   }
 
   if (panel === "gradebook" || panel === "evaluacion") {
-    return <ExperienceGradebookModule onReviewed={() => onReviewed("academic-publication", "PublicaciÃ³n revisada en la Experience.")} reviewed={reviewedItems.includes("academic-publication")} />;
+    return <ExperienceGradebookModule onReviewed={() => onReviewed("academic-publication", "Publicación revisada en la Experience.")} reviewed={reviewedItems.includes("academic-publication")} />;
   }
 
   if (panel === "calendar" || panel === "calendario") {
@@ -280,8 +280,8 @@ function DirectorPanel({
   return (
     <div data-experience-target="director-supervision-summary" className="grid gap-3 md:grid-cols-2">
       {[
-        ["priority-communication", "ComunicaciÃ³n dirigida a DirecciÃ³n", "Familia Vega solicita una reuniÃ³n de seguimiento."],
-        ["priority-publication", "PublicaciÃ³n pendiente", "BoletÃ­n de 2Âº ESO listo para revisiÃ³n."]
+        ["priority-communication", "Comunicación dirigida a Dirección", "Familia Vega solicita una reunión de seguimiento."],
+        ["priority-publication", "Publicación pendiente", "Boletín de 2º ESO listo para revisión."]
       ].map(([id, title, description]) => (
         <ReviewCard key={id} id={id} title={title} description={description} reviewed={reviewedItems.includes(id)} onReviewed={onReviewed} />
       ))}
@@ -353,7 +353,7 @@ function FamilyPanel({
   if (panel === "attendance") {
     return (
       <div data-experience-target="attendance-family-summary" className="space-y-3">
-        <InfoHeader icon={ClipboardList} title="Asistencia de LucÃ­a Romero" description="Resumen ficticio de retrasos y ausencias visibles para la familia." />
+        <InfoHeader icon={ClipboardList} title="Asistencia de Lucía Romero" description="Resumen ficticio de retrasos y ausencias visibles para la familia." />
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
           <p className="text-sm font-semibold text-slate-950">Retraso pendiente de justificar</p>
           <p className="mt-1 text-sm text-slate-500">Entrada registrada a las 09:14.</p>
@@ -362,7 +362,7 @@ function FamilyPanel({
             onClick={() => onJustify("lucia")}
             className="mt-3 inline-flex h-9 items-center justify-center rounded-xl bg-sky-700 px-3 text-xs font-bold text-white transition hover:bg-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
           >
-            {justifiedAbsences.includes("lucia") ? "JustificaciÃ³n enviada" : "Simular justificaciÃ³n"}
+            {justifiedAbsences.includes("lucia") ? "Justificación enviada" : "Simular justificación"}
           </button>
         </div>
       </div>
@@ -387,7 +387,7 @@ function AttendanceDemoPanel({
 }) {
   return (
     <div data-experience-target="attendance-primary-action" className="space-y-3">
-      <InfoHeader icon={ClipboardList} title="Pasar lista demo" description="Marca estados ficticios y comprueba cÃ³mo se actualiza el panel sin escribir en producciÃ³n." />
+      <InfoHeader icon={ClipboardList} title="Pasar lista demo" description="Marca estados ficticios y comprueba cómo se actualiza el panel sin escribir en producción." />
       <div className="space-y-2">
         {students.map((student) => {
           const status = attendance[student.id] ?? "present";
@@ -443,7 +443,7 @@ function MessagesPanel({
                 <p className="mt-1 text-xs font-semibold text-slate-500">{message.from}</p>
               </div>
               <GradebookBadge tone={readMessages.includes(message.id) ? "green" : "amber"}>
-                {readMessages.includes(message.id) ? "LeÃ­da" : "Sin leer"}
+                {readMessages.includes(message.id) ? "Leída" : "Sin leer"}
               </GradebookBadge>
             </div>
             <p className="mt-3 text-sm text-slate-600">{message.detail}</p>
@@ -452,7 +452,7 @@ function MessagesPanel({
               onClick={() => onMessageRead(message.id)}
               className="mt-4 inline-flex h-9 items-center justify-center rounded-xl bg-sky-700 px-3 text-xs font-bold text-white transition hover:bg-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
             >
-              Marcar como leÃ­da
+              Marcar como leída
             </button>
           </div>
         ))}
@@ -474,7 +474,7 @@ function ExperienceCommunicationsModule({
 
   return (
     <div data-experience-target="communications-overview" className="space-y-4">
-      <InfoHeader icon={MessageSquareText} title={title} description="Vista real de comunicaciÃ³n reutilizada con conversaciones ficticias y respuestas simuladas." />
+      <InfoHeader icon={MessageSquareText} title={title} description="Vista real de comunicación reutilizada con conversaciones ficticias y respuestas simuladas." />
       <CommunicationSummaryBadges
         items={[
           { label: "Abiertas", value: 2, tone: "blue" },
@@ -491,7 +491,7 @@ function ExperienceCommunicationsModule({
               active={index === 0}
               title={message.from}
               subtitle={message.subject}
-              date={index === 0 ? "Hoy Â· 09:40" : "Ayer Â· 18:20"}
+              date={index === 0 ? "Hoy · 09:40" : "Ayer · 18:20"}
               preview={message.detail}
               unreadCount={readMessages.includes(message.id) ? 0 : 1}
               badges={[
@@ -513,29 +513,29 @@ function ExperienceCommunicationsModule({
                 onClick={() => onMessageRead(activeMessage.id)}
                 className="inline-flex h-9 items-center justify-center rounded-xl bg-sky-700 px-3 text-xs font-bold text-white transition hover:bg-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
               >
-                {readMessages.includes(activeMessage.id) ? "LeÃ­da" : "Marcar como leÃ­da"}
+                {readMessages.includes(activeMessage.id) ? "Leída" : "Marcar como leída"}
               </button>
             </div>
             <ConversationContextGrid
               items={[
-                { label: "Alumno", value: "SofÃ­a Vega" },
-                { label: "Curso", value: "6Âº Primaria A" },
+                { label: "Alumno", value: "Sofía Vega" },
+                { label: "Curso", value: "6º Primaria A" },
                 { label: "Tutor", value: "Irene Soler" },
-                { label: "CategorÃ­a", value: "Seguimiento" }
+                { label: "Categoría", value: "Seguimiento" }
               ]}
             />
           </div>
           <div className="flex-1 space-y-3 bg-white p-4">
             <CommunicationMessageBubble
               title="Familia Vega"
-              meta="Hoy Â· 09:40"
-              message="Nos gustarÃ­a revisar el seguimiento acadÃ©mico de SofÃ­a y coordinar una reuniÃ³n breve."
+              meta="Hoy · 09:40"
+              message="Nos gustaría revisar el seguimiento académico de Sofía y coordinar una reunión breve."
               badges={[{ label: "Recibida", tone: readMessages.includes(activeMessage.id) ? "green" : "amber" }]}
             />
             <CommunicationMessageBubble
               sent
               title="Irene Soler"
-              meta="Hoy Â· 10:05"
+              meta="Hoy · 10:05"
               message="Gracias por escribir. He preparado un plan de refuerzo y podemos comentarlo esta semana."
               badges={[{ label: "Respuesta simulada", tone: "blue" }]}
             />
@@ -554,7 +554,7 @@ function ExperienceStudentProfileModule({ role, onReviewed, readOnly = false }: 
   const tabs = [
     { id: "resumen", label: "Resumen", href: studentHref, icon: UserRound },
     { id: "calificaciones", label: "Calificaciones", href: gradebookHref, icon: BookOpenCheck },
-    { id: "comunicacion", label: "ComunicaciÃ³n", href: communicationsHref, icon: MessageSquareText }
+    { id: "comunicacion", label: "Comunicación", href: communicationsHref, icon: MessageSquareText }
   ];
 
   return (
@@ -562,8 +562,8 @@ function ExperienceStudentProfileModule({ role, onReviewed, readOnly = false }: 
       <StudentProfileHeader
         backHref={panelHref}
         backLabel="Volver al panel"
-        studentName="LucÃ­a Romero"
-        courseName="6Âº Primaria A"
+        studentName="Lucía Romero"
+        courseName="6º Primaria A"
         tutorName="Irene Soler"
         active
       />
@@ -579,7 +579,7 @@ function ExperienceStudentProfileModule({ role, onReviewed, readOnly = false }: 
       <StudentStatusDashboard
         averageGrade="8,4"
         latestGrade="9,1"
-        latestGradeMeta="Ciencias Â· Proyecto de ecosistemas"
+        latestGradeMeta="Ciencias · Proyecto de ecosistemas"
         progressCompleted={5}
         progressTotal={6}
         progressPercent={83}
@@ -592,9 +592,9 @@ function ExperienceStudentProfileModule({ role, onReviewed, readOnly = false }: 
       />
       <StudentActivityTimeline
         items={[
-          { id: "activity-1", title: "CalificaciÃ³n registrada", meta: "Ciencias Â· Proyecto de ecosistemas", date: new Date().toISOString(), tone: "green", kind: "grade" },
-          { id: "activity-2", title: "ComunicaciÃ³n familiar", meta: "Solicitud de reuniÃ³n de seguimiento", date: new Date(Date.now() - 86400000).toISOString(), tone: "blue", kind: "communication" },
-          { id: "activity-3", title: "ObservaciÃ³n interna", meta: "Buen progreso en matemÃ¡ticas", date: new Date(Date.now() - 172800000).toISOString(), tone: "amber", kind: "observation" }
+          { id: "activity-1", title: "Calificación registrada", meta: "Ciencias · Proyecto de ecosistemas", date: new Date().toISOString(), tone: "green", kind: "grade" },
+          { id: "activity-2", title: "Comunicación familiar", meta: "Solicitud de reunión de seguimiento", date: new Date(Date.now() - 86400000).toISOString(), tone: "blue", kind: "communication" },
+          { id: "activity-3", title: "Observación interna", meta: "Buen progreso en matemáticas", date: new Date(Date.now() - 172800000).toISOString(), tone: "amber", kind: "observation" }
         ]}
         empty="Sin movimientos recientes registrados."
       />
@@ -627,7 +627,7 @@ function ExperienceGradebookModule({ reviewed, onReviewed }: { reviewed: boolean
         onClick={onReviewed}
         className="inline-flex h-9 items-center justify-center rounded-xl bg-sky-700 px-3 text-xs font-bold text-white transition hover:bg-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
       >
-        Revisar publicaciÃ³n
+        Revisar publicación
       </button>
     </div>
   );
@@ -638,10 +638,10 @@ function ExperienceCalendarModule({ reviewed, onReviewed }: { reviewed: boolean;
     <div data-experience-target="calendar-overview" className="space-y-3">
       <InfoHeader icon={CalendarDays} title="Calendario Experience" description="Agenda navegable con eventos ficticios. No sincroniza Google Calendar ni escribe datos reales." />
       <div className="grid gap-3 md:grid-cols-3">
-        {["ReuniÃ³n de coordinaciÃ³n", "Actividad de ciencias", "PublicaciÃ³n de boletines"].map((event, index) => (
+        {["Reunión de coordinación", "Actividad de ciencias", "Publicación de boletines"].map((event, index) => (
           <div key={event} className="experience-card-motion rounded-xl border border-slate-200 bg-slate-50 p-4">
             <p className="text-sm font-semibold text-slate-950">{event}</p>
-            <p className="mt-1 text-xs text-slate-500">{index === 0 ? "Hoy Â· 12:30" : `${index + 1} dÃ­as`}</p>
+            <p className="mt-1 text-xs text-slate-500">{index === 0 ? "Hoy · 12:30" : `${index + 1} días`}</p>
             <GradebookBadge tone={reviewed ? "green" : "blue"}>{reviewed ? "Revisado" : "Programado"}</GradebookBadge>
           </div>
         ))}
@@ -656,7 +656,7 @@ function ExperienceCalendarModule({ reviewed, onReviewed }: { reviewed: boolean;
 function AcademicDemoPanel({ reviewed, onReviewed }: { reviewed: boolean; onReviewed: () => void }) {
   return (
     <div className="space-y-3">
-      <InfoHeader icon={BookOpenCheck} title="SupervisiÃ³n acadÃ©mica demo" description="Resumen ficticio de progreso, criterios y publicaciÃ³n de boletines." />
+      <InfoHeader icon={BookOpenCheck} title="Supervisión académica demo" description="Resumen ficticio de progreso, criterios y publicación de boletines." />
       <div className="grid gap-3 md:grid-cols-3">
         <Metric label="Criterios completados" value="82%" />
         <Metric label="Materias abiertas" value="5" />
@@ -668,7 +668,7 @@ function AcademicDemoPanel({ reviewed, onReviewed }: { reviewed: boolean; onRevi
         onClick={onReviewed}
         className="inline-flex h-9 items-center justify-center rounded-xl bg-sky-700 px-3 text-xs font-bold text-white transition hover:bg-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
       >
-        Revisar publicaciÃ³n
+        Revisar publicación
       </button>
     </div>
   );
@@ -679,7 +679,7 @@ function FamilyGradesPanel() {
     <div data-experience-target="family-grades-summary" className="space-y-3">
       <InfoHeader icon={BookOpenCheck} title="Calificaciones visibles" description="Notas ficticias publicadas para la familia." />
       {[
-        ["MatemÃ¡ticas", "8,4", "Buen progreso en resoluciÃ³n de problemas."],
+        ["Matemáticas", "8,4", "Buen progreso en resolución de problemas."],
         ["Ciencias", "9,1", "Proyecto de ecosistemas muy completo."],
         ["Lengua", "7,8", "Conviene reforzar inferencias lectoras."]
       ].map(([subject, grade, comment]) => (
@@ -696,12 +696,12 @@ function FamilyGradesPanel() {
 function CalendarDemoPanel({ reviewed, onReviewed }: { reviewed: boolean; onReviewed: () => void }) {
   return (
     <div className="space-y-3">
-      <InfoHeader icon={CalendarDays} title="Calendario demo" description="Eventos ficticios del centro para comprobar navegaciÃ³n y seguimiento." />
-      {["ReuniÃ³n de coordinaciÃ³n", "Actividad de ciencias", "PublicaciÃ³n de boletines"].map((event, index) => (
+      <InfoHeader icon={CalendarDays} title="Calendario demo" description="Eventos ficticios del centro para comprobar navegación y seguimiento." />
+      {["Reunión de coordinación", "Actividad de ciencias", "Publicación de boletines"].map((event, index) => (
         <div key={event} className="experience-card-motion flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
           <div>
             <p className="text-sm font-semibold text-slate-950">{event}</p>
-            <p className="text-xs text-slate-500">{index === 0 ? "Hoy Â· 12:30" : `${index + 1} dÃ­as`}</p>
+            <p className="text-xs text-slate-500">{index === 0 ? "Hoy · 12:30" : `${index + 1} días`}</p>
           </div>
           <GradebookBadge tone={reviewed ? "green" : "blue"}>{reviewed ? "Revisado" : "Programado"}</GradebookBadge>
         </div>
@@ -721,9 +721,9 @@ function CoriumPreparationPanel() {
           <ShieldCheck className="h-5 w-5" aria-hidden="true" />
         </span>
         <div>
-          <p className="text-sm font-semibold text-slate-950">Corium AI estÃ¡ disponible como guÃ­a contextual.</p>
+          <p className="text-sm font-semibold text-slate-950">Corium AI está disponible como guía contextual.</p>
           <p className="mt-1 text-sm text-slate-500">
-            Usa el botÃ³n flotante o la opciÃ³n â€œGuÃ­a de Coriumâ€ para pedir orientaciÃ³n, iniciar el recorrido guiado o hacer una pregunta basada en FAQs.
+            Usa el botón flotante o la opción “Guía de Corium” para pedir orientación, iniciar el recorrido guiado o hacer una pregunta basada en FAQs.
           </p>
         </div>
       </div>
@@ -837,7 +837,7 @@ function createDemoGrade(id: string, studentName: string, subjectName: string, a
     grade,
     assessment_date: new Date().toISOString(),
     comment,
-    recommendation: "Mantener el seguimiento semanal y revisar la organizaciÃ³n del trabajo.",
+    recommendation: "Mantener el seguimiento semanal y revisar la organización del trabajo.",
     visible_to_family: true,
     created_at: new Date().toISOString(),
     studentName,

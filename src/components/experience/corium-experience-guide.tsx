@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
@@ -34,16 +34,16 @@ const initialGuideState: CoriumGuideState = {
 };
 
 const quickQuestions = [
-  "Â¿QuÃ© hace este mÃ³dulo?",
-  "Â¿QuÃ© puedo hacer aquÃ­?",
-  "Â¿CÃ³mo cambio de perfil?",
-  "Â¿QuÃ© datos son reales?",
-  "Â¿CÃ³mo funciona EducaCora?",
-  "Â¿CÃ³mo contactar?"
+  "¿Qué hace este módulo?",
+  "¿Qué puedo hacer aquí?",
+  "¿Cómo cambio de perfil?",
+  "¿Qué datos son reales?",
+  "¿Cómo funciona EducaCora?",
+  "¿Cómo contactar?"
 ];
 
 const unansweredMessage =
-  "Esa funcionalidad todavÃ­a no estÃ¡ documentada en la Experience. Cuando EducaCora estÃ© implantado en un centro, Corium AI podrÃ¡ ayudarte con preguntas mucho mÃ¡s avanzadas.";
+  "Esa funcionalidad todavía no está documentada en la Experience. Cuando EducaCora esté implantado en un centro, Corium AI podrá ayudarte con preguntas mucho más avanzadas.";
 
 export function CoriumExperienceGuide({ role, open, onClose, onInterest, onStartGuidedTour, onResumeGuidedTour, onRestartGuidedTour, tourState }: CoriumExperienceGuideProps) {
   const content = experienceGuideContent[role];
@@ -122,7 +122,7 @@ export function CoriumExperienceGuide({ role, open, onClose, onInterest, onStart
               <span className="absolute bottom-1 right-1 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500" aria-hidden="true" />
             </span>
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">GuÃ­a de Corium</p>
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">Guía de Corium</p>
               <h2 id="corium-experience-guide-title" className="mt-1 text-xl font-bold tracking-tight text-slate-950">
                 Hola, soy Corium.
               </h2>
@@ -133,7 +133,7 @@ export function CoriumExperienceGuide({ role, open, onClose, onInterest, onStart
             type="button"
             onClick={closeGuide}
             className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            aria-label="Cerrar guÃ­a de Corium"
+            aria-label="Cerrar guía de Corium"
           >
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
@@ -148,7 +148,7 @@ export function CoriumExperienceGuide({ role, open, onClose, onInterest, onStart
                   <div>
                     <p className="text-sm font-semibold text-slate-950">Puedo guiarte por este recorrido, responder una duda o dejarte explorar a tu ritmo.</p>
                     <p className="mt-2 text-sm leading-6 text-emerald-800">
-                      No bloqueo la navegaciÃ³n y no llamo a proveedores externos durante la Experience.
+                      No bloqueo la navegación y no llamo a proveedores externos durante la Experience.
                     </p>
                   </div>
                 </div>
@@ -156,8 +156,8 @@ export function CoriumExperienceGuide({ role, open, onClose, onInterest, onStart
 
               <div>
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <h3 className="text-sm font-bold text-slate-950">Â¿QuÃ© quieres hacer?</h3>
-                  <GradebookBadge tone={guideState.started ? "green" : "blue"}>{guideState.started ? "GuÃ­a iniciada" : "Opcional"}</GradebookBadge>
+                  <h3 className="text-sm font-bold text-slate-950">¿Qué quieres hacer?</h3>
+                  <GradebookBadge tone={guideState.started ? "green" : "blue"}>{guideState.started ? "Guía iniciada" : "Opcional"}</GradebookBadge>
                 </div>
                 {tourState?.status === "paused" ? (
                   <div className="mb-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-sm text-amber-900">
@@ -373,7 +373,7 @@ export function CoriumExperienceGuide({ role, open, onClose, onInterest, onStart
               onClick={startGuide}
               className="inline-flex h-9 items-center justify-center rounded-xl bg-sky-700 px-3 text-xs font-bold text-white transition hover:bg-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
             >
-              Empezar guÃ­a
+              Empezar guía
             </button>
             <button
               type="button"
