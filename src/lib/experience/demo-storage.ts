@@ -1,7 +1,7 @@
-import type { ExperienceProfile } from "@/lib/experience/mode";
+﻿import type { ExperienceProfile } from "@/lib/experience/mode";
 
 const storagePrefix = "educacora-experience";
-const storageScopes = ["demo", "guide", "progress"] as const;
+const storageScopes = ["demo", "guide", "progress", "tour"] as const;
 
 type ExperienceStorageScope = (typeof storageScopes)[number];
 
@@ -58,3 +58,4 @@ export function writeExperienceStorage<T>(profile: ExperienceProfile, data: T, s
 
   storage.setItem(getExperienceStorageKey(profile, scope), JSON.stringify(data));
 }
+

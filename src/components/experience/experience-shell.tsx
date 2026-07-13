@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -8,6 +8,7 @@ import { ArrowRight, CheckCircle2, Compass, Mail, Menu, MessageCircleQuestion, R
 import { CoriumAvatar } from "@/components/ai/corium-avatar";
 import { ContactModal } from "@/components/contact/contact-modal";
 import { CoriumExperienceGuide } from "@/components/experience/corium-experience-guide";
+import { GuidedTourOverlay } from "@/components/experience/guided-tour-overlay";
 import {
   experienceRoles,
   getActiveExperienceModuleKey,
@@ -20,6 +21,7 @@ import {
 } from "@/components/experience/experience-data";
 import type { BrandConfig } from "@/lib/branding/brand-config";
 import { readExperienceStorage, writeExperienceStorage } from "@/lib/experience/demo-storage";
+import { createGuidedTourState, getGuidedTourSteps, normalizeGuidedTourState, type GuidedTourState, type GuidedTourStatus } from "@/lib/experience/guided-tour";
 
 type ExperienceShellProps = {
   brand: BrandConfig;
@@ -34,9 +36,9 @@ type ExperienceProgressState = {
 };
 
 const transitionCopy: Record<ExperienceRole, string> = {
-  director: "Ahora descubrirás EducaCora desde la perspectiva de Dirección.",
-  docente: "Ahora verás cómo trabaja un docente en su día a día.",
-  familia: "Ahora conocerás la experiencia de las familias."
+  director: "Ahora descubrirÃ¡s EducaCora desde la perspectiva de DirecciÃ³n.",
+  docente: "Ahora verÃ¡s cÃ³mo trabaja un docente en su dÃ­a a dÃ­a.",
+  familia: "Ahora conocerÃ¡s la experiencia de las familias."
 };
 
 export function ExperienceShell({ brand, role, onReset, startGuide = false, children }: ExperienceShellProps) {
@@ -54,15 +56,48 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
   const [transitionRole, setTransitionRole] = useState<ExperienceRole | null>(null);
   const [navigationFeedback, setNavigationFeedback] = useState<string | null>(null);
   const [highlightedModule, setHighlightedModule] = useState<ExperienceModuleKey | null>(null);
+  const [tourTargetMissing, setTourTargetMissing] = useState(false);
+  const [tourAnnouncement, setTourAnnouncement] = useState("");
+  const [tourState, setTourState] = useState<GuidedTourState>(() => normalizeGuidedTourState(role, readExperienceStorage<GuidedTourState>(role, "tour")));
   const [progress, setProgress] = useState<ExperienceProgressState>(() => readExperienceStorage<ExperienceProgressState>(role, "progress") ?? { visited: [] });
   const activeModule = getActiveExperienceModuleKey(role, searchParams.get("demo"));
   const activeModuleConfig = getExperienceModule(role, activeModule);
   const roleModules = useMemo(() => getExperienceModules(role), [role]);
   const progressModules = useMemo(() => getProgressExperienceModules(role), [role]);
+  const guidedTourSteps = useMemo(() => getGuidedTourSteps(role), [role]);
+  const currentTourStep = tourState.status === "active" || tourState.status === "paused" ? guidedTourSteps[tourState.stepIndex] ?? null : tourState.status === "completed" ? guidedTourSteps[Math.max(0, guidedTourSteps.length - 1)] ?? null : null;
+  const tourOverlayVisible = tourState.status === "active" || tourState.status === "paused" || tourState.status === "completed";
   const exploredCount = progress.visited.filter((item) => progressModules.some((module) => module.key === item)).length;
+
+  const markProgressModule = useCallback((moduleKey: ExperienceModuleKey) => {
+    const moduleConfig = getExperienceModule(role, moduleKey);
+    if (!moduleConfig.progress) return;
+
+    setProgress((current) => {
+      if (current.visited.includes(moduleKey)) {
+        return current;
+      }
+
+      const next = { visited: [...current.visited, moduleKey] };
+      writeExperienceStorage(role, next, "progress");
+      return next;
+    });
+  }, [role]);
+
+  function persistTourState(nextState: GuidedTourState) {
+    setTourState(nextState);
+    writeExperienceStorage(role, nextState, "tour");
+  }
+
+  const trackGuidedTourEvent = useCallback((eventName: string, extra?: Record<string, string | number | boolean | undefined>) => {
+    if (typeof window === "undefined") return;
+    (window as Window & { gtag?: (command: "event", eventName: string, params?: Record<string, unknown>) => void }).gtag?.("event", eventName, { experience_role: role, ...extra });
+  }, [role]);
 
   useEffect(() => {
     setProgress(readExperienceStorage<ExperienceProgressState>(role, "progress") ?? { visited: [] });
+    setTourState(normalizeGuidedTourState(role, readExperienceStorage<GuidedTourState>(role, "tour")));
+    setTourTargetMissing(false);
   }, [role]);
 
   useEffect(() => {
@@ -127,20 +162,8 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
       return;
     }
 
-    if (!activeModuleConfig.progress) {
-      return;
-    }
-
-    setProgress((current) => {
-      if (current.visited.includes(activeModule)) {
-        return current;
-      }
-
-      const next = { visited: [...current.visited, activeModule] };
-      writeExperienceStorage(role, next, "progress");
-      return next;
-    });
-  }, [activeModule, activeModuleConfig.progress, role]);
+    markProgressModule(activeModule);
+  }, [activeModule, markProgressModule]);
 
   useEffect(() => {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -182,6 +205,197 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
     };
   }, [activeModule, activeModuleConfig.title]);
 
+
+  useEffect(() => {
+    if (tourState.status !== "active" || !currentTourStep) {
+      return;
+    }
+
+    const step = currentTourStep;
+
+    if (activeModule !== step.module) {
+      router.push(getExperienceModuleHref(role, step.module));
+      return;
+    }
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const targetSelector = `[data-experience-target="${step.target}"]`;
+    let cancelled = false;
+    let highlightedTarget: HTMLElement | null = null;
+    let timeoutId: number | null = null;
+    let observer: MutationObserver | null = null;
+
+    function findTarget() {
+      return document.querySelector<HTMLElement>(targetSelector)
+        ?? document.getElementById(step.target)
+        ?? document.getElementById(activeModule === "panel" ? "experience-main-start" : "experience-demo-panel")
+        ?? mainRef.current;
+    }
+
+    function activateTarget(target: HTMLElement, missing: boolean) {
+      if (cancelled) return;
+      setTourTargetMissing(missing);
+      setTourAnnouncement(`Paso ${tourState.stepIndex + 1} de ${guidedTourSteps.length}. ${step.title}.`);
+      markProgressModule(step.completionKey ?? step.module);
+      trackGuidedTourEvent("guided_tour_step_viewed", { step_id: step.id, step_index: tourState.stepIndex + 1 });
+
+      highlightedTarget = target;
+      highlightedTarget.classList.remove("experience-guided-tour-highlight");
+      void highlightedTarget.offsetWidth;
+      highlightedTarget.classList.add("experience-guided-tour-highlight");
+      highlightedTarget.style.scrollMarginTop = window.innerWidth < 1280 ? "112px" : "24px";
+      highlightedTarget.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start", inline: "nearest" });
+    }
+
+    const immediateTarget = findTarget();
+    if (immediateTarget) {
+      activateTarget(immediateTarget, !immediateTarget.matches(targetSelector));
+    } else {
+      observer = new MutationObserver(() => {
+        const target = findTarget();
+        if (target) {
+          observer?.disconnect();
+          activateTarget(target, !target.matches(targetSelector));
+        }
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+      timeoutId = window.setTimeout(() => {
+        observer?.disconnect();
+        const fallbackTarget = document.getElementById(activeModule === "panel" ? "experience-main-start" : "experience-demo-panel") ?? mainRef.current;
+        if (fallbackTarget) {
+          activateTarget(fallbackTarget, true);
+        }
+      }, 900);
+    }
+
+    return () => {
+      cancelled = true;
+      observer?.disconnect();
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+      highlightedTarget?.classList.remove("experience-guided-tour-highlight");
+    };
+  }, [activeModule, currentTourStep, guidedTourSteps.length, markProgressModule, role, router, tourState.status, tourState.stepIndex, trackGuidedTourEvent]);
+
+  useEffect(() => {
+    if (tourState.status !== "active") return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      const step = guidedTourSteps[tourState.stepIndex] ?? guidedTourSteps[0];
+      if (!step) return;
+      const nextState: GuidedTourState = {
+        ...tourState,
+        status: "paused",
+        stepId: step.id,
+        paused: true,
+        startedAt: tourState.startedAt ?? new Date().toISOString()
+      };
+      setTourState(nextState);
+      writeExperienceStorage(role, nextState, "tour");
+      setTourAnnouncement("Recorrido pausado. Puedes retomarlo desde Corium.");
+      trackGuidedTourEvent("guided_tour_paused", { step_index: tourState.stepIndex + 1 });
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [guidedTourSteps, role, tourState, trackGuidedTourEvent]);
+
+  function startGuidedTour(stepIndex = 0) {
+    const step = guidedTourSteps[stepIndex] ?? guidedTourSteps[0];
+    if (!step) return;
+
+    const nextState = createGuidedTourState(role, "active", stepIndex);
+    persistTourState(nextState);
+    setGuideOpen(false);
+    setFinalOpen(false);
+    setMobileMenuOpen(false);
+    setTourTargetMissing(false);
+    trackGuidedTourEvent("guided_tour_started", { step_id: step.id });
+    router.push(getExperienceModuleHref(role, step.module));
+  }
+
+  function updateGuidedTourStatus(status: GuidedTourStatus, stepIndex = tourState.stepIndex) {
+    const step = guidedTourSteps[stepIndex] ?? guidedTourSteps[0];
+    if (!step) return;
+
+    const nextState: GuidedTourState = {
+      ...tourState,
+      role,
+      status,
+      stepIndex,
+      stepId: step.id,
+      completed: status === "completed" || tourState.completed,
+      paused: status === "paused",
+      startedAt: tourState.startedAt ?? new Date().toISOString()
+    };
+    persistTourState(nextState);
+  }
+
+  function pauseGuidedTour() {
+    if (tourState.status !== "active") return;
+    updateGuidedTourStatus("paused");
+    setTourAnnouncement("Recorrido pausado. Puedes retomarlo desde Corium.");
+    trackGuidedTourEvent("guided_tour_paused", { step_index: tourState.stepIndex + 1 });
+  }
+
+  function resumeGuidedTour() {
+    const step = guidedTourSteps[tourState.stepIndex] ?? guidedTourSteps[0];
+    if (!step) return;
+    updateGuidedTourStatus("active");
+    setGuideOpen(false);
+    setMobileMenuOpen(false);
+    trackGuidedTourEvent("guided_tour_resumed", { step_index: tourState.stepIndex + 1 });
+    router.push(getExperienceModuleHref(role, step.module));
+  }
+
+  function exitGuidedTour(status: GuidedTourStatus = "exited") {
+    if (tourState.status === "idle") return;
+    updateGuidedTourStatus(status);
+    setTourTargetMissing(false);
+    setTourAnnouncement(status === "completed" ? "Recorrido completado." : "Recorrido finalizado.");
+    trackGuidedTourEvent(status === "completed" ? "guided_tour_completed" : "guided_tour_exited", { step_index: tourState.stepIndex + 1 });
+  }
+
+  function exploreWithoutGuide() {
+    exitGuidedTour("exited");
+  }
+
+  function goToGuidedTourStep(stepIndex: number) {
+    const safeIndex = Math.max(0, Math.min(stepIndex, guidedTourSteps.length - 1));
+    const step = guidedTourSteps[safeIndex];
+    if (!step) return;
+
+    const nextState: GuidedTourState = {
+      ...tourState,
+      role,
+      status: "active",
+      stepIndex: safeIndex,
+      stepId: step.id,
+      paused: false,
+      startedAt: tourState.startedAt ?? new Date().toISOString()
+    };
+    persistTourState(nextState);
+    setTourTargetMissing(false);
+    router.push(getExperienceModuleHref(role, step.module));
+  }
+
+  function nextGuidedTourStep() {
+    if (tourState.stepIndex >= guidedTourSteps.length - 1) {
+      exitGuidedTour("completed");
+      return;
+    }
+    goToGuidedTourStep(tourState.stepIndex + 1);
+  }
+
+  function previousGuidedTourStep() {
+    goToGuidedTourStep(tourState.stepIndex - 1);
+  }
+
+  function handleManualNavigation() {
+    if (tourState.status === "active") {
+      pauseGuidedTour();
+    }
+  }
   function openContact(originLabel: string) {
     setMobileMenuOpen(false);
     setContactOriginLabel(originLabel);
@@ -190,6 +404,10 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
 
   function handleRoleSwitch(nextRole: ExperienceRole, href: string) {
     if (nextRole === role) return;
+    if (tourState.status === "active" || tourState.status === "paused") {
+      exitGuidedTour("exited");
+      trackGuidedTourEvent("guided_tour_role_changed", { target_role: nextRole });
+    }
 
     setTransitionRole(nextRole);
     window.setTimeout(() => {
@@ -213,7 +431,7 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
                   <p className="text-sm font-bold text-slate-950">EducaCora Experience</p>
                   <p className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700">
                     <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true" />
-                    Demo interactiva · {brand.name}
+                    Demo interactiva Â· {brand.name}
                   </p>
                 </div>
               </div>
@@ -229,7 +447,7 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
 
                 if (item.key === "corium") {
                   return (
-                    <button key={item.key} type="button" onClick={() => setGuideOpen(true)} className={className} aria-current={isActive ? "page" : undefined}>
+                    <button key={item.key} type="button" onClick={() => { handleManualNavigation(); setGuideOpen(true); }} className={className} aria-current={isActive ? "page" : undefined}>
                       <Icon className="h-4 w-4" aria-hidden="true" />
                       {item.label}
                     </button>
@@ -237,7 +455,7 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
                 }
 
                 return (
-                  <Link key={item.key} href={getExperienceModuleHref(role, item.key)} className={className} aria-current={isActive ? "page" : undefined}>
+                  <Link key={item.key} href={getExperienceModuleHref(role, item.key)} onClick={handleManualNavigation} className={className} aria-current={isActive ? "page" : undefined}>
                     <Icon className="h-4 w-4" aria-hidden="true" />
                     {item.label}
                   </Link>
@@ -274,7 +492,7 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
 
             <button
               type="button"
-              onClick={() => setFinalOpen(true)}
+              onClick={() => { exitGuidedTour("exited"); setFinalOpen(true); }}
               className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm font-bold text-amber-800 transition hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
             >
               <Compass className="h-4 w-4" aria-hidden="true" />
@@ -310,7 +528,7 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
           </div>
         </aside>
 
-        <main id="experience-main-start" ref={mainRef} tabIndex={-1} className="experience-fade-up px-4 pb-5 pt-3 outline-none sm:px-6 xl:px-8 xl:py-5">
+        <main id="experience-main-start" data-experience-target="dashboard-summary" ref={mainRef} tabIndex={-1} className="experience-fade-up px-4 pb-5 pt-3 outline-none sm:px-6 xl:px-8 xl:py-5">
           <header className="sticky top-0 z-30 -mx-4 mb-3 border-b border-slate-200 bg-[#f6f3ec]/95 px-4 py-2 shadow-sm backdrop-blur sm:-mx-6 sm:px-6 xl:hidden" style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}>
             <div className="flex min-h-12 items-center justify-between gap-2">
               <button
@@ -333,7 +551,7 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
               </div>
               <button
                 type="button"
-                onClick={() => setFinalOpen(true)}
+                onClick={() => { exitGuidedTour("exited"); setFinalOpen(true); }}
                 className="inline-flex h-10 items-center justify-center rounded-full border border-amber-200 bg-white px-3 text-xs font-bold text-amber-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
               >
                 Finalizar
@@ -394,10 +612,7 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
                           <button
                             key={item.key}
                             type="button"
-                            onClick={() => {
-                              setMobileMenuOpen(false);
-                              setGuideOpen(true);
-                            }}
+                            onClick={() => { handleManualNavigation(); setMobileMenuOpen(false); setGuideOpen(true); }}
                             className={className}
                             aria-current={isActive ? "page" : undefined}
                           >
@@ -408,7 +623,7 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
                       }
 
                       return (
-                        <Link key={item.key} href={getExperienceModuleHref(role, item.key)} onClick={() => setMobileMenuOpen(false)} className={className} aria-current={isActive ? "page" : undefined}>
+                        <Link key={item.key} href={getExperienceModuleHref(role, item.key)} onClick={() => { handleManualNavigation(); setMobileMenuOpen(false); }} className={className} aria-current={isActive ? "page" : undefined}>
                           <Icon className="h-4 w-4" aria-hidden="true" />
                           {item.label}
                         </Link>
@@ -480,19 +695,21 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
         </main>
       </div>
 
-      <button
-        type="button"
-        onClick={() => setGuideOpen(true)}
-        className="experience-corium-glow fixed bottom-4 right-4 z-40 inline-flex min-h-12 items-center gap-3 rounded-full border border-emerald-100 bg-white px-3 py-2 pr-4 text-sm font-bold text-slate-950 shadow-xl shadow-slate-900/10 transition hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 sm:bottom-5 sm:right-5"
-        style={{ marginBottom: "env(safe-area-inset-bottom)", marginRight: "env(safe-area-inset-right)" }}
-        aria-label="Abrir guía de Corium"
-      >
-        <span className="relative flex h-9 w-9 overflow-hidden rounded-full border border-amber-200 bg-white">
-          <CoriumAvatar className="h-9 w-9 object-cover" />
-          <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500" aria-hidden="true" />
-        </span>
-        <span className="hidden sm:inline">Corium</span>
-      </button>
+      {!tourOverlayVisible ? (
+        <button
+          type="button"
+          onClick={() => setGuideOpen(true)}
+          className="experience-corium-glow fixed bottom-4 right-4 z-40 inline-flex min-h-12 items-center gap-3 rounded-full border border-emerald-100 bg-white px-3 py-2 pr-4 text-sm font-bold text-slate-950 shadow-xl shadow-slate-900/10 transition hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 sm:bottom-5 sm:right-5"
+          style={{ marginBottom: "env(safe-area-inset-bottom)", marginRight: "env(safe-area-inset-right)" }}
+          aria-label="Abrir guia de Corium"
+        >
+          <span className="relative flex h-9 w-9 overflow-hidden rounded-full border border-amber-200 bg-white">
+            <CoriumAvatar className="h-9 w-9 object-cover" />
+            <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500" aria-hidden="true" />
+          </span>
+          <span className="hidden sm:inline">Corium</span>
+        </button>
+      ) : null}
 
       <CoriumExperienceGuide
         role={role}
@@ -502,6 +719,32 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
           setGuideOpen(false);
           openContact("Corium");
         }}
+        onStartGuidedTour={() => startGuidedTour()}
+        onResumeGuidedTour={resumeGuidedTour}
+        onRestartGuidedTour={() => startGuidedTour()}
+        tourState={tourState}
+      />
+
+      <GuidedTourOverlay
+        role={role}
+        state={tourState}
+        steps={guidedTourSteps}
+        currentStep={currentTourStep}
+        targetMissing={tourTargetMissing}
+        announcement={tourAnnouncement}
+        onPrevious={previousGuidedTourStep}
+        onNext={nextGuidedTourStep}
+        onPause={pauseGuidedTour}
+        onResume={resumeGuidedTour}
+        onExit={() => exitGuidedTour("exited")}
+        onExplore={exploreWithoutGuide}
+        onRestart={() => startGuidedTour()}
+        onContact={() => {
+          exitGuidedTour("exited");
+          trackGuidedTourEvent("guided_tour_contact_opened");
+          openContact("Tour guiado Corium");
+        }}
+        onSwitchRole={handleRoleSwitch}
       />
 
       {finalOpen ? (
@@ -513,7 +756,7 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">Corium</p>
                   <h2 id="experience-final-title" className="mt-1 text-2xl font-bold tracking-tight text-slate-950">
-                    ¿Qué te ha parecido EducaCora?
+                    Â¿QuÃ© te ha parecido EducaCora?
                   </h2>
                 </div>
               </div>
@@ -528,8 +771,8 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
             </div>
 
             <div className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
-              <p>Ya has conocido cómo funciona EducaCora desde la perspectiva de este perfil.</p>
-              <p>Puedes seguir descubriendo la plataforma desde otros roles o contactar con nosotros si quieres conocer cómo se adaptaría EducaCora a vuestro centro.</p>
+              <p>Ya has conocido cÃ³mo funciona EducaCora desde la perspectiva de este perfil.</p>
+              <p>Puedes seguir descubriendo la plataforma desde otros roles o contactar con nosotros si quieres conocer cÃ³mo se adaptarÃ­a EducaCora a vuestro centro.</p>
             </div>
 
             <div className="mt-5 grid gap-2 sm:grid-cols-3">
@@ -541,7 +784,7 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
                   disabled={profile.id === role}
                   className="group flex min-h-12 items-center justify-between rounded-xl border border-slate-200 bg-white px-3 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:bg-amber-50 disabled:text-amber-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 >
-                  {profile.id === "director" ? "Explorar Dirección" : profile.id === "docente" ? "Explorar Docente" : "Explorar Familias"}
+                  {profile.id === "director" ? "Explorar DirecciÃ³n" : profile.id === "docente" ? "Explorar Docente" : "Explorar Familias"}
                   {profile.id === role ? <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> : <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" aria-hidden="true" />}
                 </button>
               ))}
@@ -601,3 +844,12 @@ export function ExperienceShell({ brand, role, onReset, startGuide = false, chil
     </div>
   );
 }
+
+
+
+
+
+
+
+
+

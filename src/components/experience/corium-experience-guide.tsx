@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
@@ -6,6 +6,7 @@ import { ArrowRight, CheckCircle2, HelpCircle, MessageCircleQuestion, Search, Sp
 import { CoriumAvatar } from "@/components/ai/corium-avatar";
 import { GradebookBadge } from "@/components/grades/gradebook-design";
 import { experienceGuideContent, findExperienceGuideAnswer } from "@/lib/experience/guide-content";
+import type { GuidedTourState } from "@/lib/experience/guided-tour";
 import { readExperienceStorage, writeExperienceStorage } from "@/lib/experience/demo-storage";
 import type { ExperienceProfile } from "@/lib/experience/mode";
 
@@ -20,6 +21,10 @@ type CoriumExperienceGuideProps = {
   open: boolean;
   onClose: () => void;
   onInterest: () => void;
+  onStartGuidedTour?: () => void;
+  onResumeGuidedTour?: () => void;
+  onRestartGuidedTour?: () => void;
+  tourState?: GuidedTourState;
 };
 
 const initialGuideState: CoriumGuideState = {
@@ -29,18 +34,18 @@ const initialGuideState: CoriumGuideState = {
 };
 
 const quickQuestions = [
-  "¿Qué hace este módulo?",
-  "¿Qué puedo hacer aquí?",
-  "¿Cómo cambio de perfil?",
-  "¿Qué datos son reales?",
-  "¿Cómo funciona EducaCora?",
-  "¿Cómo contactar?"
+  "Â¿QuÃ© hace este mÃ³dulo?",
+  "Â¿QuÃ© puedo hacer aquÃ­?",
+  "Â¿CÃ³mo cambio de perfil?",
+  "Â¿QuÃ© datos son reales?",
+  "Â¿CÃ³mo funciona EducaCora?",
+  "Â¿CÃ³mo contactar?"
 ];
 
 const unansweredMessage =
-  "Esa funcionalidad todavía no está documentada en la Experience. Cuando EducaCora esté implantado en un centro, Corium AI podrá ayudarte con preguntas mucho más avanzadas.";
+  "Esa funcionalidad todavÃ­a no estÃ¡ documentada en la Experience. Cuando EducaCora estÃ© implantado en un centro, Corium AI podrÃ¡ ayudarte con preguntas mucho mÃ¡s avanzadas.";
 
-export function CoriumExperienceGuide({ role, open, onClose, onInterest }: CoriumExperienceGuideProps) {
+export function CoriumExperienceGuide({ role, open, onClose, onInterest, onStartGuidedTour, onResumeGuidedTour, onRestartGuidedTour, tourState }: CoriumExperienceGuideProps) {
   const content = experienceGuideContent[role];
   const [guideState, setGuideState] = useState<CoriumGuideState>(() => readExperienceStorage<CoriumGuideState>(role, "guide") ?? initialGuideState);
   const [activeFaq, setActiveFaq] = useState<string | null>(null);
@@ -70,8 +75,12 @@ export function CoriumExperienceGuide({ role, open, onClose, onInterest }: Coriu
 
   function startGuide() {
     updateGuideState({ ...guideState, started: true, closed: false });
-    setGuidedOpen(true);
     setFaqsOpen(false);
+    if (onStartGuidedTour) {
+      onStartGuidedTour();
+      return;
+    }
+    setGuidedOpen(true);
   }
 
   function closeGuide() {
@@ -113,7 +122,7 @@ export function CoriumExperienceGuide({ role, open, onClose, onInterest }: Coriu
               <span className="absolute bottom-1 right-1 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500" aria-hidden="true" />
             </span>
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">Guía de Corium</p>
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">GuÃ­a de Corium</p>
               <h2 id="corium-experience-guide-title" className="mt-1 text-xl font-bold tracking-tight text-slate-950">
                 Hola, soy Corium.
               </h2>
@@ -124,7 +133,7 @@ export function CoriumExperienceGuide({ role, open, onClose, onInterest }: Coriu
             type="button"
             onClick={closeGuide}
             className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            aria-label="Cerrar guía de Corium"
+            aria-label="Cerrar guÃ­a de Corium"
           >
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
@@ -139,7 +148,7 @@ export function CoriumExperienceGuide({ role, open, onClose, onInterest }: Coriu
                   <div>
                     <p className="text-sm font-semibold text-slate-950">Puedo guiarte por este recorrido, responder una duda o dejarte explorar a tu ritmo.</p>
                     <p className="mt-2 text-sm leading-6 text-emerald-800">
-                      No bloqueo la navegación y no llamo a proveedores externos durante la Experience.
+                      No bloqueo la navegaciÃ³n y no llamo a proveedores externos durante la Experience.
                     </p>
                   </div>
                 </div>
@@ -147,9 +156,26 @@ export function CoriumExperienceGuide({ role, open, onClose, onInterest }: Coriu
 
               <div>
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <h3 className="text-sm font-bold text-slate-950">¿Qué quieres hacer?</h3>
-                  <GradebookBadge tone={guideState.started ? "green" : "blue"}>{guideState.started ? "Guía iniciada" : "Opcional"}</GradebookBadge>
+                  <h3 className="text-sm font-bold text-slate-950">Â¿QuÃ© quieres hacer?</h3>
+                  <GradebookBadge tone={guideState.started ? "green" : "blue"}>{guideState.started ? "GuÃ­a iniciada" : "Opcional"}</GradebookBadge>
                 </div>
+                {tourState?.status === "paused" ? (
+                  <div className="mb-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                    <p className="font-bold">Tu recorrido quedo pausado.</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <button type="button" onClick={onResumeGuidedTour} className="inline-flex h-8 items-center rounded-lg bg-slate-950 px-3 text-xs font-bold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">Continuar recorrido</button>
+                      <button type="button" onClick={onRestartGuidedTour ?? startGuide} className="inline-flex h-8 items-center rounded-lg border border-amber-200 bg-white px-3 text-xs font-bold text-amber-800 transition hover:bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-500">Reiniciar guia</button>
+                    </div>
+                  </div>
+                ) : tourState?.status === "completed" ? (
+                  <div className="mb-3 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+                    <p className="font-bold">Ya has completado la guia de este perfil.</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <button type="button" onClick={onRestartGuidedTour ?? startGuide} className="inline-flex h-8 items-center rounded-lg bg-slate-950 px-3 text-xs font-bold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">Repetir guia</button>
+                      <Link href="/experience" className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500">Explorar otro perfil</Link>
+                    </div>
+                  </div>
+                ) : null}
                 <div className="grid gap-2 sm:grid-cols-3">
                   <button
                     type="button"
@@ -347,7 +373,7 @@ export function CoriumExperienceGuide({ role, open, onClose, onInterest }: Coriu
               onClick={startGuide}
               className="inline-flex h-9 items-center justify-center rounded-xl bg-sky-700 px-3 text-xs font-bold text-white transition hover:bg-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
             >
-              Empezar guía
+              Empezar guÃ­a
             </button>
             <button
               type="button"
@@ -362,3 +388,5 @@ export function CoriumExperienceGuide({ role, open, onClose, onInterest }: Coriu
     </div>
   );
 }
+
+

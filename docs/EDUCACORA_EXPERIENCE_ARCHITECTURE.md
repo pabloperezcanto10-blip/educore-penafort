@@ -1,4 +1,4 @@
-# EDUCACORA_EXPERIENCE_ARCHITECTURE.md
+﻿# EDUCACORA_EXPERIENCE_ARCHITECTURE.md
 
 Version: 1.0  
 Estado: Documento maestro  
@@ -149,7 +149,7 @@ Presenta brevemente la plataforma.
 
 Pregunta:
 
-"¿Que papel desempeñas en tu centro educativo?"
+"Â¿Que papel desempeÃ±as en tu centro educativo?"
 
 Las rutas iniciales son:
 
@@ -181,9 +181,9 @@ La Experience unicamente modifica cuatro elementos.
 
 ## Branding
 
-Colegio Peñafort
+Colegio PeÃ±afort
 
-↓
+â†“
 
 EducaCora
 
@@ -193,7 +193,7 @@ EducaCora
 
 Datos reales
 
-↓
+â†“
 
 Datos completamente ficticios
 
@@ -203,7 +203,7 @@ Datos completamente ficticios
 
 Login obligatorio
 
-↓
+â†“
 
 Acceso directo
 
@@ -213,7 +213,7 @@ Acceso directo
 
 Persistencia real
 
-↓
+â†“
 
 Persistencia simulada
 
@@ -248,7 +248,7 @@ Se reutilizaran:
 
 # BRANDING
 
-La Experience nunca utilizara la identidad visual del Colegio Peñafort.
+La Experience nunca utilizara la identidad visual del Colegio PeÃ±afort.
 
 Todo el branding sera sustituido por:
 
@@ -257,7 +257,7 @@ Todo el branding sera sustituido por:
 - Nombre EducaCora
 - Centro ficticio
 
-No deberan existir referencias visibles al Colegio Peñafort.
+No deberan existir referencias visibles al Colegio PeÃ±afort.
 
 ---
 
@@ -364,7 +364,7 @@ El mensaje sera similar a:
 
 "Cada centro educativo es diferente."
 
-"Nos encantara enseñarte como EducaCora puede adaptarse a vuestra realidad."
+"Nos encantara enseÃ±arte como EducaCora puede adaptarse a vuestra realidad."
 
 Botones:
 
@@ -446,7 +446,7 @@ El visitante debe olvidar que esta utilizando una demostracion.
 
 ## Principio 8
 
-La Experience debe poder mantenerse durante años con un coste minimo.
+La Experience debe poder mantenerse durante aÃ±os con un coste minimo.
 
 ---
 
@@ -489,3 +489,125 @@ Es exactamente el mismo producto ejecutandose en un entorno de demostracion.
 Si en algun momento una decision arquitectonica obliga a mantener dos versiones distintas de un mismo dashboard, componente o funcionalidad, dicha decision debera considerarse incorrecta y debera replantearse antes de implementarse.
 
 La reutilizacion, la simplicidad y la mantenibilidad tienen prioridad absoluta sobre cualquier solucion rapida basada en duplicar codigo.
+---
+
+# CORIUM GUIDED TOUR
+
+## Objetivo
+
+El Guided Tour convierte la accion "Guiarme" de Corium en un recorrido semiautomatico dentro de EducaCora Experience. Corium no ejecuta IA real, no llama a proveedores externos y no modifica datos: solo coordina navegacion, scroll, resaltado visual y explicacion contextual sobre las vistas existentes.
+
+## Arquitectura
+
+La configuracion vive en `src/lib/experience/guided-tour.ts` y define pasos por rol mediante una estructura declarativa:
+
+- `GuidedTourStep`
+- `GuidedTourState`
+- `GuidedTourStatus`
+- `GuidedTourTarget`
+
+Cada paso declara:
+
+- rol;
+- modulo Experience existente;
+- target visual;
+- titulo;
+- descripcion;
+- beneficio;
+- clave de progreso cuando procede.
+
+La interfaz visual se renderiza con `GuidedTourOverlay`, mientras que `ExperienceShell` orquesta el estado, la navegacion y la persistencia.
+
+## Estados
+
+El tour utiliza los estados:
+
+- `idle`: sin recorrido activo.
+- `active`: Corium esta guiando el paso actual.
+- `paused`: el visitante ha pausado o navegado manualmente.
+- `completed`: se ha completado el recorrido del rol.
+- `exited`: el visitante ha salido para explorar por su cuenta.
+
+## Recorridos por rol
+
+### Docente
+
+1. Panel.
+2. Pasar lista.
+3. Cuaderno de Calificaciones.
+4. Mis alumnos / ficha del alumno.
+5. Comunicaciones.
+6. Calendario.
+
+### Direccion
+
+1. Panel.
+2. Centro de supervision.
+3. Comunicaciones.
+4. Alumnado.
+5. Supervision academica.
+6. Asistencia.
+7. Calendario.
+
+### Familia
+
+1. Panel.
+2. Comunicaciones.
+3. Calificaciones.
+4. Asistencia.
+5. Perfil del alumno.
+6. Calendario.
+
+## Targets
+
+Los pasos se apoyan en `data-experience-target` sobre elementos existentes. Los targets actuales son:
+
+- `dashboard-summary`
+- `director-supervision-summary`
+- `attendance-primary-action`
+- `attendance-family-summary`
+- `gradebook-overview`
+- `family-grades-summary`
+- `student-profile-summary`
+- `communications-overview`
+- `calendar-overview`
+- `demo-panel`
+
+No se deben crear wrappers innecesarios ni duplicar vistas para anadir targets. Si un target no aparece, el tour usa el encabezado del modulo como fallback y permite continuar.
+
+## Navegacion y progreso
+
+El tour reutiliza `getExperienceModuleHref`, `getActiveExperienceModuleKey` y las rutas existentes de Experience. No existen rutas protegidas ni navegacion paralela. Al visitar un modulo mediante el tour se actualiza tambien el progreso general de Experience, sin duplicar conteos.
+
+## Persistencia
+
+El estado se guarda con `demo-storage.ts` usando `sessionStorage` y el scope `tour`. La persistencia es independiente por rol y no sobrevive fuera de la sesion del navegador.
+
+## Comportamiento responsive
+
+En escritorio se muestra un panel compacto de Corium en la esquina inferior derecha. En movil y tablet el mismo componente actua como una tarjeta inferior que respeta safe areas. Durante el tour se oculta el boton flotante normal de Corium para evitar duplicidad visual.
+
+## Finalizar recorrido
+
+Completar el tour no finaliza la Experience. El panel final ofrece:
+
+- explorar por cuenta propia;
+- probar otro perfil;
+- contactar;
+- volver a la web;
+- repetir la guia.
+
+El boton persistente "Finalizar recorrido" de Experience sigue funcionando y cierra el tour antes de abrir el panel final general.
+
+## Seguridad
+
+El Guided Tour no llama a Supabase, Auth, RLS, server actions, APIs de IA ni proveedores externos. Tampoco envia comunicaciones, guarda asistencia real, modifica calificaciones ni ejecuta acciones destructivas. Solo usa datos ficticios de Experience.
+
+## Como anadir un paso
+
+1. Anadir el paso en `guidedTourSteps` con un `module` ya existente.
+2. Usar un target existente o anadir un `data-experience-target` minimo sobre un elemento real.
+3. Definir `completionKey` si el paso debe contar para el progreso general.
+4. Validar que el modulo abre con `getExperienceModuleHref`.
+5. Probar escritorio, tablet y movil.
+
