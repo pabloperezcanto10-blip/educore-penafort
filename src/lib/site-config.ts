@@ -1,4 +1,4 @@
-export const SITE_URL = "https://educacora.es";
+export const SITE_URL = "https://www.educacora.es";
 export const SITE_NAME = "EducaCora";
 export const SITE_TITLE = "EducaCora | El corazón de tu centro educativo";
 export const SITE_DESCRIPTION =

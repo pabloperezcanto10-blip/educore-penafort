@@ -8,7 +8,10 @@ import { experienceWelcomeGuide } from "@/lib/experience/guide-content";
 
 export const metadata: Metadata = {
   title: "EducaCora Experience | Prueba la plataforma",
-  description: "Explora EducaCora con datos ficticios desde los perfiles de dirección, docente y familia."
+  description: "Explora EducaCora con datos ficticios desde los perfiles de dirección, docente y familia.",
+  alternates: {
+    canonical: "/experience"
+  }
 };
 
 export default function ExperiencePage() {

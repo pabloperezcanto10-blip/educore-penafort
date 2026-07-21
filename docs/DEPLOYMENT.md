@@ -6,7 +6,7 @@ EducaCora se despliega desde GitHub a Vercel. El objetivo del flujo es que el en
 
 URL fija actual:
 
-`https://educacora.es`
+`https://www.educacora.es`
 
 Esta es la URL que debe compartirse con colegios, docentes, familias o personas que necesiten ver EducaCora en producción.
 
@@ -27,7 +27,7 @@ Vercel detecta el push
 ↓
 Vercel despliega automáticamente
 ↓
-https://educacora.es queda actualizado
+https://www.educacora.es queda actualizado
 ```
 
 ## GitHub conectado a Vercel
@@ -55,7 +55,7 @@ Production es el despliegue principal del proyecto.
 
 URL actual:
 
-`https://educacora.es`
+`https://www.educacora.es`
 
 ### Preview
 
@@ -86,7 +86,7 @@ Si aparece otra rama, cambiarla a `main`.
 
 Compartir siempre:
 
-`https://educacora.es`
+`https://www.educacora.es`
 
 No compartir URLs con este patrón:
 
@@ -122,7 +122,7 @@ git push origin main
 
 6. Abrir la URL fija:
 
-`https://educacora.es`
+`https://www.educacora.es`
 
 ## Variables de entorno
 
@@ -140,4 +140,4 @@ El archivo `.env.local` debe mantenerse fuera de Git.
 - Rama local principal: `main`.
 - `.vercel/` está ignorado por Git.
 - `vercel.json` declara el framework `nextjs`.
-- La URL pública `https://educacora.es` responde correctamente.
+- La URL pública `https://www.educacora.es` responde correctamente.
