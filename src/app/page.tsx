@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Mail } from "lucide-react";
 import { CoriumAvatar } from "@/components/ai/corium-avatar";
 import { ContactTrigger } from "@/components/contact/contact-modal";
+import { ConnectedModulesSection } from "@/components/landing/connected-modules-section";
 import { LandingExperienceMotion } from "@/components/landing/landing-experience-motion";
 import { LivingHero } from "@/components/landing/living-hero";
 import { MobilePublicNav } from "@/components/landing/mobile-public-nav";
@@ -63,15 +64,6 @@ const solvedItems = [
   "Cuaderno, criterios, observaciones y boletines conectados.",
   "Asistencia y seguimiento diario desde cada sesión.",
   "Supervisión directiva de actividad y prioridades."
-];
-
-const modules = [
-  ["Comunicación", "Conversaciones claras entre centro y familias."],
-  ["Cuaderno", "Evaluación, criterios y observaciones conectadas."],
-  ["Asistencia", "Pasar lista y hacer seguimiento diario."],
-  ["Boletines", "Vista previa y documentos profesionales para familias."],
-  ["Centro de control", "Prioridades y supervisión del colegio."],
-  ["Corium AI", "Acompañamiento educativo integrado."]
 ];
 
 export default function HomePage() {
@@ -285,7 +277,7 @@ export default function HomePage() {
           border: 1px solid rgba(47,138,112,.15);
         }
         .educore-public-page .hero-actions { display: flex; align-items: center; gap: 14px; margin-top: 32px; flex-wrap: wrap; }
-        .educore-public-page section:not([data-hero-corium-scene]) { padding: var(--ec-space-section) 0; scroll-margin-top: 94px; }
+        .educore-public-page section:not([data-hero-corium-scene]):not([data-connected-modules-scene]) { padding: var(--ec-space-section) 0; scroll-margin-top: 94px; }
         .educore-public-page #acceso,
         .educore-public-page #experience { padding-block: var(--ec-space-section-compact); }
         .educore-public-page .section-head { max-width: 760px; margin: 0 auto 34px; text-align: center; }
@@ -293,7 +285,6 @@ export default function HomePage() {
         .educore-public-page .section-head h2 { margin: 0; color: var(--navy-950); font-size: clamp(34px, 4vw, 52px); line-height: 1.04; letter-spacing: -.055em; }
         .educore-public-page .section-head p { margin: 18px auto 0; color: var(--stone-700); font-size: 17px; line-height: 1.7; }
         .educore-public-page .module-panel,
-        .educore-public-page .module-card,
         .educore-public-page .security-card,
         .educore-public-page .brand-note {
           background: white;
@@ -338,13 +329,6 @@ export default function HomePage() {
           font-weight: 900;
         }
         .educore-public-page .module-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-        .educore-public-page .module-card { border-radius: 20px; padding: 20px; position: relative; overflow: hidden; transition: transform var(--ec-motion-medium) var(--ec-ease-enter), box-shadow var(--ec-motion-medium) ease, border-color var(--ec-motion-medium) ease; }
-        .educore-public-page .module-card::before { content: ""; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(47,138,112,.08), rgba(210,166,87,.08)); opacity: 0; transition: opacity var(--ec-motion-medium) ease; pointer-events: none; }
-        .educore-public-page .module-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-md); border-color: rgba(47,138,112,.22); }
-        .educore-public-page .module-card:hover::before { opacity: 1; }
-        .educore-public-page .module-card > * { position: relative; }
-        .educore-public-page .module-card strong { display: block; color: var(--navy-950); margin-bottom: 7px; letter-spacing: -.03em; }
-        .educore-public-page .module-card span { color: var(--stone-700); font-size: 13px; line-height: 1.55; }
         .educore-public-page .corium-card {
           display: grid;
           grid-template-columns: .9fr 1.1fr;
@@ -527,7 +511,6 @@ export default function HomePage() {
           border-color: var(--stone-200);
           box-shadow: var(--shadow-sm);
         }
-        .educore-public-page .surface-card--informative.module-card:hover::before { opacity: 0; }
         .educore-public-page .role-card.surface-card--informative:hover {
           border-color: rgba(255,255,255,.12);
           background: rgba(255,255,255,.08);
@@ -632,7 +615,7 @@ export default function HomePage() {
           .educore-public-page .nav-actions { gap: 8px; }
           .educore-public-page .nav-actions > .btn-soft { display: none; }
           .educore-public-page .nav-actions > .btn-primary { min-height: 44px; padding-inline: 12px; font-size: 12px; }
-          .educore-public-page section:not([data-hero-corium-scene]) { padding-block: var(--ec-space-section-compact); scroll-margin-top: 82px; }
+          .educore-public-page section:not([data-hero-corium-scene]):not([data-connected-modules-scene]) { padding-block: var(--ec-space-section-compact); scroll-margin-top: 82px; }
           .educore-public-page .module-list,
           .educore-public-page .corium-points,
           .educore-public-page .roles,
@@ -666,7 +649,6 @@ export default function HomePage() {
           .educore-public-page .landing-reveal.is-visible,
           .educore-public-page .module-panel,
           .educore-public-page .solution-item,
-          .educore-public-page .module-card,
           .educore-public-page .corium-card,
           .educore-public-page .corium-mascot,
           .educore-public-page .contextual-corium,
@@ -767,23 +749,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="modulos" data-corium-message="Aquí trabajan los centros educativos cada día.">
-        <div className="container">
-          <div className="section-head landing-reveal">
-            <div className="section-kicker">Módulos principales</div>
-            <h2>Todo conectado, sin duplicar trabajo.</h2>
-            <p>Los módulos clave trabajan conectados y se adaptan a cada rol.</p>
-          </div>
-          <div className="module-list landing-reveal landing-delay-1">
-            {modules.map(([title, description]) => (
-              <article className="module-card surface-card--informative" key={title}>
-                <strong>{title}</strong>
-                <span>{description}</span>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
+      <ConnectedModulesSection />
 
       <section id="corium-ai" data-corium-message="Corium acompaña sin invadir.">
         <div className="container">

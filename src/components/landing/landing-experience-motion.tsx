@@ -10,7 +10,7 @@ export function LandingExperienceMotion() {
   const [message, setMessage] = useState(defaultMessage);
   const [compact, setCompact] = useState(false);
   const [expanded, setExpanded] = useState(true);
-  const [heroVisible, setHeroVisible] = useState(true);
+  const [containedCoriumVisible, setContainedCoriumVisible] = useState(true);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 640px)");
@@ -26,20 +26,32 @@ export function LandingExperienceMotion() {
   }, []);
 
   useEffect(() => {
-    const hero = document.querySelector<HTMLElement>("[data-hero-corium-scene]");
+    const containedScenes = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-hero-corium-scene], [data-corium-contained-scene]")
+    );
 
-    if (!hero) {
-      setHeroVisible(false);
+    if (containedScenes.length === 0) {
+      setContainedCoriumVisible(false);
       return;
     }
 
-    const heroObserver = new IntersectionObserver(
-      ([entry]) => setHeroVisible(entry.isIntersecting && entry.intersectionRatio >= 0.12),
+    const visibleScenes = new Set<Element>();
+    const sceneObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.12) {
+            visibleScenes.add(entry.target);
+          } else {
+            visibleScenes.delete(entry.target);
+          }
+        });
+        setContainedCoriumVisible(visibleScenes.size > 0);
+      },
       { threshold: [0, 0.12, 0.35] }
     );
 
-    heroObserver.observe(hero);
-    return () => heroObserver.disconnect();
+    containedScenes.forEach((scene) => sceneObserver.observe(scene));
+    return () => sceneObserver.disconnect();
   }, []);
 
   useEffect(() => {
@@ -86,7 +98,7 @@ export function LandingExperienceMotion() {
     };
   }, []);
 
-  if (heroVisible) return null;
+  if (containedCoriumVisible) return null;
 
   return (
     <aside className={`contextual-corium${expanded ? " is-expanded" : ""}`} aria-label="Ayuda contextual de Corium">

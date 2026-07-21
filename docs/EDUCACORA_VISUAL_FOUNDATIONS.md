@@ -1,6 +1,6 @@
 # EducaCora Visual Foundations
 
-Version: 1.1
+Version: 1.2
 Estado: Fuente de verdad para superficies públicas
 Ámbito inicial: Home pública
 
@@ -135,6 +135,54 @@ La Home abre con una composición de dos áreas: propuesta de valor y superficie
 - Los datos de demostración viven en `hero-product-demo.tsx` y deben seguir siendo ficticios.
 - Los estilos viven en `living-hero.module.css` y consumen tokens `--ec-*`.
 - No deben añadirse nuevos intervalos, listeners globales o librerías de motion para ampliar la escena.
+
+## Ecosistema conectado de módulos
+
+La sección pública de módulos deja de usar una cuadrícula de productos independientes. La composición combina un selector accesible y una única superficie protagonista para explicar cómo la información avanza entre perfiles y áreas del centro.
+
+### Fuente única de configuración
+
+- `connected-modules-data.ts` contiene los seis módulos, su copy, beneficio, icono, acento, roles, métrica y flujo.
+- Los módulos oficiales son Asistencia, Cuaderno de Calificaciones, Comunicaciones, Alumnado, Calendario y Supervisión.
+- Añadir o modificar un módulo exige actualizar solo esa configuración. La vista, el selector y el resumen accesible consumen la misma fuente.
+- Todos los datos son ficticios; esta superficie no consulta APIs, Supabase ni contenido de producción.
+
+### Selector y panel
+
+- `ConnectedModulesSection` conserva en servidor el encabezado, la estructura narrativa y la transición hacia Roles.
+- `ConnectedModulesExperience` aísla selección, teclado, visibilidad, motion y microdemostraciones.
+- El selector usa `tablist`, `tab`, `tabpanel`, `aria-selected` y navegación con flechas, Inicio y Fin.
+- El panel reserva una altura estable y reutiliza el lenguaje de badges, métricas, barras de progreso, estados y flujos del producto.
+
+### Microdemostraciones
+
+- Asistencia muestra Docente, Dirección y Familia sobre un único registro.
+- Comunicaciones muestra envío, recepción y confirmación de lectura.
+- Cuaderno muestra actualización docente, supervisión y seguimiento visible para la familia.
+- Cada demo ejecuta una sola secuencia al entrar en viewport o al ser seleccionada; no existe autoplay entre módulos.
+- Alumnado, Calendario y Supervisión muestran estados finales compactos sin temporizadores adicionales.
+
+### Corium y launcher
+
+- Corium acompaña la escena con una única explicación breve y no cambia con cada módulo.
+- El launcher público se oculta mientras el Hero o el ecosistema contienen una representación propia de Corium.
+- Fuera de esas escenas reaparece el launcher contextual habitual.
+
+### Motion, reduced motion y rendimiento
+
+- La transición del panel usa `--ec-motion-medium`; cada flujo termina en un estado estable.
+- Solo se crean dos temporizadores para el módulo animado seleccionado y se limpian al cambiar, salir o desmontar.
+- Un único `IntersectionObserver` local evita ejecutar la demo fuera del viewport.
+- Con reduced motion no se ejecutan ciclos: el panel muestra directamente su estado final y elimina desplazamientos y progreso animado.
+- No se añaden dependencias, imágenes ni listeners continuos.
+
+### Responsive y estabilidad
+
+- Desktop muestra selector lateral y panel protagonista.
+- Tablet coloca el selector sobre el panel en una cuadrícula compacta.
+- Móvil usa seis opciones en dos columnas y un único flujo vertical; no requiere arrastre horizontal.
+- La superficie mantiene dimensiones previsibles para evitar CLS al cambiar de módulo.
+- El CTA secundario `Probar estos módulos` conduce a Experience y conserva un área táctil mínima de 44 px.
 
 ## Interacción y accesibilidad
 
