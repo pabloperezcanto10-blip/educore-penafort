@@ -4,6 +4,7 @@ import { Mail } from "lucide-react";
 import { CoriumAvatar } from "@/components/ai/corium-avatar";
 import { ContactTrigger } from "@/components/contact/contact-modal";
 import { LandingExperienceMotion } from "@/components/landing/landing-experience-motion";
+import { LivingHero } from "@/components/landing/living-hero";
 import { MobilePublicNav } from "@/components/landing/mobile-public-nav";
 import { InstallEduCoreButton } from "@/components/pwa/install-educore-button";
 import { PUBLIC_CONTACT_EMAIL, SITE_DESCRIPTION, SITE_NAME, SITE_OG_IMAGE_URL, SITE_URL } from "@/lib/site-config";
@@ -270,22 +271,6 @@ export default function HomePage() {
         .educore-public-page .btn-soft:hover { background: white; box-shadow: 0 14px 30px rgba(15,27,46,.08); }
         .educore-public-page .btn-gold { background: linear-gradient(135deg, var(--green-600), var(--gold-500)); color: white; box-shadow: 0 16px 35px rgba(47, 138, 112, .24); }
         .educore-public-page .btn-gold:hover { box-shadow: 0 22px 44px rgba(47, 138, 112, .28); }
-        .educore-public-page .hero {
-          position: relative;
-          padding: 76px 0 70px;
-        }
-        .educore-public-page .hero::before {
-          content: "";
-          position: absolute;
-          inset: -180px -160px auto auto;
-          width: 620px;
-          height: 620px;
-          border-radius: 50%;
-          background: radial-gradient(circle, rgba(210,166,87,.24), rgba(47,138,112,.12) 42%, transparent 68%);
-          pointer-events: none;
-          animation: landing-soft-light var(--ec-motion-ambient) ease-in-out infinite alternate;
-        }
-        .educore-public-page .hero-grid { display: grid; grid-template-columns: 1.02fr .98fr; gap: 58px; align-items: center; position: relative; }
         .educore-public-page .eyebrow {
           display: inline-flex;
           align-items: center;
@@ -299,77 +284,8 @@ export default function HomePage() {
           margin-bottom: 22px;
           border: 1px solid rgba(47,138,112,.15);
         }
-        .educore-public-page .hero h1 {
-          margin: 0;
-          max-width: 760px;
-          font-size: clamp(48px, 6vw, 82px);
-          line-height: .95;
-          letter-spacing: -.065em;
-          color: var(--navy-950);
-        }
-        .educore-public-page .hero h1 .gradient {
-          background: linear-gradient(135deg, var(--green-700), var(--gold-500));
-          -webkit-background-clip: text;
-          background-clip: text;
-          color: transparent;
-        }
-        .educore-public-page .hero p {
-          max-width: 610px;
-          margin: 26px 0 0;
-          font-size: 18px;
-          line-height: 1.72;
-          color: var(--stone-700);
-        }
         .educore-public-page .hero-actions { display: flex; align-items: center; gap: 14px; margin-top: 32px; flex-wrap: wrap; }
-        .educore-public-page .trust-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin: 32px 0 0; padding: 0; color: var(--stone-500); font-size: 13px; font-weight: 700; list-style: none; }
-        .educore-public-page .trust-row li { display: inline-flex; align-items: center; gap: 18px; white-space: nowrap; }
-        .educore-public-page .trust-row li:not(:last-child)::after { width: 7px; height: 7px; border-radius: 50%; background: var(--gold-500); content: ""; }
-        .educore-public-page .product-card {
-          position: relative;
-          border-radius: 34px;
-          padding: 18px;
-          background: linear-gradient(145deg, rgba(255,255,255,.94), rgba(246,243,236,.72));
-          border: 1px solid rgba(255,255,255,.8);
-          box-shadow: var(--shadow-md);
-          transform: translateZ(0);
-          transition: transform var(--ec-motion-medium) var(--ec-ease-enter), box-shadow var(--ec-motion-medium) var(--ec-ease-enter), border-color var(--ec-motion-medium) ease;
-        }
-        .educore-public-page .product-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-premium); border-color: rgba(47,138,112,.2); }
-        .educore-public-page .product-card::before {
-          content: "";
-          position: absolute;
-          inset: 25px;
-          border-radius: 28px;
-          background: radial-gradient(circle at 88% 18%, rgba(210,166,87,.28), transparent 36%);
-          pointer-events: none;
-        }
-        .educore-public-page .mock-screen {
-          position: relative;
-          border-radius: 26px;
-          background: var(--white);
-          border: 1px solid var(--stone-200);
-          min-height: 455px;
-          overflow: hidden;
-        }
-        .educore-public-page .mock-top { height: 62px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; border-bottom: 1px solid var(--stone-200); }
-        .educore-public-page .mock-title { font-size: 13px; font-weight: 800; color: var(--navy-950); }
-        .educore-public-page .mock-badge { padding: 6px 10px; border-radius: 999px; background: rgba(47,138,112,.1); color: var(--green-700); font-size: 11px; font-weight: 800; }
-        .educore-public-page .mock-body { display: grid; grid-template-columns: 145px 1fr; min-height: 393px; }
-        .educore-public-page .mock-side { background: var(--navy-950); color: white; padding: 18px 14px; }
-        .educore-public-page .mock-side .line { height: 10px; border-radius: 10px; background: rgba(255,255,255,.18); margin-bottom: 15px; }
-        .educore-public-page .mock-side .active { background: linear-gradient(90deg, var(--gold-500), var(--green-500)); }
-        .educore-public-page .mock-main { padding: 22px; background: linear-gradient(180deg, var(--cream-50), #fff); }
-        .educore-public-page .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; }
-        .educore-public-page .stat { border-radius: 18px; padding: 14px; background: white; border: 1px solid var(--stone-200); box-shadow: var(--shadow-sm); }
-        .educore-public-page .stat strong { display: block; color: var(--navy-950); font-size: 22px; letter-spacing: -.04em; }
-        .educore-public-page .stat span { color: var(--stone-500); font-size: 11px; font-weight: 700; }
-        .educore-public-page .timeline { border-radius: 20px; background: white; border: 1px solid var(--stone-200); box-shadow: var(--shadow-sm); padding: 14px; }
-        .educore-public-page .timeline-item { display: grid; grid-template-columns: 28px 1fr; gap: 10px; padding: 12px 0; border-bottom: 1px solid rgba(229,222,208,.7); }
-        .educore-public-page .timeline-item:last-child { border-bottom: 0; }
-        .educore-public-page .timeline-icon { width: 28px; height: 28px; border-radius: 50%; background: rgba(47,138,112,.12); }
-        .educore-public-page .timeline-title { height: 10px; width: 72%; border-radius: 8px; background: var(--navy-900); opacity: .86; margin-bottom: 8px; }
-        .educore-public-page .timeline-sub { height: 8px; width: 48%; border-radius: 8px; background: var(--stone-200); }
-        .educore-public-page section { padding: var(--ec-space-section) 0; scroll-margin-top: 94px; }
+        .educore-public-page section:not([data-hero-corium-scene]) { padding: var(--ec-space-section) 0; scroll-margin-top: 94px; }
         .educore-public-page #acceso,
         .educore-public-page #experience { padding-block: var(--ec-space-section-compact); }
         .educore-public-page .section-head { max-width: 760px; margin: 0 auto 34px; text-align: center; }
@@ -701,7 +617,6 @@ export default function HomePage() {
         }
         @media (max-width: 980px) {
           .educore-public-page .nav-links { display: none; }
-          .educore-public-page .hero-grid,
           .educore-public-page .solution-grid,
           .educore-public-page .corium-card,
           .educore-public-page .app-card,
@@ -717,13 +632,7 @@ export default function HomePage() {
           .educore-public-page .nav-actions { gap: 8px; }
           .educore-public-page .nav-actions > .btn-soft { display: none; }
           .educore-public-page .nav-actions > .btn-primary { min-height: 44px; padding-inline: 12px; font-size: 12px; }
-          .educore-public-page .hero { padding: 54px 0 60px; }
-          .educore-public-page section { padding-block: var(--ec-space-section-compact); scroll-margin-top: 82px; }
-          .educore-public-page .trust-row { gap: 9px 12px; margin-top: 26px; }
-          .educore-public-page .trust-row li { gap: 12px; }
-          .educore-public-page .product-card { padding: 10px; border-radius: 26px; }
-          .educore-public-page .mock-body { grid-template-columns: 1fr; }
-          .educore-public-page .mock-side { display: none; }
+          .educore-public-page section:not([data-hero-corium-scene]) { padding-block: var(--ec-space-section-compact); scroll-margin-top: 82px; }
           .educore-public-page .module-list,
           .educore-public-page .corium-points,
           .educore-public-page .roles,
@@ -755,7 +664,6 @@ export default function HomePage() {
         @media (prefers-reduced-motion: reduce) {
           .educore-public-page .landing-reveal,
           .educore-public-page .landing-reveal.is-visible,
-          .educore-public-page .product-card,
           .educore-public-page .module-panel,
           .educore-public-page .solution-item,
           .educore-public-page .module-card,
@@ -769,17 +677,12 @@ export default function HomePage() {
           .educore-public-page .security-card,
           .educore-public-page .cta-card,
           .educore-public-page .btn,
-          .educore-public-page .hero::before,
           .educore-public-page .mobile-nav-panel {
             animation: none;
             transform: none;
             transition: none;
           }
           .educore-public-page .landing-reveal { opacity: 1; }
-        }
-        @keyframes landing-soft-light {
-          from { transform: translate3d(0, 0, 0) scale(1); opacity: .9; }
-          to { transform: translate3d(-22px, 18px, 0) scale(1.04); opacity: 1; }
         }
         @keyframes landing-corium-in {
           from { opacity: 0; transform: translateY(12px) scale(.98); }
@@ -820,59 +723,7 @@ export default function HomePage() {
         </div>
       </header>
 
-      <section className="hero" data-corium-message="Bienvenido a EducaCora.">
-        <div className="container hero-grid">
-          <div className="landing-reveal">
-            <div className="eyebrow">● El corazón de tu centro educativo.</div>
-            <h1>EducaCora conecta toda la <span className="gradient">comunidad educativa</span>.</h1>
-            <p>Una plataforma escolar inteligente y centralizada para dirección, docentes y familias.</p>
-            <div className="hero-actions landing-reveal landing-delay-4">
-              <Link className="btn btn-primary" href="/experience">Probar EducaCora</Link>
-              <a className="btn btn-soft" href="#acceso">Accede a tu centro</a>
-            </div>
-            <ul className="trust-row landing-reveal landing-delay-4" aria-label="Comunidad conectada">
-              <li>Dirección</li>
-              <li>Docentes</li>
-              <li>Familias</li>
-              <li>Alumnos</li>
-            </ul>
-          </div>
-
-          <div className="product-card surface-card--featured landing-reveal landing-delay-3" aria-label="Vista conceptual de EducaCora">
-            <div className="mock-screen">
-              <div className="mock-top">
-                <div className="brand" style={{ gap: 8 }}>
-                  <Image className="brand-icon" src="/brand/educore/icon.svg" alt="" width={256} height={256} style={{ width: 28, height: 28 }} />
-                  <span className="mock-title">EducaCora Control Center</span>
-                </div>
-                <span className="mock-badge">Centro activo</span>
-              </div>
-              <div className="mock-body">
-                <aside className="mock-side" aria-hidden="true">
-                  <div className="line active" style={{ width: "84%" }} />
-                  <div className="line" style={{ width: "64%" }} />
-                  <div className="line" style={{ width: "78%" }} />
-                  <div className="line" style={{ width: "58%" }} />
-                  <div className="line" style={{ width: "72%" }} />
-                </aside>
-                <div className="mock-main">
-                  <div className="stat-grid">
-                    <div className="stat"><strong>98%</strong><span>Asistencia</span></div>
-                    <div className="stat"><strong>24</strong><span>Mensajes</span></div>
-                    <div className="stat"><strong>7</strong><span>Evaluaciones</span></div>
-                  </div>
-                  <div className="timeline">
-                    <div className="timeline-item"><div className="timeline-icon" /><div><div className="timeline-title" /><div className="timeline-sub" /></div></div>
-                    <div className="timeline-item"><div className="timeline-icon" style={{ background: "rgba(210,166,87,.18)" }} /><div><div className="timeline-title" style={{ width: "64%" }} /><div className="timeline-sub" style={{ width: "58%" }} /></div></div>
-                    <div className="timeline-item"><div className="timeline-icon" /><div><div className="timeline-title" style={{ width: "79%" }} /><div className="timeline-sub" style={{ width: "44%" }} /></div></div>
-                    <div className="timeline-item"><div className="timeline-icon" style={{ background: "rgba(210,166,87,.18)" }} /><div><div className="timeline-title" style={{ width: "54%" }} /><div className="timeline-sub" style={{ width: "62%" }} /></div></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <LivingHero />
 
       <section id="acceso" data-corium-message="Accede a tu centro o prueba la Experience.">
         <div className="container access-grid">

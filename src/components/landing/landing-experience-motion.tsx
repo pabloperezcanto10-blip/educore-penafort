@@ -10,6 +10,7 @@ export function LandingExperienceMotion() {
   const [message, setMessage] = useState(defaultMessage);
   const [compact, setCompact] = useState(false);
   const [expanded, setExpanded] = useState(true);
+  const [heroVisible, setHeroVisible] = useState(true);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 640px)");
@@ -22,6 +23,23 @@ export function LandingExperienceMotion() {
     syncLayout();
     mediaQuery.addEventListener("change", syncLayout);
     return () => mediaQuery.removeEventListener("change", syncLayout);
+  }, []);
+
+  useEffect(() => {
+    const hero = document.querySelector<HTMLElement>("[data-hero-corium-scene]");
+
+    if (!hero) {
+      setHeroVisible(false);
+      return;
+    }
+
+    const heroObserver = new IntersectionObserver(
+      ([entry]) => setHeroVisible(entry.isIntersecting && entry.intersectionRatio >= 0.12),
+      { threshold: [0, 0.12, 0.35] }
+    );
+
+    heroObserver.observe(hero);
+    return () => heroObserver.disconnect();
   }, []);
 
   useEffect(() => {
@@ -67,6 +85,8 @@ export function LandingExperienceMotion() {
       messageObserver.disconnect();
     };
   }, []);
+
+  if (heroVisible) return null;
 
   return (
     <aside className={`contextual-corium${expanded ? " is-expanded" : ""}`} aria-label="Ayuda contextual de Corium">

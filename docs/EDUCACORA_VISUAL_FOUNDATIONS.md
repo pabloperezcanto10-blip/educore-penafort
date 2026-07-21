@@ -1,6 +1,6 @@
 # EducaCora Visual Foundations
 
-Version: 1.0
+Version: 1.1
 Estado: Fuente de verdad para superficies públicas
 Ámbito inicial: Home pública
 
@@ -89,6 +89,52 @@ La estrategia se centraliza en la media query pública de la Home y en las utili
 - En móvil aparece como avatar compacto y solo expande el mensaje por acción consciente.
 - `aria-live` permanece desactivado mientras el mensaje está contraído.
 - Corium debe quedar por debajo de modales y no competir con navegación o contacto.
+
+## Living Hero
+
+La Home abre con una composición de dos áreas: propuesta de valor y superficie viva de producto. El Hero conserva su estructura semántica en servidor y aísla la única lógica interactiva en `HeroProductDemo`.
+
+### Capas
+
+- Campo ambiental claro con navy, verde y dorado corporativos.
+- Grid técnico tenue, limitado al fondo y fuera del árbol accesible.
+- Superficie de producto con dimensiones estables y profundidad reservada para contenido protagonista.
+- Transición inferior hacia la explicación de acceso y conexión del centro.
+
+### Microdemostración
+
+- Representa un único flujo ficticio: Docente, Dirección y Familias.
+- Muestra todos los pasos desde el inicio; el movimiento solo refuerza la conexión.
+- Ejecuta un ciclo de dos transiciones y termina en un estado útil y estable.
+- No consulta APIs, no usa datos reales y no anuncia automáticamente cada etapa.
+- Los temporizadores se limpian al desmontar y se pausan cuando la pestaña queda oculta.
+
+### Corium dentro de la escena
+
+- Corium aparece integrado en el contexto del producto y no como decoración independiente.
+- El lanzador flotante se oculta mientras el Hero está visible para evitar duplicidades.
+- Tras abandonar el Hero, reaparece el lanzador contextual definido en la versión 1.0.
+- En móvil se conserva una única representación de Corium en cada momento.
+
+### Motion y reduced motion
+
+- La entrada principal completa su secuencia en menos de `900 ms`.
+- El movimiento ambiental no supera `8 px`, `1deg` ni una escala de `1.015`.
+- Con reduced motion, la demostración muestra directamente el estado final y elimina flotación, gradientes animados y desplazamientos.
+
+### Responsive y estabilidad
+
+- Desktop mantiene copy y producto en dos columnas.
+- Tablet apila la escena cuando la lectura en columnas deja de ser clara.
+- Móvil prioriza copy y CTA, compacta la superficie y retira el panel secundario.
+- El producto reserva altura desde el primer render para evitar CLS.
+- Ninguna capa puede generar scroll horizontal ni depender de hover.
+
+### Mantenimiento
+
+- Los datos de demostración viven en `hero-product-demo.tsx` y deben seguir siendo ficticios.
+- Los estilos viven en `living-hero.module.css` y consumen tokens `--ec-*`.
+- No deben añadirse nuevos intervalos, listeners globales o librerías de motion para ampliar la escena.
 
 ## Interacción y accesibilidad
 
