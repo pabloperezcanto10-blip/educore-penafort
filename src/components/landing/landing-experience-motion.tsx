@@ -1,12 +1,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { X } from "lucide-react";
 import { CoriumAvatar } from "@/components/ai/corium-avatar";
 
 const defaultMessage = "Bienvenido a EducaCora.";
 
 export function LandingExperienceMotion() {
   const [message, setMessage] = useState(defaultMessage);
+  const [compact, setCompact] = useState(false);
+  const [expanded, setExpanded] = useState(true);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 640px)");
+
+    function syncLayout() {
+      setCompact(mediaQuery.matches);
+      setExpanded(!mediaQuery.matches);
+    }
+
+    syncLayout();
+    mediaQuery.addEventListener("change", syncLayout);
+    return () => mediaQuery.removeEventListener("change", syncLayout);
+  }, []);
 
   useEffect(() => {
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -53,9 +69,25 @@ export function LandingExperienceMotion() {
   }, []);
 
   return (
-    <aside className="contextual-corium" aria-live="polite" aria-label="Mensaje contextual de Corium">
-      <CoriumAvatar className="contextual-corium-avatar" />
-      <span>{message}</span>
+    <aside className={`contextual-corium${expanded ? " is-expanded" : ""}`} aria-label="Ayuda contextual de Corium">
+      <button
+        type="button"
+        className="contextual-corium-toggle"
+        aria-label={compact ? (expanded ? "Contraer ayuda de Corium" : "Abrir ayuda de Corium") : "Corium AI"}
+        aria-expanded={compact ? expanded : undefined}
+        disabled={!compact}
+        onClick={() => setExpanded((current) => !current)}
+      >
+        <CoriumAvatar className="contextual-corium-avatar" priority />
+      </button>
+      <span className="contextual-corium-message" aria-live={expanded ? "polite" : "off"} aria-atomic="true">
+        {message}
+      </span>
+      {compact && expanded ? (
+        <button type="button" className="contextual-corium-close" aria-label="Contraer ayuda de Corium" onClick={() => setExpanded(false)}>
+          <X aria-hidden="true" />
+        </button>
+      ) : null}
     </aside>
   );
 }

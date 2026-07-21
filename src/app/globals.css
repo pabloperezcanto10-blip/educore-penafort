@@ -12,6 +12,64 @@
   --border: 214 20% 86%;
   --primary: 199 89% 32%;
   --primary-foreground: 0 0% 100%;
+
+  /* EducaCora public visual foundations */
+  --ec-color-navy-950: #0f1b2e;
+  --ec-color-navy-900: #142235;
+  --ec-color-navy-800: #1d3045;
+  --ec-color-green-700: #1f765d;
+  --ec-color-green-600: #2f8a70;
+  --ec-color-green-500: #58aa91;
+  --ec-color-gold-600: #a96f19;
+  --ec-color-gold-500: #d2a657;
+  --ec-color-gold-300: #edd8a6;
+  --ec-surface-page: #f6f3ec;
+  --ec-surface-muted: #eee8db;
+  --ec-surface-light: #ffffff;
+  --ec-surface-dark: var(--ec-color-navy-950);
+  --ec-surface-translucent: rgba(255, 255, 255, 0.84);
+  --ec-text-primary: var(--ec-color-navy-950);
+  --ec-text-secondary: #4e5b61;
+  --ec-text-muted: #6b737c;
+  --ec-border-subtle: #e7ebee;
+  --ec-ring-brand: rgba(47, 138, 112, 0.32);
+  --ec-glow-brand: rgba(47, 138, 112, 0.2);
+  --ec-overlay: rgba(15, 27, 46, 0.42);
+
+  --ec-radius-sm: 12px;
+  --ec-radius-md: 18px;
+  --ec-radius-lg: 22px;
+  --ec-radius-xl: 28px;
+  --ec-radius-feature: 36px;
+  --ec-shadow-soft: 0 10px 30px rgba(15, 27, 46, 0.07);
+  --ec-shadow-card: 0 22px 70px rgba(15, 27, 46, 0.12);
+  --ec-shadow-elevated: 0 26px 80px rgba(15, 27, 46, 0.14);
+  --ec-blur-surface: 18px;
+
+  --ec-space-section: 4rem;
+  --ec-space-section-narrative: 4.5rem;
+  --ec-space-section-compact: 3rem;
+  --ec-space-section-close: 5rem;
+
+  --ec-motion-instant: 120ms;
+  --ec-motion-short: 180ms;
+  --ec-motion-medium: 340ms;
+  --ec-motion-reveal: 520ms;
+  --ec-motion-ambient: 16s;
+  --ec-ease-enter: cubic-bezier(0.22, 1, 0.36, 1);
+  --ec-ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --ec-ease-move: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ec-motion-reveal-distance: 16px;
+  --ec-motion-max-scale: 1.012;
+  --ec-motion-max-rotation: 0.5deg;
+  --ec-motion-stagger: 70ms;
+
+  --ec-z-content: 1;
+  --ec-z-sticky: 30;
+  --ec-z-popover: 40;
+  --ec-z-corium: 50;
+  --ec-z-overlay: 80;
+  --ec-z-modal: 90;
 }
 
 * {
