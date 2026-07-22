@@ -3,13 +3,13 @@ import Link from "next/link";
 import { Mail } from "lucide-react";
 import { CoriumAvatar } from "@/components/ai/corium-avatar";
 import { ContactTrigger } from "@/components/contact/contact-modal";
+import { CommercialClosingSection } from "@/components/landing/commercial-closing-section";
 import { ConnectedModulesSection } from "@/components/landing/connected-modules-section";
 import { LandingExperienceMotion } from "@/components/landing/landing-experience-motion";
 import { LivingHero } from "@/components/landing/living-hero";
 import { MobilePublicNav } from "@/components/landing/mobile-public-nav";
 import { RolePerspectivesSection } from "@/components/landing/role-perspectives-section";
-import { InstallEduCoreButton } from "@/components/pwa/install-educore-button";
-import { PUBLIC_CONTACT_EMAIL, SITE_DESCRIPTION, SITE_NAME, SITE_OG_IMAGE_URL, SITE_URL } from "@/lib/site-config";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_OG_IMAGE_URL, SITE_URL } from "@/lib/site-config";
 
 const structuredData = [
   {
@@ -278,7 +278,7 @@ export default function HomePage() {
           border: 1px solid rgba(47,138,112,.15);
         }
         .educore-public-page .hero-actions { display: flex; align-items: center; gap: 14px; margin-top: 32px; flex-wrap: wrap; }
-        .educore-public-page section:not([data-hero-corium-scene]):not([data-connected-modules-scene]):not([data-role-perspectives-scene]) { padding: var(--ec-space-section) 0; scroll-margin-top: 94px; }
+        .educore-public-page section:not([data-hero-corium-scene]):not([data-connected-modules-scene]):not([data-role-perspectives-scene]):not([data-commercial-closing-section]) { padding: var(--ec-space-section) 0; scroll-margin-top: 94px; }
         .educore-public-page #acceso,
         .educore-public-page #experience { padding-block: var(--ec-space-section-compact); }
         .educore-public-page .section-head { max-width: 760px; margin: 0 auto 34px; text-align: center; }
@@ -286,8 +286,7 @@ export default function HomePage() {
         .educore-public-page .section-head h2 { margin: 0; color: var(--navy-950); font-size: clamp(34px, 4vw, 52px); line-height: 1.04; letter-spacing: -.055em; }
         .educore-public-page .section-head p { margin: 18px auto 0; color: var(--stone-700); font-size: 17px; line-height: 1.7; }
         .educore-public-page .module-panel,
-        .educore-public-page .security-card,
-        .educore-public-page .brand-note {
+        .educore-public-page .security-card {
           background: white;
           border: 1px solid var(--stone-200);
           box-shadow: var(--shadow-sm);
@@ -395,87 +394,6 @@ export default function HomePage() {
         .educore-public-page .access-card strong { display: block; color: var(--navy-950); font-size: 18px; letter-spacing: -.03em; margin-bottom: 6px; }
         .educore-public-page .access-card span { color: var(--stone-700); font-size: 14px; line-height: 1.55; }
         .educore-public-page .access-card .btn-primary { color: var(--white); line-height: 1; }
-        .educore-public-page .brand-note {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 18px;
-          border-radius: var(--radius-xl);
-          padding: 24px 30px;
-        }
-        .educore-public-page .brand-note p { margin: 0; color: var(--stone-700); line-height: 1.62; font-size: 14px; max-width: 660px; }
-        .educore-public-page .app-section { background: linear-gradient(180deg, white, var(--cream-50)); }
-        .educore-public-page .app-card {
-          border-radius: 36px;
-          background: linear-gradient(135deg, var(--navy-950), var(--navy-800));
-          color: white;
-          padding: 36px 40px;
-          display: grid;
-          grid-template-columns: 1.18fr .82fr;
-          gap: 28px;
-          align-items: center;
-          box-shadow: var(--shadow-md);
-          overflow: hidden;
-          position: relative;
-          transition: transform var(--ec-motion-medium) var(--ec-ease-enter), box-shadow var(--ec-motion-medium) ease;
-        }
-        .educore-public-page .app-card:hover { transform: translateY(-4px); box-shadow: 0 30px 90px rgba(15,27,46,.2); }
-        .educore-public-page .app-card::after {
-          content: "";
-          position: absolute;
-          width: 360px;
-          height: 360px;
-          border-radius: 50%;
-          background: radial-gradient(circle, rgba(210,166,87,.38), transparent 65%);
-          right: -90px;
-          top: -90px;
-        }
-        .educore-public-page .app-card > * { position: relative; z-index: 1; }
-        .educore-public-page .app-card h2 { margin: 0; font-size: clamp(32px, 4vw, 48px); line-height: 1.05; letter-spacing: -.055em; }
-        .educore-public-page .app-card p { color: rgba(255,255,255,.72); line-height: 1.7; font-size: 17px; margin: 14px 0 0; }
-        .educore-public-page .app-preview {
-          border-radius: 28px;
-          background: rgba(255,255,255,.08);
-          border: 1px solid rgba(255,255,255,.14);
-          padding: 22px;
-          display: grid;
-          gap: 12px;
-        }
-        .educore-public-page .app-preview-line { height: 10px; border-radius: 999px; background: rgba(255,255,255,.22); }
-        .educore-public-page .app-preview-line.green { background: linear-gradient(90deg, var(--green-500), var(--gold-500)); width: 72%; }
-        .educore-public-page .security { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
-        .educore-public-page .security-card { padding: 24px; border-radius: var(--radius-lg); transition: transform var(--ec-motion-short) ease, box-shadow var(--ec-motion-short) ease, border-color var(--ec-motion-short) ease; }
-        .educore-public-page .security-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: rgba(47,138,112,.18); }
-        .educore-public-page .security-card strong { display: block; margin-bottom: 8px; color: var(--navy-950); }
-        .educore-public-page .security-card span { color: var(--stone-700); font-size: 14px; line-height: 1.6; }
-        .educore-public-page .cta { padding: 64px 0 82px; }
-        .educore-public-page .cta-card { text-align: center; border-radius: 38px; padding: 54px 34px; background: white; border: 1px solid var(--stone-200); box-shadow: var(--shadow-md); transition: transform var(--ec-motion-medium) ease, box-shadow var(--ec-motion-medium) ease, border-color var(--ec-motion-medium) ease; }
-        .educore-public-page .cta-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-premium); border-color: rgba(47,138,112,.16); }
-        .educore-public-page .cta-card h2 { margin: 0; font-size: clamp(36px, 5vw, 58px); letter-spacing: -.06em; color: var(--navy-950); }
-        .educore-public-page .cta-card p { max-width: 650px; margin: 18px auto 30px; color: var(--stone-700); font-size: 17px; line-height: 1.7; }
-        .educore-public-page .contact-close { padding: 0 0 34px; }
-        .educore-public-page .contact-close-card {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 24px;
-          border-radius: 30px;
-          border: 1px solid var(--stone-200);
-          background: rgba(255,255,255,.82);
-          box-shadow: var(--shadow-sm);
-          padding: 28px 30px;
-        }
-        .educore-public-page .contact-close-card h2 { margin: 0; font-size: clamp(28px, 4vw, 42px); letter-spacing: -.05em; color: var(--navy-950); }
-        .educore-public-page .contact-close-card p { margin: 10px 0 0; max-width: 560px; color: var(--stone-700); font-size: 16px; line-height: 1.65; }
-        .educore-public-page .contact-close-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
-        .educore-public-page .contact-email { color: var(--stone-500); font-size: 13px; font-weight: 700; text-decoration: underline; text-underline-offset: 4px; }
-        .educore-public-page .contact-email:hover { color: var(--green-700); }
-        .educore-public-page footer { padding: 30px 0 42px; color: var(--stone-500); font-size: 13px; }
-        .educore-public-page .footer-inner { display: flex; justify-content: space-between; gap: 20px; align-items: center; border-top: 1px solid var(--stone-200); padding-top: 24px; }
-        .educore-public-page .footer-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px 14px; text-align: right; }
-        .educore-public-page .footer-link { border: 0; background: transparent; color: var(--stone-700); font: inherit; font-weight: 750; cursor: pointer; padding: 0; }
-        .educore-public-page .footer-link:hover { color: var(--green-700); text-decoration: underline; text-underline-offset: 4px; }
-
         .educore-public-page .surface-card--informative:hover {
           transform: none;
           border-color: var(--stone-200);
@@ -567,10 +485,8 @@ export default function HomePage() {
           .educore-public-page .nav-links { display: none; }
           .educore-public-page .solution-grid,
           .educore-public-page .corium-card,
-          .educore-public-page .app-card,
           .educore-public-page .access-grid { grid-template-columns: 1fr; }
-          .educore-public-page .module-list,
-          .educore-public-page .security { grid-template-columns: repeat(2, 1fr); }
+          .educore-public-page .module-list { grid-template-columns: repeat(2, 1fr); }
         }
         @media (max-width: 640px) {
           .educore-public-page .container { width: min(100% - 28px, var(--max)); }
@@ -579,17 +495,10 @@ export default function HomePage() {
           .educore-public-page .nav-actions { gap: 8px; }
           .educore-public-page .nav-actions > .btn-soft { display: none; }
           .educore-public-page .nav-actions > .btn-primary { min-height: 44px; padding-inline: 12px; font-size: 12px; }
-          .educore-public-page section:not([data-hero-corium-scene]):not([data-connected-modules-scene]):not([data-role-perspectives-scene]) { padding-block: var(--ec-space-section-compact); scroll-margin-top: 82px; }
+          .educore-public-page section:not([data-hero-corium-scene]):not([data-connected-modules-scene]):not([data-role-perspectives-scene]):not([data-commercial-closing-section]) { padding-block: var(--ec-space-section-compact); scroll-margin-top: 82px; }
           .educore-public-page .module-list,
-          .educore-public-page .corium-points,
-          .educore-public-page .security { grid-template-columns: 1fr; }
-          .educore-public-page .brand-note,
+          .educore-public-page .corium-points { grid-template-columns: 1fr; }
           .educore-public-page .access-card { align-items: flex-start; flex-direction: column; }
-          .educore-public-page .app-card { padding: 30px 22px; border-radius: 28px; }
-          .educore-public-page .contact-close-card { align-items: flex-start; flex-direction: column; padding: 24px 22px; }
-          .educore-public-page .contact-close-actions { align-items: flex-start; }
-          .educore-public-page .footer-inner { flex-direction: column; align-items: flex-start; }
-          .educore-public-page .footer-meta { justify-content: flex-start; text-align: left; }
           .educore-public-page .contextual-corium {
             left: auto;
             right: max(14px, env(safe-area-inset-right));
@@ -617,9 +526,6 @@ export default function HomePage() {
           .educore-public-page .contextual-corium,
           .educore-public-page .contextual-corium-avatar,
           .educore-public-page .access-card,
-          .educore-public-page .app-card,
-          .educore-public-page .security-card,
-          .educore-public-page .cta-card,
           .educore-public-page .btn,
           .educore-public-page .mobile-nav-panel {
             animation: none;
@@ -749,93 +655,7 @@ export default function HomePage() {
 
       <RolePerspectivesSection />
 
-      <section id="experience" data-corium-message="Pruébalo como un centro real.">
-        <div className="container brand-note surface-card--informative landing-reveal">
-          <Image src="/brand/educore/logo.svg" alt="EducaCora" width={512} height={150} style={{ width: 178, height: "auto" }} />
-          <p>EducaCora Experience no es un vídeo ni una galería de capturas. Es el producto real funcionando con datos ficticios para Dirección, Docentes y Familias.</p>
-          <Link className="btn btn-primary" href="/experience">Probar EducaCora</Link>
-        </div>
-      </section>
-
-      <section className="app-section" id="app" data-corium-message="Lleva EducaCora siempre contigo.">
-        <div className="container app-card surface-card--featured landing-reveal">
-          <div>
-            <div className="section-kicker" style={{ color: "var(--gold-300)" }}>App instalable</div>
-            <h2>Instala EducaCora en móvil, tablet u ordenador.</h2>
-            <p>Acceso rápido a tu centro desde cualquier dispositivo.</p>
-            <div className="hero-actions">
-              <a className="btn btn-soft" href="#acceso">Accede a tu centro</a>
-              <InstallEduCoreButton className="btn btn-soft" />
-            </div>
-          </div>
-          <div className="app-preview" aria-hidden="true">
-            <Image src="/brand/educore/app-icon-dark.svg" alt="" width={512} height={512} style={{ width: 72, height: 72, borderRadius: 18 }} />
-            <div className="app-preview-line green" />
-            <div className="app-preview-line" />
-            <div className="app-preview-line" style={{ width: "82%" }} />
-            <div className="app-preview-line" style={{ width: "58%" }} />
-          </div>
-        </div>
-      </section>
-
-      <section id="seguridad" data-corium-message="La confianza se diseña desde el principio.">
-        <div className="container">
-          <div className="section-head landing-reveal">
-            <div className="section-kicker">Confianza</div>
-            <h2>Seguridad y privacidad desde el diseño.</h2>
-          </div>
-          <div className="security landing-reveal landing-delay-1">
-            <div className="security-card surface-card--informative"><strong>Roles claros</strong><span>Dirección, docentes, administración y familias con experiencias y permisos diferenciados.</span></div>
-            <div className="security-card surface-card--informative"><strong>Datos visibles según permisos</strong><span>Cada usuario accede únicamente a la información que le corresponde.</span></div>
-            <div className="security-card surface-card--informative"><strong>Preparado para RGPD</strong><span>Arquitectura pensada para trazabilidad, control de acceso y evolución segura.</span></div>
-          </div>
-        </div>
-      </section>
-
-      <section className="cta" id="demo" data-corium-message="¿Quieres verlo funcionando?">
-        <div className="container">
-          <div className="cta-card surface-card--featured landing-reveal">
-            <div className="eyebrow">EducaCora SaaS educativo</div>
-            <h2>Prueba EducaCora desde dentro.</h2>
-            <p>Entra en EducaCora Experience y recorre la plataforma como dirección, docente o familia.</p>
-            <div className="hero-actions" style={{ justifyContent: "center" }}>
-              <Link className="btn btn-primary" href="/experience">Probar EducaCora</Link>
-              <a className="btn btn-soft" href="#acceso">Accede a tu centro</a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="contact-close" aria-labelledby="home-contact-title">
-        <div className="container">
-          <div className="contact-close-card landing-reveal">
-            <div>
-              <h2 id="home-contact-title">¿Quieres hablar con nosotros?</h2>
-              <p>Cuéntanos las necesidades de tu centro y te responderemos personalmente.</p>
-            </div>
-            <div className="contact-close-actions">
-              <ContactTrigger origin="home_closure" originLabel="Home — cierre" className="btn btn-soft">
-                Contactar
-              </ContactTrigger>
-              <a className="contact-email" href={`mailto:${PUBLIC_CONTACT_EMAIL}`}>{PUBLIC_CONTACT_EMAIL}</a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <footer>
-        <div className="container footer-inner">
-          <Image src="/brand/educore/logo.svg" alt="EducaCora" width={512} height={150} style={{ width: 132, height: "auto" }} />
-          <div className="footer-meta">
-            <span>© 2026 EducaCora · El corazón de tu centro educativo.</span>
-            <ContactTrigger origin="home_footer" originLabel="Footer público" className="footer-link">
-              Contactar
-            </ContactTrigger>
-            <a className="footer-link" href={`mailto:${PUBLIC_CONTACT_EMAIL}`}>{PUBLIC_CONTACT_EMAIL}</a>
-            <Link className="footer-link" href="/politica-privacidad">Política de Privacidad</Link>
-          </div>
-        </div>
-      </footer>
+      <CommercialClosingSection />
     </main>
   );
 }

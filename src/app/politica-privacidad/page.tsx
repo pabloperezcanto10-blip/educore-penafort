@@ -28,7 +28,7 @@ export default function PrivacyPolicyPage() {
           <section>
             <h2 className="text-lg font-semibold text-[#0F1B2E]">Datos que puedes enviarnos</h2>
             <p className="mt-2">
-              El formulario puede solicitar nombre, correo electrónico, centro educativo, cargo o relación con el centro, teléfono, localidad y un mensaje opcional.
+              El formulario puede solicitar nombre, correo electrónico, centro educativo, cargo o relación con el centro y un mensaje opcional.
             </p>
           </section>
 

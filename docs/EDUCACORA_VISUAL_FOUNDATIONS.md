@@ -1,6 +1,6 @@
 # EducaCora Visual Foundations
 
-Version: 1.3
+Version: 1.4
 Estado: Fuente de verdad para superficies públicas
 Ámbito inicial: Home pública
 
@@ -231,6 +231,52 @@ La sección pública de roles utiliza una única superficie transformable. La Ho
 - Móvil muestra tres controles compactos y un único perfil activo, sin sidebar ni scroll horizontal.
 - La superficie reserva una altura común por breakpoint para que títulos, métricas y CTA no desplacen las secciones siguientes al cambiar de perfil.
 - El componente cliente no añade dependencias, imágenes pesadas, timers, listeners globales ni llamadas de red.
+
+## Cierre comercial unificado
+
+La parte final de la Home deja de presentar Experience, acceso instalable, confianza, contacto y footer como campañas independientes. `CommercialClosingSection` los conecta en una secuencia única orientada a la decisión, sin repetir promesas ni competir con la navegación principal.
+
+### Secuencia narrativa
+
+- El puente desde Perspectivas conduce directamente a EducaCora Experience con el mensaje `Ahora puedes probarla`.
+- Experience es la puerta de entrada principal: explica los tres perfiles disponibles, el recorrido y que todos los datos son ficticios.
+- El bloque de confianza combina el acceso desde navegador o aplicación instalable con tres garantías reales: roles, visibilidad según permisos y separación de la demostración.
+- El cierre ofrece dos decisiones diferenciadas: probar el producto o solicitar una conversación. El acceso de centros existentes se mantiene como acción terciaria.
+- El footer queda conectado visualmente al cierre y reúne solo navegación útil, privacidad y contacto.
+
+### Jerarquía de acciones
+
+- `Probar EducaCora` es la acción primaria y siempre conduce a `/experience`.
+- `Solicitar una reunión` abre el único formulario compartido de contacto.
+- `Acceder a mi centro`, correo y enlaces legales son acciones secundarias o terciarias.
+- La instalación reutiliza `InstallEduCoreButton`; no se introduce una segunda implementación del flujo PWA.
+
+### Contacto y estados
+
+- `ContactModal` mantiene el contrato existente con `/api/contact`, Resend, Turnstile, honeypot y contexto de origen.
+- El formulario visible solicita únicamente nombre, correo, centro, relación con el centro, mensaje y consentimiento. Los campos opcionales retirados conservan su valor vacío en el contrato para evitar cambios de backend.
+- La validación, los errores, el estado de envío y la confirmación ocurren dentro del modal, sin alertas ni redirecciones inesperadas.
+- Tras el éxito se puede abrir Experience o continuar en la web. No se envía ninguna solicitud automática.
+
+### Corium y confianza
+
+- Corium aparece una sola vez dentro de la puerta de Experience y explica el acompañamiento sin prometer acciones reales.
+- El lanzador contextual se oculta mientras esa escena integrada está visible y reaparece al abandonarla.
+- Las afirmaciones de confianza describen únicamente comportamiento comprobable del producto; no se muestran certificaciones, clientes, métricas comerciales ni garantías no verificadas.
+
+### Responsive, accesibilidad y rendimiento
+
+- Desktop mantiene composiciones a dos columnas; tablet y móvil preservan la misma jerarquía en un flujo vertical.
+- Acciones e inputs mantienen al menos 44 px de altura, foco visible, contraste suficiente y orden semántico de encabezados.
+- Las superficies reservan dimensiones estables y no dependen de hover, animación o JavaScript para mostrar información esencial.
+- `prefers-reduced-motion` elimina transiciones y desplazamientos del cierre sin alterar contenido ni controles.
+- La sección no añade dependencias, consultas, imágenes nuevas, timers ni listeners globales. Los estilos están aislados en `commercial-closing.module.css`.
+
+### Mantenimiento
+
+- El cierre comercial vive exclusivamente en `commercial-closing-section.tsx`; no deben reintroducirse CTA, contacto o footer paralelos en `page.tsx`.
+- Cambios en el formulario deben conservar el contrato de `/api/contact` o versionarlo explícitamente.
+- Las garantías visibles deben revisarse contra el comportamiento real antes de ampliar el texto comercial.
 
 ## Interacción y accesibilidad
 

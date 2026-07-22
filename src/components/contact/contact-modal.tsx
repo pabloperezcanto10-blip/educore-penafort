@@ -378,8 +378,8 @@ export function ContactModal({ open, onOpenChange, origin, originLabel, experien
             </h2>
             <p id="contact-modal-description" className="mt-2 text-sm leading-6 text-slate-500">
               {status === "success"
-                ? "Gracias por tu interés en EducaCora. Hemos recibido tu solicitud y te responderemos lo antes posible."
-                : "Déjanos tus datos y nos pondremos en contacto contigo."}
+                ? "Hemos recibido tu solicitud. Revisaremos el mensaje y contactaremos contigo."
+                : "Cuéntanos brevemente qué necesita tu centro. Revisaremos el mensaje y contactaremos contigo."}
             </p>
             {contextText && status !== "success" ? <p className="mt-2 text-xs font-semibold text-emerald-700">{contextText}</p> : null}
           </div>
@@ -387,7 +387,7 @@ export function ContactModal({ open, onOpenChange, origin, originLabel, experien
             type="button"
             onClick={() => onOpenChange(false)}
             disabled={status === "submitting"}
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
             aria-label="Cerrar formulario de contacto"
           >
             ×
@@ -401,15 +401,15 @@ export function ContactModal({ open, onOpenChange, origin, originLabel, experien
                 Solicitud enviada correctamente.
               </div>
               <p className="text-sm leading-6 text-slate-600">
-                Puedes seguir explorando EducaCora o volver a la web principal.
+                Puedes abrir EducaCora Experience o seguir explorando la web.
               </p>
             </div>
             <footer className="sticky bottom-0 z-10 flex shrink-0 flex-col gap-2 border-t border-slate-200 bg-white px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
-              <button type="button" onClick={() => onOpenChange(false)} className="inline-flex h-10 items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-bold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                Seguir explorando
+              <button type="button" onClick={() => onOpenChange(false)} className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                Seguir en la web
               </button>
-              <Link href="/" className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                Volver a la web
+              <Link href="/experience" className="inline-flex h-11 items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-bold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                Abrir Experience
               </Link>
             </footer>
           </>
@@ -446,12 +446,6 @@ export function ContactModal({ open, onOpenChange, origin, originLabel, experien
                     <input value={form.otherRole} onChange={(event) => update("otherRole", event.target.value)} className={inputClass(errors.otherRole)} />
                   </Field>
                 ) : null}
-                <Field label="Teléfono" error={errors.phone}>
-                  <input value={form.phone} onChange={(event) => update("phone", event.target.value)} type="tel" autoComplete="tel" inputMode="tel" className={inputClass(errors.phone)} />
-                </Field>
-                <Field label="Localidad o provincia" error={errors.location}>
-                  <input value={form.location} onChange={(event) => update("location", event.target.value)} autoComplete="address-level2" className={inputClass(errors.location)} />
-                </Field>
                 <Field label="Mensaje" error={errors.message} className="sm:col-span-2">
                   <textarea value={form.message} onChange={(event) => update("message", event.target.value)} rows={4} className={`${inputClass(errors.message)} min-h-28 resize-y py-3`} />
                 </Field>
@@ -464,11 +458,19 @@ export function ContactModal({ open, onOpenChange, origin, originLabel, experien
                 </label>
               </div>
 
-              <label className="mt-4 flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
-                <input type="checkbox" checked={form.privacyAccepted} onChange={(event) => update("privacyAccepted", event.target.checked)} className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-500" />
+              <label className="mt-4 flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600" htmlFor="contact-privacy">
+                <input
+                  id="contact-privacy"
+                  type="checkbox"
+                  checked={form.privacyAccepted}
+                  onChange={(event) => update("privacyAccepted", event.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-500"
+                  aria-invalid={Boolean(errors.privacyAccepted)}
+                  aria-describedby={errors.privacyAccepted ? "contact-privacy-error" : undefined}
+                />
                 <span>
                   He leído y acepto la <Link href="/politica-privacidad" className="font-semibold text-emerald-700 underline-offset-4 hover:underline" target="_blank">Política de Privacidad</Link>. Usaremos tus datos únicamente para responder a tu solicitud.
-                  {errors.privacyAccepted ? <span className="mt-1 block text-xs font-semibold text-red-600">{errors.privacyAccepted}</span> : null}
+                  {errors.privacyAccepted ? <span id="contact-privacy-error" className="mt-1 block text-xs font-semibold text-red-600">{errors.privacyAccepted}</span> : null}
                 </span>
               </label>
 
@@ -490,10 +492,10 @@ export function ContactModal({ open, onOpenChange, origin, originLabel, experien
                 {PUBLIC_CONTACT_EMAIL}
               </a>
               <div className="flex flex-col gap-2 sm:flex-row">
-                <button type="button" onClick={() => onOpenChange(false)} disabled={status === "submitting"} className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50">
+                <button type="button" onClick={() => onOpenChange(false)} disabled={status === "submitting"} className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50">
                   Cancelar
                 </button>
-                <button type="submit" form="contact-request-form" disabled={status === "submitting"} className="inline-flex h-10 items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-bold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60">
+                <button type="submit" form="contact-request-form" disabled={status === "submitting"} className="inline-flex h-11 items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-bold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60">
                   {status === "submitting" ? "Enviando..." : "Enviar solicitud"}
                 </button>
               </div>
@@ -520,7 +522,7 @@ function Field({ label, error, required, className, children }: { label: string;
 }
 
 function inputClass(error?: string) {
-  return `w-full rounded-xl border bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
+  return `min-h-11 w-full rounded-xl border bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
     error ? "border-red-300 focus:border-red-400 focus:ring-red-100" : "border-slate-200 focus:border-emerald-400 focus:ring-emerald-100"
   }`;
 }
