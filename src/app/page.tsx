@@ -7,6 +7,7 @@ import { ConnectedModulesSection } from "@/components/landing/connected-modules-
 import { LandingExperienceMotion } from "@/components/landing/landing-experience-motion";
 import { LivingHero } from "@/components/landing/living-hero";
 import { MobilePublicNav } from "@/components/landing/mobile-public-nav";
+import { RolePerspectivesSection } from "@/components/landing/role-perspectives-section";
 import { InstallEduCoreButton } from "@/components/pwa/install-educore-button";
 import { PUBLIC_CONTACT_EMAIL, SITE_DESCRIPTION, SITE_NAME, SITE_OG_IMAGE_URL, SITE_URL } from "@/lib/site-config";
 
@@ -277,7 +278,7 @@ export default function HomePage() {
           border: 1px solid rgba(47,138,112,.15);
         }
         .educore-public-page .hero-actions { display: flex; align-items: center; gap: 14px; margin-top: 32px; flex-wrap: wrap; }
-        .educore-public-page section:not([data-hero-corium-scene]):not([data-connected-modules-scene]) { padding: var(--ec-space-section) 0; scroll-margin-top: 94px; }
+        .educore-public-page section:not([data-hero-corium-scene]):not([data-connected-modules-scene]):not([data-role-perspectives-scene]) { padding: var(--ec-space-section) 0; scroll-margin-top: 94px; }
         .educore-public-page #acceso,
         .educore-public-page #experience { padding-block: var(--ec-space-section-compact); }
         .educore-public-page .section-head { max-width: 760px; margin: 0 auto 34px; text-align: center; }
@@ -394,37 +395,6 @@ export default function HomePage() {
         .educore-public-page .access-card strong { display: block; color: var(--navy-950); font-size: 18px; letter-spacing: -.03em; margin-bottom: 6px; }
         .educore-public-page .access-card span { color: var(--stone-700); font-size: 14px; line-height: 1.55; }
         .educore-public-page .access-card .btn-primary { color: var(--white); line-height: 1; }
-        .educore-public-page .dark-band {
-          background: var(--navy-950);
-          color: white;
-          position: relative;
-        }
-        .educore-public-page .dark-band::before {
-          content: "";
-          position: absolute;
-          inset: 0;
-          background: radial-gradient(circle at 20% 20%, rgba(210,166,87,.22), transparent 34%), radial-gradient(circle at 82% 70%, rgba(47,138,112,.25), transparent 36%);
-          pointer-events: none;
-        }
-        .educore-public-page .dark-band .container { position: relative; }
-        .educore-public-page .dark-band .section-kicker { color: var(--gold-300); }
-        .educore-public-page .dark-band h2 { color: white; }
-        .educore-public-page .dark-band .section-head p { color: rgba(255,255,255,.72); }
-        .educore-public-page .roles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-        .educore-public-page .role-card {
-          padding: 22px;
-          min-height: 190px;
-          border-radius: var(--radius-xl);
-          background: rgba(255,255,255,.08);
-          border: 1px solid rgba(255,255,255,.12);
-          backdrop-filter: blur(12px);
-          transition: transform var(--ec-motion-medium) ease, background var(--ec-motion-medium) ease, border-color var(--ec-motion-medium) ease;
-        }
-        .educore-public-page .role-card:hover { transform: translateY(-4px); background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.2); }
-        .educore-public-page .role-card h3 { margin: 0 0 10px; font-size: 21px; letter-spacing: -.04em; }
-        .educore-public-page .role-card p { margin: 0 0 18px; color: rgba(255,255,255,.72); line-height: 1.58; font-size: 14px; }
-        .educore-public-page .role-list { display: flex; flex-wrap: wrap; gap: 8px; color: rgba(255,255,255,.9); font-size: 12px; font-weight: 700; }
-        .educore-public-page .role-list span { border-radius: 999px; background: rgba(255,255,255,.1); padding: 6px 9px; }
         .educore-public-page .brand-note {
           display: flex;
           align-items: center;
@@ -510,11 +480,6 @@ export default function HomePage() {
           transform: none;
           border-color: var(--stone-200);
           box-shadow: var(--shadow-sm);
-        }
-        .educore-public-page .role-card.surface-card--informative:hover {
-          border-color: rgba(255,255,255,.12);
-          background: rgba(255,255,255,.08);
-          box-shadow: none;
         }
         .educore-public-page .solution-item:hover { transform: none; box-shadow: none; }
         @media (hover: hover) {
@@ -605,7 +570,6 @@ export default function HomePage() {
           .educore-public-page .app-card,
           .educore-public-page .access-grid { grid-template-columns: 1fr; }
           .educore-public-page .module-list,
-          .educore-public-page .roles,
           .educore-public-page .security { grid-template-columns: repeat(2, 1fr); }
         }
         @media (max-width: 640px) {
@@ -615,10 +579,9 @@ export default function HomePage() {
           .educore-public-page .nav-actions { gap: 8px; }
           .educore-public-page .nav-actions > .btn-soft { display: none; }
           .educore-public-page .nav-actions > .btn-primary { min-height: 44px; padding-inline: 12px; font-size: 12px; }
-          .educore-public-page section:not([data-hero-corium-scene]):not([data-connected-modules-scene]) { padding-block: var(--ec-space-section-compact); scroll-margin-top: 82px; }
+          .educore-public-page section:not([data-hero-corium-scene]):not([data-connected-modules-scene]):not([data-role-perspectives-scene]) { padding-block: var(--ec-space-section-compact); scroll-margin-top: 82px; }
           .educore-public-page .module-list,
           .educore-public-page .corium-points,
-          .educore-public-page .roles,
           .educore-public-page .security { grid-template-columns: 1fr; }
           .educore-public-page .brand-note,
           .educore-public-page .access-card { align-items: flex-start; flex-direction: column; }
@@ -654,7 +617,6 @@ export default function HomePage() {
           .educore-public-page .contextual-corium,
           .educore-public-page .contextual-corium-avatar,
           .educore-public-page .access-card,
-          .educore-public-page .role-card,
           .educore-public-page .app-card,
           .educore-public-page .security-card,
           .educore-public-page .cta-card,
@@ -785,21 +747,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="dark-band" id="roles" data-corium-message="Cada rol ve lo que necesita.">
-        <div className="container">
-          <div className="section-head landing-reveal">
-            <div className="section-kicker">Roles</div>
-            <h2>Una plataforma, cuatro experiencias.</h2>
-            <p>La misma base visual y funcional adaptada a las responsabilidades reales de cada perfil.</p>
-          </div>
-          <div className="roles landing-reveal landing-delay-1">
-            <article className="role-card surface-card--informative"><h3>Dirección</h3><p>Supervisa actividad, prioridades, evaluación e incidencias.</p><div className="role-list"><span>Centro de control</span><span>Prioridades</span></div></article>
-            <article className="role-card surface-card--informative"><h3>Docentes</h3><p>Gestionan asistencia, cuaderno, alumnos y comunicaciones.</p><div className="role-list"><span>Cuaderno</span><span>Mis alumnos</span></div></article>
-            <article className="role-card surface-card--informative"><h3>Familias</h3><p>Consultan notas visibles, boletines y mensajes del centro.</p><div className="role-list"><span>Boletines</span><span>Comunicación</span></div></article>
-            <article className="role-card surface-card--informative"><h3>Administración</h3><p>Mantiene usuarios, estructura, importaciones y seguridad.</p><div className="role-list"><span>Mantenimiento</span><span>Roles</span></div></article>
-          </div>
-        </div>
-      </section>
+      <RolePerspectivesSection />
 
       <section id="experience" data-corium-message="Pruébalo como un centro real.">
         <div className="container brand-note surface-card--informative landing-reveal">

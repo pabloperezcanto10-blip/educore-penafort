@@ -1,6 +1,6 @@
 # EducaCora Visual Foundations
 
-Version: 1.2
+Version: 1.3
 Estado: Fuente de verdad para superficies públicas
 Ámbito inicial: Home pública
 
@@ -183,6 +183,54 @@ La sección pública de módulos deja de usar una cuadrícula de productos indep
 - Móvil usa seis opciones en dos columnas y un único flujo vertical; no requiere arrastre horizontal.
 - La superficie mantiene dimensiones previsibles para evitar CLS al cambiar de módulo.
 - El CTA secundario `Probar estos módulos` conduce a Experience y conserva un área táctil mínima de 44 px.
+
+## Perspectivas por rol
+
+La sección pública de roles utiliza una única superficie transformable. La Home explica las prioridades de cada perfil mediante una síntesis visual; la navegación, los módulos completos y el Guided Tour siguen perteneciendo exclusivamente a EducaCora Experience.
+
+### Fuente única de configuración
+
+- `role-perspectives-data.ts` contiene Dirección, Docente y Familia, junto con su copy, beneficio, métricas, prioridades, acciones, acento y destino de Experience.
+- Administración no forma parte de la selección pública de perspectivas. Su experiencia sigue existiendo donde corresponde dentro del producto.
+- Todos los valores mostrados son ficticios y seguros para una superficie pública. No se consultan APIs, Supabase ni contenido de producción.
+- Para añadir o modificar un perfil se actualiza únicamente `rolePerspectives`; selector, panel, resumen accesible y CTA consumen esa misma fuente.
+
+### Selector y superficie
+
+- `RolePerspectivesSection` conserva en servidor el encabezado, el mensaje principal y el puente narrativo desde los módulos conectados.
+- `RolePerspectivesExperience` es el único componente cliente y contiene solo el rol activo, el selector y la transición visual.
+- El selector usa `tablist`, `tab`, `tabpanel`, `aria-selected`, `aria-controls` y navegación con flechas, Inicio y Fin.
+- Dirección, Docente y Familia cambian cabecera, métricas, prioridades, acciones, beneficios, acento y CTA dentro de la misma estructura estable.
+- La representación se inspira en cards, badges, progreso, prioridades y estados del producto real, pero no importa dashboards protegidos ni su lógica.
+
+### Diferencias por perfil
+
+- Dirección prioriza visión global, supervisión académica, asistencia y comunicaciones relevantes.
+- Docente prioriza jornada, pasar lista, cuaderno, alumnado y comunicación contextual.
+- Familia prioriza comunicaciones, seguimiento académico, asistencia y próximas fechas.
+- Cada perfil muestra un beneficio principal y tres beneficios secundarios sin convertir la Home en un dashboard operativo.
+
+### Entrada contextual a Experience
+
+- Los CTAs se generan con `getExperienceModuleHref` y conducen a `/experience/director`, `/experience/docente` y `/experience/familia`.
+- La entrada usa navegación normal, no abre modales ni activa automáticamente el Guided Tour.
+- La Home no incluye sidebar, selector interno de Experience, formularios, acciones completas ni persistencia demo.
+- Experience conserva la navegación, el cambio de rol, los módulos completos, Corium Guided Tour y el flujo de finalización.
+
+### Corium, motion y reduced motion
+
+- Corium aparece una sola vez como acompañamiento del CTA y el launcher se oculta mientras la escena integrada está visible.
+- El cambio de perfil usa una transición breve de opacidad y desplazamiento, y las barras muestran su valor final dentro del contenedor reservado.
+- No existe autoplay, temporizador, almacenamiento, observer adicional ni rotación automática de roles.
+- Con reduced motion se eliminan desplazamientos, escalas, progresiones y transiciones; toda la información permanece visible en su estado final.
+
+### Responsive, estabilidad y rendimiento
+
+- Desktop mantiene selector y superficie protagonista con producto y beneficios en dos columnas.
+- Tablet coloca el selector arriba y reorganiza el resumen sin comprimir las métricas.
+- Móvil muestra tres controles compactos y un único perfil activo, sin sidebar ni scroll horizontal.
+- La superficie reserva una altura común por breakpoint para que títulos, métricas y CTA no desplacen las secciones siguientes al cambiar de perfil.
+- El componente cliente no añade dependencias, imágenes pesadas, timers, listeners globales ni llamadas de red.
 
 ## Interacción y accesibilidad
 
