@@ -1,6 +1,6 @@
 # EducaCora Visual Foundations
 
-Version: 1.4
+Version: 1.5
 Estado: Fuente de verdad para superficies públicas
 Ámbito inicial: Home pública
 
@@ -290,3 +290,64 @@ La parte final de la Home deja de presentar Experience, acceso instalable, confi
 ## Evolución
 
 Los siguientes sprints deben consumir estos tokens antes de añadir estilos locales. No se introducirán nuevas dependencias de motion mientras CSS, `IntersectionObserver` y los componentes existentes cubran la necesidad.
+
+## Living Experience — Estado consolidado tras Sprint 19.6
+
+La Home pública queda cerrada como una única experiencia narrativa. El orden oficial es:
+
+1. Living Hero: propuesta de valor y producto visible.
+2. Acceso: entrada neutral al selector de centros.
+3. Propuesta de valor: problemas operativos que EducaCora organiza.
+4. Ecosistema: relación entre módulos y perfiles.
+5. Corium AI: acompañamiento contextual del producto.
+6. Perspectivas: Dirección, Docente y Familia.
+7. Experience Gateway: paso natural hacia la demostración completa.
+8. Confianza y acceso instalable.
+9. Decisión comercial, contacto y footer.
+
+### Arquitectura y responsabilidades
+
+- `src/app/page.tsx` compone las secciones, los metadatos estructurados, la navegación y las dos superficies públicas compactas de acceso y propuesta de valor.
+- `LivingHero`, `ConnectedModulesSection`, `RolePerspectivesSection` y `CommercialClosingSection` conservan responsabilidades narrativas independientes y consumen los tokens `--ec-*`.
+- Las configuraciones de módulos y roles siguen siendo la única fuente de datos para sus selectores, paneles y resúmenes accesibles.
+- `LandingExperienceMotion` coordina reveals y la presencia del launcher contextual de Corium. Las escenas que ya contienen a Corium deben declarar `data-corium-contained-scene` para impedir duplicidades.
+- `ContactModal` continúa siendo el único formulario comercial. Mantiene el contrato con `/api/contact`, Turnstile, honeypot y Resend; sus errores visibles quedan vinculados por ARIA y la validación enfoca el primer campo incorrecto.
+
+### Datos, producto y límites
+
+- La Home y EducaCora Experience usan únicamente datos ficticios. El acceso público conduce a `/app`, donde el usuario elige un centro real; la Home no identifica clientes concretos.
+- Experience sigue siendo la única demostración completa. La Home no incorpora sidebar, persistencia demo, Guided Tour ni acciones académicas.
+- La plataforma privada, Supabase, Auth, RLS, dashboards y acciones académicas permanecen fuera de la arquitectura pública.
+- Corium en la Home es contextual y narrativo. Su IA, proveedores y comportamiento privado no forman parte de esta capa.
+
+### PWA, contacto y privacidad
+
+- La web comercial comienza en `/` y la PWA instalada comienza en `/app`, según `public/manifest.json`.
+- El alcance del manifest sigue siendo `/`; no existe redirección automática por `display-mode`.
+- El formulario conserva nombre, correo, centro, relación, mensaje, consentimiento, honeypot y verificación de seguridad.
+- La Política de Privacidad permanece accesible desde formulario, confianza y footer.
+
+### Responsive, accesibilidad y motion
+
+- Se validan los breakpoints de 1920, 1440, 1366, 1280, 1024, 820, 768, 430, 412, 390, 375, 360 y 320 px.
+- A 320 px la marca y las acciones del navbar usan una variante compacta sin ocultar el CTA principal ni el menú.
+- Los selectores de módulos y roles mantienen `tablist`, flechas, Inicio y Fin. Menú y modal conservan Escape y restauración de foco.
+- `prefers-reduced-motion` presenta estados finales, elimina loops y mantiene toda la información disponible.
+- No se añade ningún `aria-live` persistente; el mensaje flotante de Corium solo se anuncia cuando está expandido.
+
+### Rendimiento consolidado
+
+- Build de Sprint 19.6: 65 páginas generadas.
+- Home: `12.9 kB`, sin variación frente a Sprint 19.5.
+- First Load de Home: `123 kB`, `+1 kB` frente a Sprint 19.5.
+- El incremento es menor y corresponde al refuerzo accesible del componente cliente de contacto y al redondeo del informe de Next.js. No se añaden dependencias, assets, timers ni observers.
+
+### Mantenimiento y deuda real
+
+- No deben reintroducirse datos de centros reales en la Home o Experience pública.
+- No deben crearse formularios, launchers de Corium, gateways de Experience o footers paralelos.
+- `src/app/page.tsx` conserva una hoja de estilos pública inline extensa. Funciona y está correctamente acotada por `.educore-public-page`, pero su extracción a un archivo dedicado queda como deuda menor para un sprint técnico específico; no debe mezclarse con cambios visuales.
+- Los nombres internos heredados `EduCore*` en componentes PWA no son copy visible ni afectan al producto. Su renombrado se pospone para evitar un refactor sin valor de usuario.
+- La validación visual automatizada cubre Chromium. La comprobación real en Safari, Firefox y dispositivos físicos sigue siendo una tarea manual recomendada antes de campañas de tráfico amplias.
+
+Las ampliaciones futuras permitidas deben medir resultados comerciales, validar la experiencia con usuarios reales o mejorar contenidos públicos. No deben iniciar otro rediseño general de la Home sin evidencia.

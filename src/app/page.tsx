@@ -54,9 +54,9 @@ const structuredData = [
 
 const schools = [
   {
-    name: "Colegio Peñafort",
-    description: "Accede a tu plataforma del centro.",
-    href: "/login"
+    name: "Selector de centros",
+    description: "Elige tu centro educativo y accede con tus credenciales.",
+    href: "/app"
   }
 ];
 
@@ -516,6 +516,13 @@ export default function HomePage() {
           .educore-public-page .contextual-corium.is-expanded .contextual-corium-message { display: block; }
           .educore-public-page .contextual-corium-close { display: inline-grid; }
         }
+        @media (max-width: 360px) {
+          .educore-public-page .brand-logo { width: 96px; }
+          .educore-public-page .nav-actions > .btn-primary {
+            padding-inline: 8px;
+            font-size: 11px;
+          }
+        }
         @media (prefers-reduced-motion: reduce) {
           .educore-public-page .landing-reveal,
           .educore-public-page .landing-reveal.is-visible,
@@ -619,7 +626,7 @@ export default function HomePage() {
 
       <ConnectedModulesSection />
 
-      <section id="corium-ai" data-corium-message="Corium acompaña sin invadir.">
+      <section id="corium-ai" data-corium-contained-scene data-corium-message="Corium acompaña sin invadir.">
         <div className="container">
           <div className="corium-card surface-card--featured landing-reveal">
             <div>

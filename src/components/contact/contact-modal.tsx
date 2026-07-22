@@ -124,6 +124,7 @@ export function ContactModal({ open, onOpenChange, origin, originLabel, experien
   const [serverError, setServerError] = useState("");
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const bodyRef = useRef<HTMLElement | null>(null);
+  const formRef = useRef<HTMLFormElement | null>(null);
   const titleRef = useRef<HTMLHeadingElement | null>(null);
   const firstFieldRef = useRef<HTMLInputElement | null>(null);
   const turnstileRef = useRef<HTMLDivElement | null>(null);
@@ -310,6 +311,19 @@ export function ContactModal({ open, onOpenChange, origin, originLabel, experien
     if (!turnstileToken) nextErrors.turnstile = "Completa la verificación de seguridad.";
 
     setErrors(nextErrors);
+    const firstError = Object.keys(nextErrors)[0] as keyof ContactErrors | undefined;
+
+    if (firstError) {
+      window.requestAnimationFrame(() => {
+        if (firstError === "turnstile") {
+          turnstileRef.current?.focus();
+          return;
+        }
+
+        formRef.current?.querySelector<HTMLElement>(`[name="${firstError}"]`)?.focus();
+      });
+    }
+
     return Object.keys(nextErrors).length === 0;
   }
 
@@ -417,7 +431,10 @@ export function ContactModal({ open, onOpenChange, origin, originLabel, experien
           <>
             <form
               id="contact-request-form"
-              ref={(element) => { bodyRef.current = element; }}
+              ref={(element) => {
+                bodyRef.current = element;
+                formRef.current = element;
+              }}
               className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-5"
               onSubmit={(event) => {
                 event.preventDefault();
@@ -426,41 +443,42 @@ export function ContactModal({ open, onOpenChange, origin, originLabel, experien
               noValidate
             >
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Nombre y apellidos" error={errors.fullName} required>
-                  <input ref={firstFieldRef} value={form.fullName} onChange={(event) => update("fullName", event.target.value)} autoComplete="name" className={inputClass(errors.fullName)} />
+                <Field label="Nombre y apellidos" error={errors.fullName} errorId="contact-full-name-error" required>
+                  <input ref={firstFieldRef} name="fullName" value={form.fullName} onChange={(event) => update("fullName", event.target.value)} autoComplete="name" className={inputClass(errors.fullName)} aria-invalid={Boolean(errors.fullName)} aria-describedby={errors.fullName ? "contact-full-name-error" : undefined} />
                 </Field>
-                <Field label="Correo electrónico" error={errors.email} required>
-                  <input value={form.email} onChange={(event) => update("email", event.target.value)} type="email" autoComplete="email" inputMode="email" className={inputClass(errors.email)} />
+                <Field label="Correo electrónico" error={errors.email} errorId="contact-email-error" required>
+                  <input name="email" value={form.email} onChange={(event) => update("email", event.target.value)} type="email" autoComplete="email" inputMode="email" className={inputClass(errors.email)} aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? "contact-email-error" : undefined} />
                 </Field>
-                <Field label="Centro educativo" error={errors.schoolName} required>
-                  <input value={form.schoolName} onChange={(event) => update("schoolName", event.target.value)} autoComplete="organization" className={inputClass(errors.schoolName)} />
+                <Field label="Centro educativo" error={errors.schoolName} errorId="contact-school-error" required>
+                  <input name="schoolName" value={form.schoolName} onChange={(event) => update("schoolName", event.target.value)} autoComplete="organization" className={inputClass(errors.schoolName)} aria-invalid={Boolean(errors.schoolName)} aria-describedby={errors.schoolName ? "contact-school-error" : undefined} />
                 </Field>
-                <Field label="Cargo o relación con el centro" error={errors.role} required>
-                  <select value={form.role} onChange={(event) => update("role", event.target.value)} className={inputClass(errors.role)}>
+                <Field label="Cargo o relación con el centro" error={errors.role} errorId="contact-role-error" required>
+                  <select name="role" value={form.role} onChange={(event) => update("role", event.target.value)} className={inputClass(errors.role)} aria-invalid={Boolean(errors.role)} aria-describedby={errors.role ? "contact-role-error" : undefined}>
                     <option value="">Selecciona una opción</option>
                     {roleOptions.map((option) => <option key={option} value={option}>{option}</option>)}
                   </select>
                 </Field>
                 {form.role === "Otro" ? (
-                  <Field label="Especifica tu relación" error={errors.otherRole} required>
-                    <input value={form.otherRole} onChange={(event) => update("otherRole", event.target.value)} className={inputClass(errors.otherRole)} />
+                  <Field label="Especifica tu relación" error={errors.otherRole} errorId="contact-other-role-error" required>
+                    <input name="otherRole" value={form.otherRole} onChange={(event) => update("otherRole", event.target.value)} className={inputClass(errors.otherRole)} aria-invalid={Boolean(errors.otherRole)} aria-describedby={errors.otherRole ? "contact-other-role-error" : undefined} />
                   </Field>
                 ) : null}
-                <Field label="Mensaje" error={errors.message} className="sm:col-span-2">
-                  <textarea value={form.message} onChange={(event) => update("message", event.target.value)} rows={4} className={`${inputClass(errors.message)} min-h-28 resize-y py-3`} />
+                <Field label="Mensaje" error={errors.message} errorId="contact-message-error" className="sm:col-span-2">
+                  <textarea name="message" value={form.message} onChange={(event) => update("message", event.target.value)} rows={4} className={`${inputClass(errors.message)} min-h-28 resize-y py-3`} aria-invalid={Boolean(errors.message)} aria-describedby={errors.message ? "contact-message-error" : undefined} />
                 </Field>
               </div>
 
               <div className="hidden" aria-hidden="true">
                 <label>
                   Web
-                  <input tabIndex={-1} autoComplete="off" value={form.website} onChange={(event) => update("website", event.target.value)} />
+                  <input name="website" tabIndex={-1} autoComplete="off" value={form.website} onChange={(event) => update("website", event.target.value)} />
                 </label>
               </div>
 
               <label className="mt-4 flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600" htmlFor="contact-privacy">
                 <input
                   id="contact-privacy"
+                  name="privacyAccepted"
                   type="checkbox"
                   checked={form.privacyAccepted}
                   onChange={(event) => update("privacyAccepted", event.target.checked)}
@@ -475,8 +493,8 @@ export function ContactModal({ open, onOpenChange, origin, originLabel, experien
               </label>
 
               <div className="mt-4">
-                {turnstileSiteKey ? <div className="max-w-full overflow-x-auto"><div ref={turnstileRef} className="min-h-[65px]" /></div> : <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">La verificación de seguridad no está configurada en este entorno.</div>}
-                {errors.turnstile ? <p className="mt-2 text-xs font-semibold text-red-600">{errors.turnstile}</p> : null}
+                {turnstileSiteKey ? <div className="max-w-full overflow-x-auto"><div ref={turnstileRef} tabIndex={-1} className="min-h-[65px] outline-none" aria-describedby={errors.turnstile ? "contact-turnstile-error" : undefined} /></div> : <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">La verificación de seguridad no está configurada en este entorno.</div>}
+                {errors.turnstile ? <p id="contact-turnstile-error" className="mt-2 text-xs font-semibold text-red-600">{errors.turnstile}</p> : null}
               </div>
 
               {status === "error" ? (
@@ -509,14 +527,14 @@ export function ContactModal({ open, onOpenChange, origin, originLabel, experien
   return createPortal(modalContent, document.body);
 }
 
-function Field({ label, error, required, className, children }: { label: string; error?: string; required?: boolean; className?: string; children: ReactNode }) {
+function Field({ label, error, errorId, required, className, children }: { label: string; error?: string; errorId?: string; required?: boolean; className?: string; children: ReactNode }) {
   return (
     <label className={`block ${className ?? ""}`}>
       <span className="text-sm font-semibold text-slate-700">
         {label}{required ? <span className="text-red-500"> *</span> : null}
       </span>
       <span className="mt-1 block">{children}</span>
-      {error ? <span className="mt-1 block text-xs font-semibold text-red-600">{error}</span> : null}
+      {error ? <span id={errorId} className="mt-1 block text-xs font-semibold text-red-600">{error}</span> : null}
     </label>
   );
 }
