@@ -51,3 +51,10 @@ Variables principales:
 - `OPENAI_API_KEY`
 
 OpenAI solo se usa si `AI_PROVIDER=openai`.
+
+## Fundación multitenant
+
+El Sprint 20.1 añade una base multitenant aditiva, todavía no conectada a los
+dashboards ni a las tablas operativas. La fuente de verdad, estrategia de
+compatibilidad, RLS, staging, backfill y rollback se documenta en
+[`MULTITENANT_ARCHITECTURE.md`](./MULTITENANT_ARCHITECTURE.md).

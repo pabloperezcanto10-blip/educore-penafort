@@ -65,6 +65,88 @@ export type Database = {
         };
         Relationships: [];
       };
+      schools: {
+        Row: {
+          id: string;
+          name: string;
+          short_name: string;
+          slug: string;
+          status: "onboarding" | "active" | "suspended";
+          active: boolean;
+          logo_url: string | null;
+          primary_color: string | null;
+          secondary_color: string | null;
+          accent_color: string | null;
+          family_email_domain: string | null;
+          calendar_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          short_name: string;
+          slug: string;
+          status?: "onboarding" | "active" | "suspended";
+          active?: boolean;
+          logo_url?: string | null;
+          primary_color?: string | null;
+          secondary_color?: string | null;
+          accent_color?: string | null;
+          family_email_domain?: string | null;
+          calendar_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          name?: string;
+          short_name?: string;
+          slug?: string;
+          status?: "onboarding" | "active" | "suspended";
+          active?: boolean;
+          logo_url?: string | null;
+          primary_color?: string | null;
+          secondary_color?: string | null;
+          accent_color?: string | null;
+          family_email_domain?: string | null;
+          calendar_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      school_memberships: {
+        Row: {
+          id: string;
+          school_id: string;
+          user_id: string;
+          role: "superadmin" | "director" | "tutor" | "family";
+          active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          school_id: string;
+          user_id: string;
+          role: "superadmin" | "director" | "tutor" | "family";
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          role?: "superadmin" | "director" | "tutor" | "family";
+          active?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "school_memberships_school_id_fkey";
+            columns: ["school_id"];
+            referencedRelation: "schools";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       profiles: {
         Row: {
           id: string;
