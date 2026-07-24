@@ -5,7 +5,8 @@ import { SITE_DESCRIPTION, SITE_NAME, SITE_OG_IMAGE, SITE_TITLE, SITE_URL } from
 import "./globals.css";
 
 const GA_MEASUREMENT_ID = "G-VH4LRRGNCY";
-const shouldLoadAnalytics = process.env.NODE_ENV === "production";
+const isStaging = process.env.DEPLOYMENT_ENV === "staging";
+const shouldLoadAnalytics = process.env.NODE_ENV === "production" && !isStaging;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -23,11 +24,11 @@ export const metadata: Metadata = {
     }
   },
   robots: {
-    index: true,
-    follow: true,
+    index: !isStaging,
+    follow: !isStaging,
     googleBot: {
-      index: true,
-      follow: true,
+      index: !isStaging,
+      follow: !isStaging,
       "max-image-preview": "large",
       "max-snippet": -1,
       "max-video-preview": -1

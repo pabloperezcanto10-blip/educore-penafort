@@ -5,6 +5,8 @@ const nextConfig = (phase) => ({
   reactStrictMode: true,
   distDir: phase === PHASE_DEVELOPMENT_SERVER ? ".next-dev" : ".next",
   async headers() {
+    const isStaging = process.env.DEPLOYMENT_ENV === "staging";
+
     return [
       {
         source: "/(.*)",
@@ -24,7 +26,15 @@ const nextConfig = (phase) => ({
           {
             key: "Permissions-Policy",
             value: "camera=(), microphone=(), geolocation=()"
-          }
+          },
+          ...(isStaging
+            ? [
+                {
+                  key: "X-Robots-Tag",
+                  value: "noindex, nofollow, noarchive"
+                }
+              ]
+            : [])
         ]
       }
     ];

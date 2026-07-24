@@ -14,3 +14,5 @@ dev-server.stdin
 tsconfig.tsbuildinfo
 pnpm-debug.log*
 Thumbs.db
+output/
+supabase/.temp/

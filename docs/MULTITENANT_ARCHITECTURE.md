@@ -324,3 +324,85 @@ Avanzar solo cuando:
 6. se genere un dry-run de memberships;
 7. se verifiquen cero cambios de usuarios, emails, roles y relaciones;
 8. se complete la matriz de regresión de los cuatro roles.
+
+## 18. Entorno de staging independiente
+
+El Sprint 20.1C crea un laboratorio aislado para preparar la reconstrucción del
+esquema, sin aplicar migraciones ni copiar datos.
+
+### Recursos
+
+- rama Git: `staging`, creada desde `4011485`;
+- Supabase: `educacora-staging`;
+- Project Ref: `zhnbrpcekmxldxlqrbhr`;
+- región: `eu-west-1`;
+- Vercel: `educacora-staging`;
+- repositorio: `pabloperezcanto10-blip/educore-penafort`;
+- Production Branch del proyecto Vercel: `staging`;
+- URL: se documentará tras el primer deployment verificado.
+
+El repositorio local está enlazado únicamente al Project Ref de staging. La
+carpeta `supabase/.temp/` y la configuración `.vercel/` son artefactos locales
+ignorados por Git.
+
+### Variables de Vercel
+
+Obligatorias, siempre con valores pertenecientes al proyecto staging:
+
+- `DEPLOYMENT_ENV=staging`;
+- `NEXT_PUBLIC_SUPABASE_URL`;
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`;
+- `SUPABASE_SERVICE_ROLE_KEY`;
+- `AI_ASSISTANT_ENABLED=false`.
+
+Las integraciones de contacto son opcionales. Si se prueban, deben usar
+credenciales y destinatarios específicos de staging:
+
+- `RESEND_API_KEY`;
+- `CONTACT_TO_EMAIL`;
+- `CONTACT_FROM_EMAIL`;
+- `NEXT_PUBLIC_CONTACT_EMAIL`;
+- `NEXT_PUBLIC_TURNSTILE_SITE_KEY`;
+- `TURNSTILE_SECRET_KEY`.
+
+No se configuran claves de proveedores de IA. Corium permanece desactivado.
+
+### Auth
+
+Después de disponer de la URL estable de staging se configurarán únicamente en
+el proyecto Supabase staging:
+
+- Site URL: URL raíz de staging;
+- redirect de login: `<STAGING_URL>/login`;
+- recuperación: `<STAGING_URL>/change-password`;
+- confirmación de correo: la URL de callback que utilice el flujo actual.
+
+No se modifica Auth de producción y no se crean usuarios durante este sprint.
+
+### Noindex
+
+Cuando `DEPLOYMENT_ENV=staging`:
+
+- la metadata global declara `noindex` y `nofollow`;
+- `robots.txt` bloquea todas las rutas;
+- todas las respuestas incluyen `X-Robots-Tag: noindex, nofollow, noarchive`;
+- Google Analytics no se carga.
+
+Producción conserva su configuración SEO porque no define ese valor.
+
+### Estado y aislamiento
+
+- Supabase staging y producción tienen Project Ref diferentes;
+- Vercel staging es un proyecto independiente;
+- las credenciales configuradas en Vercel proceden solo de Supabase staging;
+- `.env.local` de producción no se utiliza para el deployment staging;
+- no se han ejecutado `db push`, `migration repair`, `db reset`, SQL ni dumps;
+- no se han creado centros, usuarios ni datos de prueba;
+- Colegio Peñafort y producción permanecen intactos.
+
+### Siguiente sprint
+
+El Sprint 20.1D podrá comenzar únicamente después de verificar el deployment,
+Auth y el aislamiento. Allí se obtendrá y revisará una baseline estructural sin
+datos, se reconciliará el historial de migraciones en staging y se comprobará
+mediante `db push --dry-run` que la única migración pendiente sea `034`.
