@@ -339,7 +339,7 @@ esquema, sin aplicar migraciones ni copiar datos.
 - Vercel: `educacora-staging`;
 - repositorio: `pabloperezcanto10-blip/educore-penafort`;
 - Production Branch del proyecto Vercel: `staging`;
-- URL: se documentará tras el primer deployment verificado.
+- URL: `https://educacora-staging.vercel.app`.
 
 El repositorio local está enlazado únicamente al Project Ref de staging. La
 carpeta `supabase/.temp/` y la configuración `.vercel/` son artefactos locales
@@ -369,15 +369,16 @@ No se configuran claves de proveedores de IA. Corium permanece desactivado.
 
 ### Auth
 
-Después de disponer de la URL estable de staging se configurarán únicamente en
-el proyecto Supabase staging:
+Configuración exclusiva del proyecto Supabase staging:
 
-- Site URL: URL raíz de staging;
-- redirect de login: `<STAGING_URL>/login`;
-- recuperación: `<STAGING_URL>/change-password`;
-- confirmación de correo: la URL de callback que utilice el flujo actual.
+- Site URL: `https://educacora-staging.vercel.app`;
+- login: `https://educacora-staging.vercel.app/login`;
+- recuperación: `https://educacora-staging.vercel.app/change-password`;
+- confirmación: `https://educacora-staging.vercel.app/auth/callback`.
 
 No se modifica Auth de producción y no se crean usuarios durante este sprint.
+La verificación posterior confirmó `disable_signup=true`, acceso anónimo
+desactivado, proveedor email disponible y cero usuarios en staging.
 
 ### Noindex
 
@@ -389,6 +390,20 @@ Cuando `DEPLOYMENT_ENV=staging`:
 - Google Analytics no se carga.
 
 Producción conserva su configuración SEO porque no define ese valor.
+
+El primer deployment de `staging`, generado desde `24139e1`, finalizó en estado
+`Ready`. Se verificaron con respuesta `200`:
+
+- `/`;
+- `/app`;
+- `/login`;
+- `/register`;
+- `/manifest.json`;
+- `/robots.txt`.
+
+Las seis rutas incluyen `X-Robots-Tag`, la Home declara `noindex`, `robots.txt`
+bloquea todo el sitio, `/register` mantiene el registro desactivado y todos los
+iconos declarados por el manifest cargan correctamente.
 
 ### Estado y aislamiento
 
