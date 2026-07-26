@@ -264,9 +264,9 @@ bootstrap para cumplir la política de cero datos.
 | 033 | `attendance_records`, índices, trigger y policies presentes |
 
 `migration repair --status applied` se ejecutó únicamente en staging para
-001-033. No se reparó ni aplicó 034.
+001-033. Al cierre del Sprint 20.1D no se había reparado ni aplicado 034.
 
-Resultado:
+Resultado al cierre del Sprint 20.1D:
 
 - local/remoto 001-033 alineados;
 - 034 solo local;
@@ -274,7 +274,7 @@ Resultado:
 
 ## 10. Estado de datos
 
-Después del bootstrap y el repair:
+Después del bootstrap y el repair, antes del Sprint 20.1E:
 
 - todas las 27 tablas públicas: `0` filas;
 - `auth.users`: `0`;
@@ -311,3 +311,86 @@ Sprint 20.1E debe:
 3. aplicar 034 solo en staging y con autorización expresa;
 4. comprobar las tablas y RLS multitenant;
 5. mantener producción y Colegio Peñafort sin cambios.
+
+## 13. Aplicación de 034 en staging
+
+El 26 de julio de 2026 se completó el Sprint 20.1E contra el Project Ref
+`zhnbrpcekmxldxlqrbhr`.
+
+La secuencia aplicada fue:
+
+1. guarda de entorno con destino `STAGING`;
+2. `supabase migration list`;
+3. `supabase db push --linked --dry-run`;
+4. revisión de 034 y de los seeds históricos;
+5. `supabase db push --linked`;
+6. comprobación de historial y catálogo;
+7. fixtures QA mínimos;
+8. pruebas RLS, contexto, branding y aplicación.
+
+El dry-run propuso únicamente `034_multitenant_foundation.sql`. El push aplicó
+solo esa migración y el historial local/remoto quedó alineado en 001-034.
+`db push` no ejecutó seeds separados y las migraciones 025-026 ya estaban
+reconciliadas; no se ejecutaron sus inserciones históricas.
+
+### Resultado estructural
+
+| Colección | Antes | Después |
+| --- | ---: | ---: |
+| Tablas públicas | 27 | 29 |
+| Columnas | 237 | 258 |
+| Constraints | 145 | 159 |
+| Índices | 90 | 97 |
+| Funciones | 8 | 9 |
+| Triggers públicos | 22 | 25 |
+| Hook Auth aplicativo | 1 | 1 |
+| Policies | 100 | 102 |
+| Tipos propios | 1 | 1 |
+| Extensiones | 5 | 5 |
+
+`scripts/compare-multitenant-foundation.mjs` confirmó que las únicas
+diferencias corresponden a `schools`, `school_memberships`, sus objetos
+auxiliares, la actualización prevista de `handle_new_user()` y la protección
+de `profiles`.
+
+### Fixtures y datos
+
+Staging contiene únicamente:
+
+- 1 centro `QA School`;
+- 5 usuarios Auth QA con dominio `example.test`;
+- 5 perfiles QA;
+- 4 memberships activas;
+- 1 membership inactiva;
+- 1 usuario QA sin membership.
+
+Las 26 tablas académicas y operativas revisadas conservan 0 filas. No existen
+alumnos, familias, cursos, notas, comunicaciones ni datos reales. No se creó
+Colegio EducaCora ni Colegio Peñafort.
+
+### Verificación reproducible
+
+- `supabase/verification/020_1e_qa_setup.sql`: setup idempotente con guardas
+  contra datos no QA;
+- `supabase/verification/020_1e_foundation_checks.sql`: estructura,
+  constraints, índices, grants y triggers;
+- `supabase/verification/020_1_security_checks.sql`: RLS y escalado de
+  privilegios con escrituras transaccionales revertidas;
+- `scripts/verify-school-context.ts`: resolución de contexto y branding;
+- `scripts/compare-multitenant-foundation.mjs`: comparación antes/después.
+
+Las pruebas confirmaron que `authenticated` solo puede leer su membership y
+el centro concedido por una membership activa. No puede escribir en las tablas
+de fundación ni elevar roles. `profiles.role`, `active`,
+`must_change_password`, email, id y fecha de creación quedan protegidos para
+el propio usuario no superadmin.
+
+### Rollback y siguiente fase
+
+Staging sigue siendo descartable. El rollback completo consiste en recrear el
+proyecto desde la baseline y reconciliar 001-033. No debe ejecutarse ningún
+rollback ni repair de este procedimiento contra producción.
+
+El siguiente sprint debe diseñar el backfill tenant-aware y su orden de
+aplicación, sin trasladarlo todavía a producción ni mezclarlo con seeds de
+instancia.

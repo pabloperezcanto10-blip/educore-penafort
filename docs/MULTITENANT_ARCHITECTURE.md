@@ -456,8 +456,9 @@ Staging reproduce el catálogo estructural con:
 - 100 políticas RLS;
 - 0 diferencias estructurales frente a producción.
 
-Todos los conteos de aplicación y `auth.users` permanecen a cero. No existen
-`schools` ni `school_memberships`, por lo que 034 no se ha aplicado.
+Al cierre del Sprint 20.1D, todos los conteos de aplicación y `auth.users`
+permanecían a cero. No existían `schools` ni `school_memberships`, por lo que
+034 todavía no se había aplicado.
 
 Las versiones 001-033 quedaron reconciliadas exclusivamente en staging como
 historial absorbido por la baseline. Los seeds y backfills de Peñafort o prueba
@@ -466,3 +467,97 @@ no se ejecutaron. El dry-run propone únicamente
 
 Producción, `main`, Auth de producción y Colegio Peñafort permanecen sin
 cambios.
+
+## 20. Fundación multitenant validada en staging
+
+El 26 de julio de 2026, el Sprint 20.1E aplicó
+`034_multitenant_foundation.sql` exclusivamente en el proyecto Supabase de
+staging `zhnbrpcekmxldxlqrbhr`.
+
+Antes de la escritura se comprobó:
+
+- rama `staging` y worktree limpio;
+- Project Ref de staging mediante `scripts/assert-supabase-target.ps1`;
+- historial remoto 001-033 reconciliado;
+- `auth.users` y las 27 tablas públicas sin filas;
+- dry-run con una única migración pendiente: 034;
+- ausencia de `DROP TABLE`, `TRUNCATE`, borrados, backfill o inserts de centro
+  dentro de 034.
+
+Los `DROP ... IF EXISTS` de 034 se limitan a policies y triggers que se
+recrean inmediatamente para hacer la migración idempotente. No eliminan datos,
+tablas, columnas ni objetos operativos.
+
+### Objetos resultantes
+
+- `schools`: 14 columnas, PK UUID, `slug` único, constraints de nombre, slug,
+  estado, colores y dominio familiar;
+- `school_memberships`: 7 columnas, PK UUID, FK a `schools`, FK a
+  `auth.users` y unicidad por usuario, centro y rol;
+- 7 índices de soporte entre ambas tablas;
+- triggers `updated_at` en ambas tablas;
+- RLS activa en ambas tablas;
+- policies de lectura para memberships propias y centros con membership
+  activa;
+- cliente `authenticated` con lectura, sin grants de escritura;
+- `anon` sin acceso;
+- función y trigger de protección de campos sensibles de `profiles`;
+- `profiles.role` conservado para la transición.
+
+El inventario posterior contiene 29 tablas, 258 columnas, 159 constraints, 97
+índices, 9 funciones, 25 triggers públicos, 102 policies y el mismo hook Auth.
+La comparación automatizada confirmó que todos los objetos anteriores a 034
+permanecen idénticos.
+
+### Datos QA aislados
+
+Solo se crearon fixtures ficticios en staging:
+
+- centro técnico `QA School`;
+- `qa.superadmin@example.test`;
+- `qa.director@example.test`;
+- `qa.tutor@example.test`;
+- `qa.family@example.test`;
+- `qa.nomembership@example.test`;
+- cuatro memberships activas, una membership inactiva y un usuario sin
+  membership.
+
+No se documentaron contraseñas. No se crearon alumnos, familias, cursos,
+calificaciones, asistencias, incidencias ni comunicaciones. No se copiaron
+datos personales ni datos de Colegio Peñafort.
+
+### Seguridad y contexto
+
+`supabase/verification/020_1_security_checks.sql` validó con sesiones QA
+simuladas y transacciones revertidas que:
+
+- un usuario normal no crea, modifica ni elimina centros;
+- no crea, activa ni eleva memberships;
+- solo consulta memberships propias;
+- una membership inactiva y un usuario sin membership no conceden centro;
+- tutor, director y family no pueden elevar su rol;
+- los campos sensibles de `profiles` están protegidos;
+- el nombre propio autorizado sigue siendo editable.
+
+`supabase/verification/020_1e_foundation_checks.sql` validó constraints,
+foreign keys, unicidad, roles, grants y triggers `updated_at`.
+
+`scripts/verify-school-context.ts` validó el contexto con membership activa,
+el rechazo de centros no autorizados, la ausencia de centro sin membership y
+el fallback temporal de branding de Peñafort. Este fallback no concede un
+`school_id` y sigue siendo únicamente un puente de compatibilidad.
+
+### Límite del sprint y rollback
+
+No se creó Colegio EducaCora ni Peñafort como tenant, no se añadió `school_id`
+a tablas operativas y no se inició ningún backfill. Producción, `main`,
+Colegio Peñafort y los flujos académicos permanecen intactos.
+
+Si staging debe revertirse, se recreará desde
+`supabase/baseline/000_public_schema_baseline.sql`, se reconciliará 001-033 y
+se decidirá si volver a aplicar 034. No se ejecutará ese rollback contra
+producción.
+
+El Sprint 20.2 puede comenzar con el diseño del backfill y la incorporación
+progresiva de `school_id`, siempre primero en staging y con una matriz de
+tablas, acciones y policies revisada.
