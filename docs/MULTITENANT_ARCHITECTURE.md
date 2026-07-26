@@ -411,7 +411,8 @@ iconos declarados por el manifest cargan correctamente.
 - Vercel staging es un proyecto independiente;
 - las credenciales configuradas en Vercel proceden solo de Supabase staging;
 - `.env.local` de producción no se utiliza para el deployment staging;
-- no se han ejecutado `db push`, `migration repair`, `db reset`, SQL ni dumps;
+- al cerrar el Sprint 20.1C no se habían ejecutado `db push`,
+  `migration repair`, `db reset`, SQL ni dumps;
 - no se han creado centros, usuarios ni datos de prueba;
 - Colegio Peñafort y producción permanecen intactos.
 
@@ -421,3 +422,47 @@ El Sprint 20.1D podrá comenzar únicamente después de verificar el deployment,
 Auth y el aislamiento. Allí se obtendrá y revisará una baseline estructural sin
 datos, se reconciliará el historial de migraciones en staging y se comprobará
 mediante `db push --dry-run` que la única migración pendiente sea `034`.
+
+## 19. Baseline estructural reproducible
+
+El Sprint 20.1D reconstruye staging mediante una baseline estructural derivada
+del catálogo real de producción y almacenada fuera del flujo normal de
+migraciones:
+
+- baseline: `supabase/baseline/000_public_schema_baseline.sql`;
+- inventario: `supabase/verification/020_1d_schema_inventory.sql`;
+- bootstrap protegido: `scripts/bootstrap-staging-schema.ps1`;
+- repair protegido: `scripts/repair-staging-baseline-history.ps1`;
+- procedimiento completo: `docs/DATABASE_BASELINE.md`.
+
+La extracción de catálogo se realizó en producción mediante consultas `SELECT`.
+La CLI se volvió a enlazar a staging inmediatamente después. No se ejecutó
+ninguna escritura en producción.
+
+El inventario reveló 27 tablas públicas. Además de las cinco tablas conocidas
+sin creación versionada (`courses`, `notifications`, `parent_students`,
+`students` y `teacher_assignments`), existen tres tablas heredadas adicionales:
+`families`, `student_families` y `teachers`.
+
+Staging reproduce el catálogo estructural con:
+
+- 27 tablas;
+- 237 columnas;
+- 145 constraints;
+- 90 índices;
+- 8 funciones;
+- 22 triggers públicos;
+- 1 hook Auth aplicativo;
+- 100 políticas RLS;
+- 0 diferencias estructurales frente a producción.
+
+Todos los conteos de aplicación y `auth.users` permanecen a cero. No existen
+`schools` ni `school_memberships`, por lo que 034 no se ha aplicado.
+
+Las versiones 001-033 quedaron reconciliadas exclusivamente en staging como
+historial absorbido por la baseline. Los seeds y backfills de Peñafort o prueba
+no se ejecutaron. El dry-run propone únicamente
+`034_multitenant_foundation.sql`.
+
+Producción, `main`, Auth de producción y Colegio Peñafort permanecen sin
+cambios.

@@ -1,0 +1,35 @@
+-- Aggregate-only verification for the structural staging baseline.
+-- This query never returns application rows.
+
+select json_build_object(
+  'auth_users', (select count(*) from auth.users),
+  'academic_years', (select count(*) from public.academic_years),
+  'annual_evaluation_weights', (select count(*) from public.annual_evaluation_weights),
+  'attendance_records', (select count(*) from public.attendance_records),
+  'audit_logs', (select count(*) from public.audit_logs),
+  'course_subjects', (select count(*) from public.course_subjects),
+  'courses', (select count(*) from public.courses),
+  'evaluation_criteria', (select count(*) from public.evaluation_criteria),
+  'evaluation_publications', (select count(*) from public.evaluation_publications),
+  'families', (select count(*) from public.families),
+  'final_course_grades', (select count(*) from public.final_course_grades),
+  'final_evaluation_publications', (select count(*) from public.final_evaluation_publications),
+  'internal_notifications', (select count(*) from public.internal_notifications),
+  'notifications', (select count(*) from public.notifications),
+  'parent_students', (select count(*) from public.parent_students),
+  'partial_grades', (select count(*) from public.partial_grades),
+  'profiles', (select count(*) from public.profiles),
+  'quarter_final_grades', (select count(*) from public.quarter_final_grades),
+  'student_attendance', (select count(*) from public.student_attendance),
+  'student_families', (select count(*) from public.student_families),
+  'student_incidents', (select count(*) from public.student_incidents),
+  'student_observations', (select count(*) from public.student_observations),
+  'students', (select count(*) from public.students),
+  'subjects', (select count(*) from public.subjects),
+  'teacher_assignments', (select count(*) from public.teacher_assignments),
+  'teacher_schedule', (select count(*) from public.teacher_schedule),
+  'teachers', (select count(*) from public.teachers),
+  'term_subject_grades', (select count(*) from public.term_subject_grades),
+  'schools_exists', to_regclass('public.schools') is not null,
+  'school_memberships_exists', to_regclass('public.school_memberships') is not null
+) as staging_data_counts;
