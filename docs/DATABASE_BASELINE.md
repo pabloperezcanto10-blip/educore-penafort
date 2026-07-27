@@ -447,3 +447,56 @@ aislamiento y rollback están en
 El historial local/remoto de staging está alineado en 001-035 y el dry-run está
 vacío. Producción continúa en su baseline previa: no recibió 034, 035 ni
 escrituras de este sprint.
+
+## 16. Baseline de configuración tras la oleada 20.2C
+
+La migración `036_add_school_id_to_configuration.sql` está aplicada únicamente
+en Supabase staging `zhnbrpcekmxldxlqrbhr`. El historial local/remoto está
+alineado en 001-036 y el dry-run posterior está vacío.
+
+La configuración académica tiene ahora propiedad tenant obligatoria:
+
+| Tabla | `school_id` | Integridad principal |
+| --- | --- | --- |
+| `academic_years` | UUID, FK, índice, NOT NULL | nombre y único activo por centro |
+| `courses` | UUID, FK, índice, NOT NULL | curso académico y nombre por centro |
+| `subjects` | UUID, FK, índice, NOT NULL | nombre por centro |
+| `course_subjects` | UUID, FK, índice, NOT NULL | course, subject y year del mismo centro |
+
+Las FKs compuestas impiden relaciones cruzadas aunque la operación use un rol
+privilegiado. Las policies sustituyen las lecturas globales autenticadas:
+membership activa, centro de la fila y rol compatible determinan el acceso.
+El superadmin conserva supervisión global controlada sobre centros activos.
+
+`active_academic_year_id(uuid)` resuelve el curso activo por centro. La función
+sin argumentos continúa temporalmente para compatibilidad con tablas
+operativas anteriores a esta oleada y prioriza Peñafort. El código compartido
+usa el UUID estable de Peñafort como contexto operativo por defecto hasta que
+las rutas protegidas incorporen selección explícita de centro.
+
+Staging contiene exclusivamente fixtures sintéticos:
+
+- 2 cursos académicos activos, uno de QA School y otro de Peñafort QA;
+- 2 cursos;
+- 3 materias;
+- 3 relaciones course-subject;
+- cero relaciones cruzadas y cero `school_id` nulos.
+
+No se crearon alumnos, familias, docentes, notas, asistencias,
+comunicaciones ni PII. Producción, `main` y el Colegio Peñafort real no se
+modificaron.
+
+Las tablas de criterios, pesos, publicaciones y evaluaciones se clasifican
+como operativa académica: pueden derivar su futuro `school_id` desde course,
+subject o academic year, pero quedan fuera de 036 para no mezclar oleadas.
+Las tablas de personas y relaciones esperan a una propuesta 037 rediseñada.
+
+La verificación reproducible está en
+`supabase/verification/020_2c_configuration_checks.sql`. Cubre catálogo,
+fixtures, RLS, roles, memberships, aislamiento, unicidad, integridad compuesta
+y compatibilidad del curso activo. La regresión
+`020_2b_wave1_checks.sql` sigue pasando.
+
+El rollback operativo mantiene columnas y datos y desactiva temporalmente el
+código tenant-aware si fuera necesario. El rollback completo de staging
+consiste en recrearlo desde la baseline; no se ejecuta contra producción.

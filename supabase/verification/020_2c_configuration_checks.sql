@@ -306,6 +306,51 @@ $director_checks$;
 rollback;
 
 begin;
+update public.school_memberships
+set active = false
+where user_id = '20e10000-0000-4000-8000-000000000104'
+  and school_id = '20f20000-0000-4000-8000-000000000001';
+
+select set_config(
+  'request.jwt.claim.sub',
+  '20e10000-0000-4000-8000-000000000104',
+  true
+);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+set local role authenticated;
+
+do $qa_school_family_checks$
+declare
+  changed_rows integer;
+begin
+  if (select count(*) from public.academic_years) <> 1
+     or (select count(*) from public.courses) <> 1
+     or (select count(*) from public.subjects) <> 1
+     or (select count(*) from public.course_subjects) <> 1 then
+    raise exception 'QA School family configuration isolation failed.';
+  end if;
+
+  if exists (
+    select 1
+    from public.course_subjects
+    where school_id <> '20e10000-0000-4000-8000-000000000001'
+  ) then
+    raise exception 'QA School family can read another tenant configuration.';
+  end if;
+
+  update public.subjects
+  set name = 'Unauthorized family update'
+  where id = '20e20000-0000-4000-8000-000000000201';
+  get diagnostics changed_rows = row_count;
+
+  if changed_rows <> 0 then
+    raise exception 'Family unexpectedly edited academic configuration.';
+  end if;
+end
+$qa_school_family_checks$;
+rollback;
+
+begin;
 select set_config(
   'request.jwt.claim.sub',
   '20e10000-0000-4000-8000-000000000105',
