@@ -532,3 +532,21 @@ estructura y el aislamiento con fixtures sintéticos revertidos.
 
 Estado al cierre del diseño: 037 no aplicada, ningún dato de personas creado,
 producción y `main` intactos.
+
+## 18. Baseline tras el ensayo de personas
+
+El Sprint 20.2E promovió y aplicó `037` solo en staging. Tras detectar y
+corregir una ambigüedad PostgREST, el catálogo final contiene:
+
+- 6 columnas `school_id` UUID y `NOT NULL` en personas;
+- 14 FKs tenant-aware;
+- 11 índices;
+- 6 triggers de derivación y validación;
+- 13 policies existentes acotadas por membership;
+- 0 relaciones simples duplicadas;
+- `profiles` sin `school_id`;
+- 0 filas en las seis tablas de personas.
+
+El historial local y remoto queda alineado en `001-037`. La siguiente oleada
+no puede comenzar hasta revisar de nuevo los borradores `038-040` contra esta
+baseline.

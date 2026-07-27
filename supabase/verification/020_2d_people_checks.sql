@@ -48,6 +48,23 @@ begin
     raise exception 'A people ownership constraint is missing.';
   end if;
 
+  if exists (
+    select 1
+    from pg_constraint
+    where conname in (
+      'students_course_id_fkey',
+      'students_academic_year_id_fkey',
+      'student_families_student_id_fkey',
+      'student_families_family_id_fkey',
+      'parent_students_student_id_fkey',
+      'teacher_assignments_course_id_fkey',
+      'teacher_assignments_subject_id_fkey',
+      'teacher_assignments_academic_year_id_fkey'
+    )
+  ) then
+    raise exception 'A replaced single-column people relationship remains.';
+  end if;
+
   if (
     select count(*)
     from pg_trigger

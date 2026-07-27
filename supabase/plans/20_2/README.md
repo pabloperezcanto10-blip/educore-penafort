@@ -1,9 +1,8 @@
-# Sprint 20.2B migration drafts
+# Sprint 20.2 migration sequence
 
-`DO NOT APPLY` - `DESIGN ONLY`
-
-These files describe the proposed 035-040 migration sequence. They are outside
-`supabase/migrations` deliberately and must not be applied by the CLI.
+This directory preserves the reviewed source plans for the 035-040 sequence.
+Only approved files receive an executable counterpart in
+`supabase/migrations`.
 
 Before promotion into real migrations:
 
@@ -18,10 +17,10 @@ Stable Peñafort tenant id: `20f20000-0000-4000-8000-000000000001`.
 
 ## Current sequence
 
-- `035` and `036` have executable counterparts already applied only in
-  staging.
-- `037` was redesigned in Sprint 20.2D. It derives people ownership from
-  academic roots, blocks ambiguous identities, adds composite FKs, validates
+- `035`, `036` and the corrected `037` have executable counterparts applied
+  only in staging.
+- `037` derives people ownership from academic roots, blocks ambiguous
+  identities, replaces eight legacy simple FKs with composite FKs, validates
   memberships and scopes the existing people RLS policies.
 - `038-040` remain earlier design drafts and must be reconciled with the new
   `037` before promotion. In particular, `039` must not recreate constraints

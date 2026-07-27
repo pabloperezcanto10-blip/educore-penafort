@@ -1,8 +1,8 @@
 # Plan de backfill tenant-aware de Colegio Peñafort
 
-Versión: 1.2
-Sprint: 20.2D, diseño seguro de personas
-Estado: 035-036 aplicadas solo en staging; 037 rediseñada y no aplicada
+Versión: 1.3
+Sprint: 20.2E, ensayo controlado de personas
+Estado: 035-037 aplicadas solo en staging; producción intacta
 Entorno de diseño: `staging` (`zhnbrpcekmxldxlqrbhr`)
 Commit de partida de la oleada: `4c04078`
 
@@ -572,9 +572,9 @@ acotadas por membership activa y rol en `row.school_id`. Las tablas legado
 permanecen cerradas a clientes autenticados.
 
 La especificación completa y los bloqueos están en
-`docs/MULTITENANT_PEOPLE_MIGRATION_037.md`. La verificación futura
+`docs/MULTITENANT_PEOPLE_MIGRATION_037.md`.
 `supabase/verification/020_2d_people_checks.sql` contiene únicamente fixtures
-sintéticos dentro de `BEGIN/ROLLBACK` y no se ha ejecutado en este sprint.
+sintéticos dentro de `BEGIN/ROLLBACK` y pasó íntegramente en staging.
 
 Orden revisado:
 
@@ -584,6 +584,6 @@ Orden revisado:
 4. 040 sustituye RLS y grants de operativa cuando la aplicación propague
    contexto escolar explícito.
 
-El estado de esta oleada es `NO-GO` para aplicar 037: antes se requiere revisar
-el SQL en staging restaurable, repetir diagnósticos agregados, resolver
-cualquier identidad histórica inactiva y ejecutar íntegramente el verificador.
+El estado de esta oleada es `GO CON BLOQUEOS`: 037 puede mantenerse en staging,
+pero no se promueve a producción hasta ensayar filas anonimizadas resolubles y
+repetir el diagnóstico sobre una copia representativa del histórico real.

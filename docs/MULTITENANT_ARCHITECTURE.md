@@ -718,5 +718,24 @@ inactiva, usuario sin membership, rol incorrecto, usuario multischool,
 ambigüedad y relaciones cruzadas. Todas las escrituras QA están delimitadas
 por `BEGIN/ROLLBACK`.
 
-037 sigue en estado `NO-GO`. No se ha ejecutado SQL ni `db push`; staging
-remoto, producción, `main` y Colegio Peñafort real permanecen intactos.
+## 25. Personas tenant-aware ensayadas en staging
+
+El Sprint 20.2E aplicó la versión corregida de
+`037_add_school_id_to_people.sql` exclusivamente en Supabase staging.
+
+La migración incorpora `school_id` obligatorio, 14 FKs, 11 índices, 6 triggers
+de contexto y 13 policies tenant-scoped en la oleada de personas. `profiles`
+continúa siendo una identidad global.
+
+La regresión inicial reveló que mantener simultáneamente una FK simple y su
+reemplazo compuesto genera relaciones ambiguas para PostgREST. La base staging
+se restauró, se sustituyeron explícitamente ocho FKs simples y la segunda
+aplicación pasó SQL, RLS y navegación autenticada.
+
+Estado final:
+
+- staging y su historial están en `001-037`;
+- no hay datos operativos en las tablas de personas;
+- los fixtures QA se ejecutaron con rollback;
+- `038-040` siguen bloqueadas;
+- producción y `main` permanecen intactos.

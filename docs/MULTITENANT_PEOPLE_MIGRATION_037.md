@@ -164,5 +164,27 @@ La migración nunca activa memberships ni altera perfiles.
 - cruces student/course, family/student y teacher/course/subject/year;
 - clasificación de fuentes ausentes, únicas y ambiguas.
 
-Todas las pruebas están encerradas en `BEGIN/ROLLBACK`. El archivo no se
-ejecuta en este sprint porque 037 no se ha aplicado.
+Todas las pruebas están encerradas en `BEGIN/ROLLBACK`.
+
+## 10. Ensayo controlado en staging
+
+El Sprint 20.2E promovió y aplicó `037` exclusivamente en Supabase staging
+`zhnbrpcekmxldxlqrbhr`.
+
+La primera regresión descubrió relaciones PostgREST ambiguas por convivencia
+de FKs simples y compuestas. Staging se restauró al estado `001-036`, la
+migración se corrigió para sustituir ocho FKs simples y el ensayo se repitió
+completo.
+
+Resultado final:
+
+- historial local/remoto `001-037`;
+- diez bloques SQL correctos y revertidos;
+- cero filas persistentes en las seis tablas de personas;
+- cero FKs simples duplicadas;
+- fichas de alumno y módulos compartidos sin ambigüedad PostgREST;
+- producción, `main` y Colegio Peñafort real sin cambios.
+
+La decisión es `GO CON BLOQUEOS`: 037 permanece únicamente en staging y no se
+autoriza su promoción a producción hasta probar un fixture anonimizado con
+filas resolubles.
