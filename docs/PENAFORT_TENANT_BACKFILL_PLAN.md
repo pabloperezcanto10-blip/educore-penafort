@@ -120,8 +120,9 @@ calendario actual procede de configuración y no se inventa una entidad.
 
 - 27 tablas quedan tenant-scoped: `school_memberships` ya lo está y 26 reciben
   una columna nueva.
-- 2 tablas no llevan `school_id`: `schools`, porque es la raíz, y `profiles`,
-  porque es identidad global.
+- Solo 1 tabla puede permanecer global: `profiles`.
+- 2 tablas no llevan `school_id`: `schools`, porque es la raíz del tenant, y
+  `profiles`, porque es identidad global.
 - 25 de las 26 columnas nuevas acabarán en `NOT NULL`.
 - `audit_logs.school_id` queda nullable para eventos de plataforma.
 
@@ -438,7 +439,7 @@ y están marcados `DO NOT APPLY / DESIGN ONLY / SPRINT 20.2A`.
 | Letra | Conclusión |
 | --- | --- |
 | A | 27 tablas deben tener `school_id`; una ya lo tiene y 26 lo añadirían. |
-| B | 2 no lo llevan: `schools` (raíz) y `profiles` (identidad global). |
+| B | Solo `profiles` puede permanecer global. `schools` tampoco lleva `school_id` porque es la raíz tenant, no una tabla global. |
 | C | `schools` es raíz tenant y `profiles` raíz global; years/courses/subjects son raíces del centro. |
 | D | Las dependientes heredan de course o student; comms/audit usan reglas explícitas. |
 | E | Sí tras aplicar las reglas; cualquier fila ambigua bloquea o queda global si se justifica. |
