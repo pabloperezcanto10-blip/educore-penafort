@@ -550,3 +550,29 @@ corregir una ambigüedad PostgREST, el catálogo final contiene:
 El historial local y remoto queda alineado en `001-037`. La siguiente oleada
 no puede comenzar hasta revisar de nuevo los borradores `038-040` contra esta
 baseline.
+
+## 19. Baseline tras la validación sintética 20.2F
+
+La migración 037 permaneció sin cambios y fue validada sobre staging con datos
+temporales 20.2F equivalentes a relaciones reales entre dos centros:
+memberships, configuración académica, alumnos, responsables, familias legacy,
+docentes legacy y assignments.
+
+Resultado de la base:
+
+- FKs compuestas y triggers rechazaron todos los cruces entre tenants;
+- RLS aisló ambos centros y mantuvo acceso global controlado de superadmin;
+- memberships inactivas y usuario sin membership devolvieron cero filas;
+- teachers/families legacy bloquearon fuentes ausentes o ambiguas;
+- no se usó un tenant fijo ni la primera membership para resolver ownership;
+- no se aplicaron 038, 039 ni 040.
+
+Tras las pruebas, `020_2f_cleanup.sql` y
+`020_2f_post_cleanup.sql` demostraron cero residuos en Auth, personas,
+relaciones y configuración académica 20.2F. La baseline remota sigue en
+`001-037`; producción y `main` permanecen intactos.
+
+El bloqueo vigente es aplicativo: `ActiveSchoolContext` aún no se propaga a
+todas las rutas académicas y el fallback `legacy-profile` todavía permite
+cargar shells sin membership activa. Hasta resolverlo, 037 no debe promoverse
+a producción y 038 no debe aplicarse.

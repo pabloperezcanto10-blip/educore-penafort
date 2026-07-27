@@ -1,7 +1,7 @@
 # Plan de backfill tenant-aware de Colegio Peñafort
 
-Versión: 1.3
-Sprint: 20.2E, ensayo controlado de personas
+Versión: 1.4
+Sprint: 20.2F, validación sintética representativa de personas
 Estado: 035-037 aplicadas solo en staging; producción intacta
 Entorno de diseño: `staging` (`zhnbrpcekmxldxlqrbhr`)
 Commit de partida de la oleada: `4c04078`
@@ -19,11 +19,10 @@ Commit de partida de la oleada: `4c04078`
   Una futura plantilla se clona; no comparte filas operativas con Peñafort.
 - `profiles.role` se conserva durante la transición. La autorización futura se
   basa en una membership activa y un rol por centro.
-- Las migraciones 035 y 036 están aplicadas únicamente en staging. Las
-  propuestas 037-040 no se han aplicado y no se ha ejecutado backfill de
-  personas ni operativa.
-- Las propuestas SQL viven en `supabase/plans/20_2`, fuera del directorio
-  consumido por `supabase db push`.
+- Las migraciones 035, 036 y 037 están aplicadas únicamente en staging.
+  `038-040` no se han aplicado y no se ha ejecutado backfill de operativa.
+- Las propuestas `038-040` viven en `supabase/plans/20_2`, fuera del
+  directorio consumido por `supabase db push`.
 
 ## 2. Tenant estable de Colegio Peñafort
 
@@ -419,15 +418,14 @@ permite mantener el comportamiento anterior durante la transición.
 | --- | --- |
 | 035 | Aplicada solo en staging: Peñafort, memberships QA y pre/postcondiciones |
 | 036 | Aplicada solo en staging: configuración tenant-aware, constraints, RLS y fixtures QA |
-| 037 | diseño completo de personas: derivación, NN, FKs, triggers y RLS |
+| 037 | Aplicada solo en staging: personas tenant-aware, FKs, triggers y RLS |
 | 038 | `school_id` nullable en operativa y diagnóstico |
 | 039 | integridad transversal restante entre personas y operativa |
 | 040 | RLS y grants de operativa tras adaptar consultas |
 
-Los borradores 037-040 permanecen en `supabase/plans/20_2/`, fuera del
-historial de Supabase, y están marcados
-`DO NOT APPLY / DESIGN ONLY / SPRINT 20.2A`. Las versiones ejecutables de 035
-y 036 están en `supabase/migrations/`.
+Los borradores 038-040 permanecen en `supabase/plans/20_2/`, fuera del
+historial de Supabase, y están marcados como no aplicables. Las versiones
+ejecutables de 035, 036 y 037 están en `supabase/migrations/`.
 
 ## 18. Criterios que bloquean 20.2C
 
@@ -587,3 +585,32 @@ Orden revisado:
 El estado de esta oleada es `GO CON BLOQUEOS`: 037 puede mantenerse en staging,
 pero no se promueve a producción hasta ensayar filas anonimizadas resolubles y
 repetir el diagnóstico sobre una copia representativa del histórico real.
+
+## 24. Resultado del dataset sintético 20.2F
+
+El requisito de validar patrones representativos se cubrió sin copiar,
+anonimizar ni transformar registros reales. Se crearon temporalmente en
+staging dos conjuntos académicos aislados con 10 alumnos, 5 familias legacy,
+4 docentes legacy, responsables Auth, assignments y casos multischool.
+
+La resolución fue determinista:
+
+- students heredó de course y academic year coincidentes;
+- parent-students y student-families heredaron del student;
+- teacher-assignments validó teacher, course, subject, year, membership y rol;
+- families legacy solo aceptó una fuente única;
+- teachers legacy exigió `school_id` auditado explícito;
+- fuentes ausentes, múltiples o cruzadas abortaron.
+
+La aplicación no presentó errores 500 ni PostgREST y Family funcionó en ambos
+centros. La promoción continúa bloqueada porque Director/Tutor del segundo
+centro y el tutor multischool no reciben todavía un `ActiveSchoolContext`
+explícito en todas las rutas. También debe eliminarse el fallback
+`legacy-profile` antes de exigir membership activa como condición de acceso al
+shell protegido.
+
+La limpieza idempotente devolvió a cero todos los conteos 20.2F y preservó
+Colegio Peñafort QA, QA School y los fixtures de sprints anteriores. 037 puede
+prepararse como candidata, pero no aplicarse en producción. 038 puede revisarse
+en diseño, pero no implementarse ni ejecutarse hasta cerrar el contexto de
+tenant en la aplicación.

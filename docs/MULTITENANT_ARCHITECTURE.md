@@ -739,3 +739,31 @@ Estado final:
 - los fixtures QA se ejecutaron con rollback;
 - `038-040` siguen bloqueadas;
 - producción y `main` permanecen intactos.
+
+## 26. Dataset sintético representativo del Sprint 20.2F
+
+La frontera de personas de 037 se validó en staging con un dataset temporal
+completamente sintético: 10 alumnos, 5 familias legacy, 4 docentes legacy,
+6 responsables Auth y 7 asignaciones docentes distribuidas entre dos centros
+activos. También se probaron un centro inactivo, memberships inactivas, usuario
+sin membership, rol incompatible y tutor multischool.
+
+Los tests transaccionales rechazaron cruces de students, parent-students,
+student-families y teacher-assignments. Las fuentes legacy ausentes o ambiguas
+se bloquearon; no se eligió nunca la primera membership. RLS mantuvo el alcance
+global controlado de superadmin y limitó director, tutor y family por centro y
+relación.
+
+La regresión web confirmó un bloqueo de integración: las rutas académicas aún
+no propagan `ActiveSchoolContext` y consumen
+`DEFAULT_OPERATIONAL_SCHOOL_ID`. Por ello, Director/Tutor del segundo centro no
+resuelven su curso activo y el tutor multischool solo ve el centro por defecto.
+Además, la compatibilidad `legacy-profile` deja abrir el shell del rol a un
+usuario sin membership activa, aunque RLS devuelve cero filas.
+
+Todos los fixtures 20.2F y sus credenciales efímeras se eliminaron. El
+post-cleanup demostró cero residuos y preservó la infraestructura QA anterior.
+La decisión es `GO CON BLOQUEOS`: 037 puede mantenerse como candidata, pero no
+debe promoverse a producción ni debe aplicarse 038 hasta integrar el contexto
+de centro en la aplicación y retirar el fallback legacy de las rutas
+protegidas.
