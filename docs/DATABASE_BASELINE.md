@@ -500,3 +500,35 @@ y compatibilidad del curso activo. La regresión
 El rollback operativo mantiene columnas y datos y desactiva temporalmente el
 código tenant-aware si fuera necesario. El rollback completo de staging
 consiste en recrearlo desde la baseline; no se ejecuta contra producción.
+
+## 17. Diseño de personas posterior a 036
+
+El Sprint 20.2D no cambia la baseline remota. Rediseña únicamente la propuesta
+local 037 y añade su verificador futuro.
+
+Tablas previstas:
+
+- `students`;
+- `families`;
+- `student_families`;
+- `parent_students`;
+- `teachers`;
+- `teacher_assignments`.
+
+`profiles` continúa global y `school_memberships` continúa como autoridad de
+rol por centro. Students deriva de course/year; parent-students deriva de
+student; assignments deriva de course/subject/year. Las identities Auth deben
+tener perfil activo y membership activa del rol correcto en el school
+derivado.
+
+Los modelos heredados requieren precaución adicional. Families solo puede
+derivarse cuando todos sus vínculos pertenecen a un único school. Teachers no
+tiene FK ni otra evidencia fiable y cualquier fila bloquea 037. No se permite
+usar email, rol global ni un tenant fijo para resolverlos.
+
+La propuesta añade NOT NULL, FKs compuestas, triggers de derivación y RLS de
+personas en una misma transacción futura. `020_2d_people_checks.sql` valida la
+estructura y el aislamiento con fixtures sintéticos revertidos.
+
+Estado al cierre del diseño: 037 no aplicada, ningún dato de personas creado,
+producción y `main` intactos.

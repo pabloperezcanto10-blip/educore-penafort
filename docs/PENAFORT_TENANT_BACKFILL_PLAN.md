@@ -1,8 +1,8 @@
 # Plan de backfill tenant-aware de Colegio Peñafort
 
-Versión: 1.1
-Sprint: 20.2B, oleada 1
-Estado: identidad tenant aplicada y validada solo en staging
+Versión: 1.2
+Sprint: 20.2D, diseño seguro de personas
+Estado: 035-036 aplicadas solo en staging; 037 rediseñada y no aplicada
 Entorno de diseño: `staging` (`zhnbrpcekmxldxlqrbhr`)
 Commit de partida de la oleada: `4c04078`
 
@@ -19,8 +19,9 @@ Commit de partida de la oleada: `4c04078`
   Una futura plantilla se clona; no comparte filas operativas con Peñafort.
 - `profiles.role` se conserva durante la transición. La autorización futura se
   basa en una membership activa y un rol por centro.
-- La migración 035 está aplicada únicamente en staging. Las propuestas 036-040
-  no se han aplicado y no se ha ejecutado backfill académico.
+- Las migraciones 035 y 036 están aplicadas únicamente en staging. Las
+  propuestas 037-040 no se han aplicado y no se ha ejecutado backfill de
+  personas ni operativa.
 - Las propuestas SQL viven en `supabase/plans/20_2`, fuera del directorio
   consumido por `supabase db push`.
 
@@ -96,10 +97,10 @@ G = global; R = raíz y D = dependiente.
 | `evaluation_publications` | C, publicación trimestral | PK; course/year/actor | dirección/admin/tutor/family | D | course | join course; FKs compuestas; NN | cierres/reportes | 4 | alto; family |
 | `final_evaluation_publications` | C, publicación final | PK; course/year/actor | supervisión + lectura acotada | D | course | join course; FKs compuestas; NN | cierre/reportes | 4 | alto; family |
 | `students` | P, alumnado | PK; course/tutor/year | tutor + supervisión | R | course | join course; `(id,school_id)` y FKs; NN | 69 archivos; import/admin | 3 | crítico; parar sin curso |
-| `families` | P, familia legado | PK; sin FK | RLS sin policies | R legado | directo, Peñafort | UUID fijo; `(id,school_id)`; NN | sin consultas de app | 3 | alto; congelar/deprecar |
+| `families` | P, familia legado | PK; sin FK | RLS sin policies | R legado | único school de sus students | bloquear cero/varios; `(id,school_id)`; NN | sin consultas de app | 3 | alto; congelar/deprecar |
 | `student_families` | P, relación legado | student/family | RLS sin policies | D legado | student | join student; FKs compuestas; NN | sin consultas de app | 3 | alto; huérfanos/duplicados |
 | `parent_students` | P, family Auth-alumno | PK; auth parent/student | family propia + admin | D | student | join student; FK compuesta + trigger family; NN | comms/family/admin | 3 | crítico; no inferir del parent |
-| `teachers` | P, docente legado | PK; sin FK | RLS sin policies | R legado | directo, Peñafort | UUID fijo; `(id,school_id)`; NN | sin consultas operativas | 3 | alto; congelar/deprecar |
+| `teachers` | P, docente legado | PK; sin FK | RLS sin policies | R legado | no existe fuente fiable | bloquear cualquier fila; `(id,school_id)`; NN | sin consultas operativas | 3 | alto; congelar/deprecar |
 | `teacher_assignments` | P, docente-curso-materia | PK; teacher/course/subject/year | docente + admin | D | course | join course; FKs + membership; NN | admin/tutor/grades/import | 3 | crítico; docente multicentro |
 | `teacher_schedule` | O, horario | PK; teacher; etiquetas curso/materia | docente + supervisión | R operativa | directo, Peñafort | UUID fijo; FK + membership; NN | tutor/attendance | 4 | alto; etiquetas no son claves |
 | `attendance_records` | O, lista por sesión | PK; student/teacher/course/subject/schedule | teacher/family/supervisión | D | student | join student; FKs compuestas; NN | tutor/attendance | 4 | crítico; comprobar ramas |
@@ -131,10 +132,12 @@ calendario actual procede de configuración y no se inventa una entidad.
 
 La fuente es única por tabla. No se usa `coalesce` para esconder conflictos:
 
-- `academic_years` y `subjects` reciben Peñafort directamente; las demás
-  configuraciones derivan de `course`.
+- La configuración académica ya está tenant-aware tras 036.
 - `students` deriva de `course`; relaciones familiares derivan de `student`;
   assignments derivan de `course`.
+- `families` legado solo puede derivarse si todos sus vínculos apuntan a un
+  único school. `teachers` legado no se deriva por email ni por coincidencia de
+  UUID y bloquea 037 mientras contenga filas sin mapa auditado.
 - La operativa del alumno deriva de `student` y se verifica contra course,
   subject, year, teacher y schedule.
 - Una comunicación con alumno deriva de `student`. Sin alumno, emisor y receptor
@@ -416,10 +419,10 @@ permite mantener el comportamiento anterior durante la transición.
 | --- | --- |
 | 035 | Aplicada solo en staging: Peñafort, memberships QA y pre/postcondiciones |
 | 036 | Aplicada solo en staging: configuración tenant-aware, constraints, RLS y fixtures QA |
-| 037 | `school_id` nullable en personas y relaciones |
+| 037 | diseño completo de personas: derivación, NN, FKs, triggers y RLS |
 | 038 | `school_id` nullable en operativa y diagnóstico |
-| 039 | índices, NN, FKs compuestas y validadores |
-| 040 | helpers tenant-aware, RLS y grants |
+| 039 | integridad transversal restante entre personas y operativa |
+| 040 | RLS y grants de operativa tras adaptar consultas |
 
 Los borradores 037-040 permanecen en `supabase/plans/20_2/`, fuera del
 historial de Supabase, y están marcados
@@ -537,3 +540,50 @@ La propuesta 037 fue revisada pero no aplicada ni promovida. Queda bloqueada
 hasta añadir resolución determinista para personas, FKs compuestas,
 postcondiciones, RLS y pruebas que impidan asignar identidades ambiguas a un
 centro.
+
+## 22. Diseño seguro de personas del Sprint 20.2D
+
+`supabase/plans/20_2/037_add_school_id_to_people.sql` ha sido sustituida por
+una propuesta determinista. Sigue fuera de `supabase/migrations` y no se ha
+aplicado.
+
+La propiedad se resuelve así:
+
+- student desde course y academic year coincidentes;
+- parent-student desde student;
+- teacher assignment desde course, subject y academic year coincidentes;
+- legacy student-family desde student y legacy family del mismo school;
+- legacy family únicamente cuando todos sus students pertenecen a un school;
+- legacy teacher no tiene fuente fiable y cualquier fila bloquea la migración.
+
+Una membership nunca determina el tenant de la fila. Solo autoriza la
+identidad relacionada dentro del school ya derivado: tutor para student,
+family para parent-student y tutor para assignment. Perfil o membership
+inactivos, rol incorrecto, cero fuentes o varias fuentes bloquean la
+aplicación.
+
+Las FKs compuestas impiden cruces student-course-year,
+student-family, parent-student y assignment-course-subject-year. Los triggers
+derivan `school_id` en nuevos writes y rechazan un valor de cliente
+contradictorio, por lo que no es necesario confiar en el frontend.
+
+Las policies existentes de students, parent-students y assignments quedan
+acotadas por membership activa y rol en `row.school_id`. Las tablas legado
+permanecen cerradas a clientes autenticados.
+
+La especificación completa y los bloqueos están en
+`docs/MULTITENANT_PEOPLE_MIGRATION_037.md`. La verificación futura
+`supabase/verification/020_2d_people_checks.sql` contiene únicamente fixtures
+sintéticos dentro de `BEGIN/ROLLBACK` y no se ha ejecutado en este sprint.
+
+Orden revisado:
+
+1. 037 completa la frontera de personas.
+2. 038 incorpora propiedad tenant a operativa.
+3. 039 valida la integridad transversal que no pertenezca ya a 037.
+4. 040 sustituye RLS y grants de operativa cuando la aplicación propague
+   contexto escolar explícito.
+
+El estado de esta oleada es `NO-GO` para aplicar 037: antes se requiere revisar
+el SQL en staging restaurable, repetir diagnósticos agregados, resolver
+cualquier identidad histórica inactiva y ejecutar íntegramente el verificador.

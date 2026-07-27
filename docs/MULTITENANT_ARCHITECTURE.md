@@ -688,3 +688,35 @@ sin aplicar ni mover al historial. Antes de promoverla debe:
 - demostrar con diagnósticos agregados que no existe una identidad ambigua.
 
 No se avanzará a 037 hasta cerrar esos puntos en un sprint específico.
+
+## 24. Frontera de personas diseñada en 20.2D
+
+El Sprint 20.2D rediseña
+`supabase/plans/20_2/037_add_school_id_to_people.sql` sin promoverla ni
+aplicarla. La fuente de verdad detallada es
+`docs/MULTITENANT_PEOPLE_MIGRATION_037.md`.
+
+Decisiones:
+
+- `profiles` permanece global y una persona puede tener memberships en varios
+  centros;
+- la propiedad de students y assignments nace en la configuración académica
+  tenant-aware de 036;
+- parent-students y relaciones legacy heredan del student;
+- ninguna membership, email, nombre o `profiles.role` elige el school;
+- la membership activa y el rol correcto validan a la identidad relacionada
+  después de derivar el school;
+- cualquier fuente ausente o múltiple aborta;
+- `teachers` legado carece de una relación fiable y debe estar vacío o disponer
+  de un mapa auditado externo antes de aplicar;
+- los writes actuales pueden omitir `school_id`; triggers de base lo derivan y
+  rechazan contradicciones;
+- FKs compuestas y RLS impiden cruces incluso ante IDs válidos.
+
+La verificación diseñada cubre superadmin, director, tutor, family, membership
+inactiva, usuario sin membership, rol incorrecto, usuario multischool,
+ambigüedad y relaciones cruzadas. Todas las escrituras QA están delimitadas
+por `BEGIN/ROLLBACK`.
+
+037 sigue en estado `NO-GO`. No se ha ejecutado SQL ni `db push`; staging
+remoto, producción, `main` y Colegio Peñafort real permanecen intactos.
