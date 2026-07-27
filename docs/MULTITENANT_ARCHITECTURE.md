@@ -581,6 +581,35 @@ Decisiones cerradas:
 - `audit_logs.school_id` admite `NULL` únicamente para actividad de plataforma.
 
 Los diagnósticos de `supabase/verification/020_2a_*.sql` son de solo lectura.
-Las propuestas 035-040 se guardan en `supabase/plans/20_2` y no forman parte del
-historial ejecutable. No se ha creado Peñafort como tenant, no se ha ejecutado
-backfill y no se ha modificado producción.
+Al cierre de 20.2A, las propuestas 035-040 se guardaban en
+`supabase/plans/20_2` y no formaban parte del historial ejecutable. En ese
+momento no se había creado Peñafort como tenant ni ejecutado backfill, y
+producción no se había modificado.
+
+## 22. Identidad tenant de Peñafort en staging
+
+El Sprint 20.2B promovió únicamente la propuesta 035 al historial ejecutable y
+la aplicó el 27 de julio de 2026 al proyecto staging
+`zhnbrpcekmxldxlqrbhr`.
+
+Peñafort usa el UUID estable
+`20f20000-0000-4000-8000-000000000001`. Convive con `QA School` para probar
+aislamiento de centro. Cuatro identidades QA tienen memberships Peñafort
+activas con roles superadmin, director, tutor y family; el usuario QA sin
+membership y la membership inactiva de QA School se conservan.
+
+La unicidad operativa de memberships sigue siendo
+`(user_id, school_id, role)`. `profiles.role` permanece como compatibilidad
+global temporal: en particular, el superadmin conserva el rol global y usa una
+membership explícita cuando opera dentro de Peñafort. Los clientes
+autenticados solo pueden leer sus memberships y centros activos; no pueden
+crear, modificar ni elevar memberships.
+
+La selección explícita entre QA School y Peñafort, los roles por centro, el
+rechazo de centros no autorizados, el branding y el rollback por desactivación
+se validan mediante `scripts/verify-school-context.ts` y
+`supabase/verification/020_2b_wave1_checks.sql`.
+
+Esta oleada no cambia dashboards ni consultas operativas. No añade `school_id`
+a ninguna tabla operativa, no inicia backfill académico y no aplica 036-040.
+Producción y `main` permanecen intactos.

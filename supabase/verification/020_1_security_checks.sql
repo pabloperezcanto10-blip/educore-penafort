@@ -72,8 +72,15 @@ do $tutor_checks$
 declare
   affected_rows integer;
 begin
-  if (select count(*) from public.schools) <> 1 then
-    raise exception 'An active tutor membership cannot resolve its school.';
+  if (
+    select count(*)
+    from public.schools
+    where id in (
+      '20e10000-0000-4000-8000-000000000001',
+      '20f20000-0000-4000-8000-000000000001'
+    )
+  ) <> 2 then
+    raise exception 'An active tutor membership cannot resolve both authorized schools.';
   end if;
 
   if (
@@ -81,8 +88,8 @@ begin
     from public.school_memberships
     where user_id = auth.uid()
       and active = true
-  ) <> 1 then
-    raise exception 'Tutor cannot read exactly its own active membership.';
+  ) <> 2 then
+    raise exception 'Tutor cannot read exactly its own active memberships.';
   end if;
 
   if exists (

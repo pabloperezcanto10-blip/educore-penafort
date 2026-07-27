@@ -422,3 +422,28 @@ La lectura agregada de producción del 27 de julio de 2026 confirmó 55 perfiles
 course-subjects, 10 assignments, 38 tramos horarios y 188 audit logs. Las
 puertas de huérfanos y conflictos académicos devolvieron cero. Producción sigue
 sin las tablas de 034, como corresponde al aislamiento de este sprint.
+
+## 15. Baseline de staging tras la oleada 20.2B
+
+La migración 035 está aplicada únicamente en staging. El esquema mantiene las
+29 tablas y no incorpora columnas `school_id` nuevas fuera de
+`school_memberships`.
+
+Estado QA validado:
+
+- 2 centros: `QA School` y `Colegio Peñafort`;
+- 5 perfiles QA ficticios;
+- 8 memberships activas: cuatro por cada centro;
+- 1 membership inactiva de QA School;
+- 1 usuario QA sin ninguna membership;
+- 0 filas en las tablas académicas y operativas;
+- 0 memberships huérfanas o duplicadas.
+
+Peñafort usa el UUID `20f20000-0000-4000-8000-000000000001`. `profiles.role`
+sigue presente y protegido. Las pruebas RLS, contexto multi-centro, branding,
+aislamiento y rollback están en
+`supabase/verification/020_2b_wave1_checks.sql`.
+
+El historial local/remoto de staging está alineado en 001-035 y el dry-run está
+vacío. Producción continúa en su baseline previa: no recibió 034, 035 ni
+escrituras de este sprint.

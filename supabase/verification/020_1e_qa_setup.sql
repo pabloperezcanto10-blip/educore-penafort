@@ -23,9 +23,15 @@ begin
   if exists (
     select 1
     from public.schools
-    where slug <> 'qa-school'
+    where not (
+      (id = '20e10000-0000-4000-8000-000000000001' and slug = 'qa-school')
+      or (
+        id = '20f20000-0000-4000-8000-000000000001'
+        and slug = 'colegio-penafort'
+      )
+    )
   ) then
-    raise exception 'Refusing QA setup: a non-QA school exists.';
+    raise exception 'Refusing QA setup: an unauthorized staging school exists.';
   end if;
 
   foreach unexpected_table in array array[

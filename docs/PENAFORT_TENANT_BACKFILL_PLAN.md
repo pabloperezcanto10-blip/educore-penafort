@@ -1,10 +1,10 @@
 # Plan de backfill tenant-aware de Colegio Peñafort
 
-Versión: 1.0
-Sprint: 20.2A
-Estado: diseño ejecutable, no aplicado
+Versión: 1.1
+Sprint: 20.2B, oleada 1
+Estado: identidad tenant aplicada y validada solo en staging
 Entorno de diseño: `staging` (`zhnbrpcekmxldxlqrbhr`)
-Commit de partida: `af85306`
+Commit de partida de la oleada: `4c04078`
 
 ## 1. Decisiones ejecutivas
 
@@ -19,7 +19,8 @@ Commit de partida: `af85306`
   Una futura plantilla se clona; no comparte filas operativas con Peñafort.
 - `profiles.role` se conserva durante la transición. La autorización futura se
   basa en una membership activa y un rol por centro.
-- No se ha aplicado ninguna migración 035-040 ni se ha ejecutado backfill.
+- La migración 035 está aplicada únicamente en staging. Las propuestas 036-040
+  no se han aplicado y no se ha ejecutado backfill académico.
 - Las propuestas SQL viven en `supabase/plans/20_2`, fuera del directorio
   consumido por `supabase db push`.
 
@@ -395,33 +396,36 @@ Distribución de perfiles activa: director 1, family 51, superadmin 1 y tutor 2.
 No se extrajo ninguna identidad. Las 11 puertas pre-backfill y los 12
 diagnósticos consolidados ejecutados devolvieron cero anomalías.
 
-Staging contiene 1 centro QA, 5 memberships (4 activas y 1 inactiva), 5
-perfiles QA y cero filas operativas. No hay memberships sin Auth user ni sin
-school. La ausencia de `schools` y `school_memberships` en producción es
-esperada: 034 solo está aplicada en staging.
+Staging contiene 2 centros (`QA School` y `Colegio Peñafort`), 9 memberships
+(8 activas y 1 inactiva), 5 perfiles QA y cero filas operativas. El usuario
+`qa.nomembership@example.test` continúa sin membership. No hay memberships sin
+Auth user ni sin school. La ausencia de `schools` y `school_memberships` en
+producción es esperada: 034 y 035 solo están aplicadas en staging.
 
 ## 16. Ensayo reversible
 
-No se ejecuta. Staging tiene cero filas operativas y solo fixtures QA de la
-fundación, por lo que una simulación DDL no demostraría la derivación de datos
-reales. El ensayo se realizará en 20.2B con fixture sintético representativo y
-una transacción que termina siempre en `ROLLBACK`.
+El Sprint 20.2B ejecutó en staging una simulación transaccional que desactiva el
+tenant Peñafort y sus memberships y termina siempre en `ROLLBACK`. La
+postcondición confirmó que el tenant y sus cuatro memberships continuaron
+activos. Ninguna tabla operativa depende aún del tenant, y `profiles.role`
+permite mantener el comportamiento anterior durante la transición.
 
-## 17. Borradores de migración no aplicados
+## 17. Estado de las migraciones 035-040
 
 | Propuesta | Propósito |
 | --- | --- |
-| 035 | Peñafort, memberships idempotentes y precondiciones |
+| 035 | Aplicada solo en staging: Peñafort, memberships QA y pre/postcondiciones |
 | 036 | `school_id` nullable en configuración y backfill |
 | 037 | `school_id` nullable en personas y relaciones |
 | 038 | `school_id` nullable en operativa y diagnóstico |
 | 039 | índices, NN, FKs compuestas y validadores |
 | 040 | helpers tenant-aware, RLS y grants |
 
-Los borradores están en `supabase/plans/20_2/`, fuera del historial de Supabase,
-y están marcados `DO NOT APPLY / DESIGN ONLY / SPRINT 20.2A`.
+Los borradores 036-040 permanecen en `supabase/plans/20_2/`, fuera del historial
+de Supabase, y están marcados `DO NOT APPLY / DESIGN ONLY / SPRINT 20.2A`.
+La versión ejecutable de 035 está en `supabase/migrations/`.
 
-## 18. Criterios que bloquean 20.2B
+## 18. Criterios que bloquean 20.2C
 
 - baseline agregada inesperada;
 - relación huérfana o duplicada no explicada;
@@ -455,9 +459,47 @@ y están marcados `DO NOT APPLY / DESIGN ONLY / SPRINT 20.2A`.
 | O | Todo admin client se contextualiza; algunos vuelven a RLS y otros usan wrapper. |
 | P | Staging no tiene datos operativos; producción solo se inspecciona con agregados. |
 | Q | Cualquier criterio de parada del apartado 18. |
-| R | No se aplicaron migraciones 035-040. |
-| S | No se ejecutó backfill persistente. |
+| R | 035 se aplicó solo en staging; 036-040 no se aplicaron. |
+| S | Solo se persistió identidad tenant y memberships QA; no hubo backfill académico. |
 | T | Producción no se modifica. |
 | U | Peñafort permanece intacto. |
 | V | Colegio EducaCora no se crea. |
-| W | Avanzar a 20.2B solo tras aprobar el plan y resolver anomalías agregadas. |
+| W | Avanzar a 20.2C tras aceptar las validaciones de la oleada 1. |
+
+## 20. Resultado de la oleada 1 en staging
+
+Fecha de aplicación: 27 de julio de 2026.
+
+- migración aplicada: `035_penafort_tenant_and_memberships.sql`;
+- entorno: staging `zhnbrpcekmxldxlqrbhr`;
+- tenant: `Colegio Peñafort`;
+- UUID: `20f20000-0000-4000-8000-000000000001`;
+- slug: `colegio-penafort`;
+- configuración: activo, dominio familiar `penafort.com`, logo y colores
+  institucionales ya documentados;
+- memberships Peñafort: superadmin, director, tutor y family QA, todas activas;
+- unicidad: constraint `(user_id, school_id, role)`;
+- `QA School` y su membership inactiva permanecen intactas;
+- el usuario QA sin membership continúa sin contexto de centro;
+- `profiles.role` permanece como puente global temporal;
+- el superadmin conserva `profiles.role = superadmin` y además dispone de una
+  membership Peñafort explícita;
+- RLS impide a usuarios normales escribir `schools`, crear o elevar
+  memberships y modificar `profiles.role` o `profiles.active`;
+- la selección explícita y el aislamiento entre QA School y Peñafort se
+  validaron en ambos sentidos;
+- la resolución de branding completo, incompleto y fallback temporal fue
+  validada sin conceder acceso;
+- el rollback operativo consiste en desactivar tenant y memberships; la prueba
+  transaccional confirmó que el modelo anterior sigue disponible;
+- `db push --linked --dry-run` quedó vacío tras aplicar 035.
+
+No se añadieron columnas `school_id` a tablas operativas, no se crearon filas
+académicas, no se aplicaron 036-040 y no se creó Colegio EducaCora. Producción,
+`main` y la instancia real de Colegio Peñafort no se modificaron.
+
+La siguiente oleada debe partir del borrador
+`supabase/plans/20_2/036_add_school_id_to_configuration.sql` e incluir
+`academic_years`, `courses`, `subjects`, `course_subjects` y sus dependencias de
+configuración. Ese archivo continúa fuera de `supabase/migrations/` y no debe
+aplicarse hasta el Sprint 20.2C.
