@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Role } from "@/lib/auth/roles";
 import { getActiveAcademicYear } from "@/lib/academic-years";
 import { getActiveCourses } from "@/lib/courses";
+import { DEFAULT_OPERATIONAL_SCHOOL_ID } from "@/lib/schools/constants";
 
 export type AdminProfile = {
   id: string;
@@ -100,6 +101,7 @@ export async function getAdminSubjects(): Promise<{
   const { data, error } = await supabase
     .from("subjects")
     .select("id,name")
+    .eq("school_id", DEFAULT_OPERATIONAL_SCHOOL_ID)
     .order("name", { ascending: true })
     .returns<AdminSubject[]>();
 

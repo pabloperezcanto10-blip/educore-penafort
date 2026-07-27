@@ -13,6 +13,7 @@ import {
   Wrench,
   type LucideIcon
 } from "lucide-react";
+import { DEFAULT_OPERATIONAL_SCHOOL_ID } from "@/lib/schools/constants";
 
 import { CenterActivityTimeline, type CenterActivityItem } from "@/components/dashboard/center-activity-timeline";
 import { WorkCenterTabs } from "@/components/dashboard/work-center-tabs";
@@ -395,7 +396,12 @@ async function getAdminSignals(): Promise<{ signals: AdminSignals; errorMessage:
     notificationsResult,
     auditResult
   ] = await Promise.all([
-    supabase.from("academic_years").select("id,name,active").eq("active", true).maybeSingle(),
+    supabase
+      .from("academic_years")
+      .select("id,name,active")
+      .eq("school_id", DEFAULT_OPERATIONAL_SCHOOL_ID)
+      .eq("active", true)
+      .maybeSingle(),
     supabase.from("profiles").select("id,role,active,must_change_password").returns<Array<{ id: string; role: string; active: boolean; must_change_password: boolean }>>(),
     supabase.from("students").select("id", { count: "exact", head: true }),
     supabase.from("courses").select("id", { count: "exact", head: true }),

@@ -613,3 +613,78 @@ se validan mediante `scripts/verify-school-context.ts` y
 Esta oleada no cambia dashboards ni consultas operativas. No añade `school_id`
 a ninguna tabla operativa, no inicia backfill académico y no aplica 036-040.
 Producción y `main` permanecen intactos.
+
+## 23. Configuración académica tenant-aware en staging
+
+El Sprint 20.2C promovió y aplicó
+`036_add_school_id_to_configuration.sql` exclusivamente en Supabase staging
+`zhnbrpcekmxldxlqrbhr`. Producción, `main` y los datos reales de Colegio
+Peñafort no se modificaron.
+
+La oleada incorpora `school_id uuid not null` a:
+
+- `academic_years`;
+- `courses`;
+- `subjects`;
+- `course_subjects`.
+
+Cada columna tiene FK a `schools` e índice de soporte. Las relaciones
+`course -> academic_year` y `course_subject -> course/subject/academic_year`
+añaden FKs compuestas con `school_id`, por lo que una relación entre centros
+distintos falla en la base de datos incluso con una sesión privilegiada.
+
+La unicidad pasa a ser por centro:
+
+- nombre y único curso académico activo por `school_id`;
+- nombre de curso por centro y curso académico;
+- nombre de materia por centro;
+- relación course-subject por centro, curso académico, curso, materia y track.
+
+Con autorización explícita, la migración sustituyó dentro de la misma
+transacción cuatro objetos globales incompatibles: el índice de curso activo y
+las constraints globales de nombre de curso académico, curso y materia. Sus
+reemplazos tenant-aware se crearon antes de ejecutar los cuatro `DROP`
+limitados. No se eliminó ninguna tabla, columna o fila.
+
+`active_academic_year_id(uuid)` resuelve el curso activo de un centro. La
+sobrecarga sin argumentos se conserva temporalmente para las tablas operativas
+anteriores a esta oleada y prioriza Peñafort como puente de compatibilidad.
+El trigger exclusivo de `courses` deriva y valida conjuntamente centro y curso
+académico; el trigger legado compartido por operativa no se modificó.
+
+Las policies de configuración ya no contienen lecturas autenticadas con
+`USING (true)`. Tutor, family y director leen únicamente centros con membership
+activa y rol compatible. El superadmin conserva supervisión global controlada
+para centros activos. Las escrituras de configuración siguen reservadas al
+superadmin.
+
+Los únicos datos añadidos son fixtures ficticios y deterministas:
+
+- 2 cursos académicos activos, uno por cada centro QA;
+- 2 cursos;
+- 3 materias;
+- 3 relaciones course-subject.
+
+No existen alumnos, familias, docentes ni datos académicos reales. Las pruebas
+de `020_2c_configuration_checks.sql` validaron catálogo, RLS, roles,
+memberships activas e inactivas, ausencia de membership, aislamiento en ambos
+sentidos, superadmin controlado, unicidad e integridad compuesta. La regresión
+`020_2b_wave1_checks.sql` continuó pasando y el dry-run remoto quedó vacío.
+
+La aplicación mantiene temporalmente
+`DEFAULT_OPERATIONAL_SCHOOL_ID = Peñafort` en helpers y acciones que aún no
+reciben selector de centro. Es un puente explícito: debe desaparecer cuando
+cada ruta protegida propague `ActiveSchoolContext`.
+
+### Revisión de la propuesta 037
+
+`supabase/plans/20_2/037_add_school_id_to_people.sql` permanece como diseño,
+sin aplicar ni mover al historial. Antes de promoverla debe:
+
+- usar las FKs compuestas de configuración creadas por 036;
+- resolver cada persona desde una fuente tenant determinista;
+- evitar asignar globalmente familias o docentes a Peñafort;
+- incorporar pruebas de memberships, nulos, relaciones cruzadas y RLS;
+- demostrar con diagnósticos agregados que no existe una identidad ambigua.
+
+No se avanzará a 037 hasta cerrar esos puntos en un sprint específico.

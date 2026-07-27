@@ -8,6 +8,7 @@ import { logAuditAction } from "@/lib/audit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAcademicYear } from "@/lib/academic-years";
+import { DEFAULT_OPERATIONAL_SCHOOL_ID } from "@/lib/schools/constants";
 import { withToast } from "@/lib/toast";
 import type { Database } from "@/lib/database.types";
 
@@ -283,7 +284,11 @@ export async function createAdminCourse(formData: FormData) {
 
   const supabase = await createClient();
   const academicYearId = await requireActiveAcademicYearId();
-  const payload: CourseInsert = { name, academic_year_id: academicYearId };
+  const payload: CourseInsert = {
+    school_id: DEFAULT_OPERATIONAL_SCHOOL_ID,
+    name,
+    academic_year_id: academicYearId
+  };
   await supabase.from("courses").insert(payload as never);
 
   revalidatePath("/dashboard/admin/courses");
@@ -302,7 +307,11 @@ export async function updateAdminCourse(formData: FormData) {
 
   const supabase = await createClient();
   const payload: CourseUpdate = { name };
-  await supabase.from("courses").update(payload as never).eq("id", id);
+  await supabase
+    .from("courses")
+    .update(payload as never)
+    .eq("id", id)
+    .eq("school_id", DEFAULT_OPERATIONAL_SCHOOL_ID);
 
   revalidatePath("/dashboard/admin/courses");
   redirect(withToast("/dashboard/admin/courses", "success", "Curso actualizado correctamente."));
@@ -366,7 +375,10 @@ export async function createAdminSubject(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const payload: SubjectInsert = { name };
+  const payload: SubjectInsert = {
+    school_id: DEFAULT_OPERATIONAL_SCHOOL_ID,
+    name
+  };
   await supabase.from("subjects").insert(payload as never);
 
   revalidatePath("/dashboard/admin/subjects");
@@ -385,7 +397,11 @@ export async function updateAdminSubject(formData: FormData) {
 
   const supabase = await createClient();
   const payload: SubjectUpdate = { name };
-  await supabase.from("subjects").update(payload as never).eq("id", id);
+  await supabase
+    .from("subjects")
+    .update(payload as never)
+    .eq("id", id)
+    .eq("school_id", DEFAULT_OPERATIONAL_SCHOOL_ID);
 
   revalidatePath("/dashboard/admin/subjects");
   redirect(withToast("/dashboard/admin/subjects", "success", "Materia actualizada correctamente."));
@@ -646,7 +662,10 @@ export async function createAdminSubjectQuick(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const payload: SubjectInsert = { name };
+  const payload: SubjectInsert = {
+    school_id: DEFAULT_OPERATIONAL_SCHOOL_ID,
+    name
+  };
   const { data: subject } = await supabase
     .from("subjects")
     .insert(payload as never)
@@ -683,7 +702,11 @@ export async function createAdminCourseQuick(formData: FormData) {
 
   const supabase = await createClient();
   const academicYearId = await requireActiveAcademicYearId();
-  const payload: CourseInsert = { name, academic_year_id: academicYearId };
+  const payload: CourseInsert = {
+    school_id: DEFAULT_OPERATIONAL_SCHOOL_ID,
+    name,
+    academic_year_id: academicYearId
+  };
   await supabase.from("courses").insert(payload as never);
 
   revalidateAdminCreatePaths();
@@ -816,6 +839,7 @@ async function ensureCourseSubject({
   const { data: existingCourseSubject } = await supabase
     .from("course_subjects")
     .select("id")
+    .eq("school_id", DEFAULT_OPERATIONAL_SCHOOL_ID)
     .eq("course_id", courseId)
     .eq("subject_id", subjectId)
     .eq("academic_year_id", academicYearId)
@@ -823,6 +847,7 @@ async function ensureCourseSubject({
 
   if (!existingCourseSubject) {
     const payload: CourseSubjectInsert = {
+      school_id: DEFAULT_OPERATIONAL_SCHOOL_ID,
       course_id: courseId,
       subject_id: subjectId,
       academic_year_id: academicYearId,
@@ -847,6 +872,7 @@ export async function createAcademicYear(formData: FormData) {
 
   const supabase = await createClient();
   const payload: AcademicYearInsert = {
+    school_id: DEFAULT_OPERATIONAL_SCHOOL_ID,
     name,
     start_date: startDate,
     end_date: endDate,
@@ -869,8 +895,16 @@ export async function activateAcademicYear(formData: FormData) {
   }
 
   const supabase = await createClient();
-  await supabase.from("academic_years").update({ active: false } as never).neq("id", id);
-  await supabase.from("academic_years").update({ active: true } as never).eq("id", id);
+  await supabase
+    .from("academic_years")
+    .update({ active: false } as never)
+    .eq("school_id", DEFAULT_OPERATIONAL_SCHOOL_ID)
+    .neq("id", id);
+  await supabase
+    .from("academic_years")
+    .update({ active: true } as never)
+    .eq("school_id", DEFAULT_OPERATIONAL_SCHOOL_ID)
+    .eq("id", id);
 
   revalidateAcademicYearPaths();
   redirect(withToast("/dashboard/admin/academic-years", "success", "Curso escolar activado correctamente."));

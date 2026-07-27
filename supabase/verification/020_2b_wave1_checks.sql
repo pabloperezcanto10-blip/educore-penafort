@@ -135,8 +135,20 @@ begin
     and column_name = 'school_id'
     and table_name <> 'school_memberships';
 
-  if operational_school_id_columns <> 0 then
-    raise exception 'An operational school_id column was added in wave 1.';
+  if operational_school_id_columns <> 4 or exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and column_name = 'school_id'
+      and table_name <> 'school_memberships'
+      and table_name not in (
+        'academic_years',
+        'courses',
+        'subjects',
+        'course_subjects'
+      )
+  ) then
+    raise exception 'An unexpected operational school_id column exists after wave 2.';
   end if;
 end
 $catalog_checks$;
@@ -429,14 +441,31 @@ where school_id = '20f20000-0000-4000-8000-000000000001';
 
 do $rollback_simulation$
 begin
-  if exists (
+  if (
+    select count(*)
+    from information_schema.columns
+    where table_schema = 'public'
+      and column_name = 'school_id'
+      and table_name in (
+        'academic_years',
+        'courses',
+        'subjects',
+        'course_subjects'
+      )
+  ) <> 4 or exists (
     select 1
     from information_schema.columns
     where table_schema = 'public'
       and column_name = 'school_id'
       and table_name <> 'school_memberships'
+      and table_name not in (
+        'academic_years',
+        'courses',
+        'subjects',
+        'course_subjects'
+      )
   ) then
-    raise exception 'Operational rollback is unsafe because a dependency exists.';
+    raise exception 'Rollback simulation found an unexpected tenant dependency.';
   end if;
 end
 $rollback_simulation$;

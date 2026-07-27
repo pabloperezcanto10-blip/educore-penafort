@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
+import { DEFAULT_OPERATIONAL_SCHOOL_ID } from "@/lib/schools/constants";
 
 export type AcademicYear = {
   id: string;
+  school_id: string;
   name: string;
   start_date: string | null;
   end_date: string | null;
@@ -9,9 +11,11 @@ export type AcademicYear = {
   created_at: string;
 };
 
-const academicYearSelect = "id,name,start_date,end_date,active,created_at";
+const academicYearSelect = "id,school_id,name,start_date,end_date,active,created_at";
 
-export async function getActiveAcademicYear(): Promise<{
+export async function getActiveAcademicYear(
+  schoolId = DEFAULT_OPERATIONAL_SCHOOL_ID
+): Promise<{
   academicYear: AcademicYear | null;
   errorMessage: string | null;
 }> {
@@ -19,6 +23,7 @@ export async function getActiveAcademicYear(): Promise<{
   const { data, error } = await supabase
     .from("academic_years")
     .select(academicYearSelect)
+    .eq("school_id", schoolId)
     .eq("active", true)
     .maybeSingle<AcademicYear>();
 
@@ -29,7 +34,9 @@ export async function getActiveAcademicYear(): Promise<{
   return { academicYear: data, errorMessage: null };
 }
 
-export async function getAcademicYears(): Promise<{
+export async function getAcademicYears(
+  schoolId = DEFAULT_OPERATIONAL_SCHOOL_ID
+): Promise<{
   academicYears: AcademicYear[];
   errorMessage: string | null;
 }> {
@@ -37,6 +44,7 @@ export async function getAcademicYears(): Promise<{
   const { data, error } = await supabase
     .from("academic_years")
     .select(academicYearSelect)
+    .eq("school_id", schoolId)
     .order("start_date", { ascending: false })
     .order("name", { ascending: false })
     .returns<AcademicYear[]>();

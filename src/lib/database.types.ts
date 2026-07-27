@@ -6,6 +6,7 @@ export type Database = {
       academic_years: {
         Row: {
           id: string;
+          school_id: string;
           name: string;
           start_date: string | null;
           end_date: string | null;
@@ -14,6 +15,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
+          school_id: string;
           name: string;
           start_date?: string | null;
           end_date?: string | null;
@@ -21,6 +23,7 @@ export type Database = {
           created_at?: string;
         };
         Update: {
+          school_id?: string;
           name?: string;
           start_date?: string | null;
           end_date?: string | null;
@@ -215,15 +218,18 @@ export type Database = {
       courses: {
         Row: {
           id: string;
+          school_id: string;
           name: string;
           academic_year_id: string | null;
         };
         Insert: {
           id?: string;
+          school_id: string;
           name: string;
           academic_year_id?: string | null;
         };
         Update: {
+          school_id?: string;
           name?: string;
           academic_year_id?: string | null;
         };
@@ -232,13 +238,16 @@ export type Database = {
       subjects: {
         Row: {
           id: string;
+          school_id: string;
           name: string;
         };
         Insert: {
           id?: string;
+          school_id: string;
           name: string;
         };
         Update: {
+          school_id?: string;
           name?: string;
         };
         Relationships: [];
@@ -246,6 +255,7 @@ export type Database = {
       course_subjects: {
         Row: {
           id: string;
+          school_id: string;
           course_id: string;
           subject_id: string;
           academic_year_id: string | null;
@@ -255,6 +265,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
+          school_id: string;
           course_id: string;
           subject_id: string;
           academic_year_id?: string | null;
@@ -263,6 +274,7 @@ export type Database = {
           created_at?: string;
         };
         Update: {
+          school_id?: string;
           course_id?: string;
           subject_id?: string;
           academic_year_id?: string | null;

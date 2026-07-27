@@ -415,15 +415,16 @@ permite mantener el comportamiento anterior durante la transición.
 | Propuesta | Propósito |
 | --- | --- |
 | 035 | Aplicada solo en staging: Peñafort, memberships QA y pre/postcondiciones |
-| 036 | `school_id` nullable en configuración y backfill |
+| 036 | Aplicada solo en staging: configuración tenant-aware, constraints, RLS y fixtures QA |
 | 037 | `school_id` nullable en personas y relaciones |
 | 038 | `school_id` nullable en operativa y diagnóstico |
 | 039 | índices, NN, FKs compuestas y validadores |
 | 040 | helpers tenant-aware, RLS y grants |
 
-Los borradores 036-040 permanecen en `supabase/plans/20_2/`, fuera del historial
-de Supabase, y están marcados `DO NOT APPLY / DESIGN ONLY / SPRINT 20.2A`.
-La versión ejecutable de 035 está en `supabase/migrations/`.
+Los borradores 037-040 permanecen en `supabase/plans/20_2/`, fuera del
+historial de Supabase, y están marcados
+`DO NOT APPLY / DESIGN ONLY / SPRINT 20.2A`. Las versiones ejecutables de 035
+y 036 están en `supabase/migrations/`.
 
 ## 18. Criterios que bloquean 20.2C
 
@@ -498,8 +499,41 @@ No se añadieron columnas `school_id` a tablas operativas, no se crearon filas
 académicas, no se aplicaron 036-040 y no se creó Colegio EducaCora. Producción,
 `main` y la instancia real de Colegio Peñafort no se modificaron.
 
-La siguiente oleada debe partir del borrador
-`supabase/plans/20_2/036_add_school_id_to_configuration.sql` e incluir
-`academic_years`, `courses`, `subjects`, `course_subjects` y sus dependencias de
-configuración. Ese archivo continúa fuera de `supabase/migrations/` y no debe
-aplicarse hasta el Sprint 20.2C.
+La siguiente oleada deberá rediseñar y validar
+`supabase/plans/20_2/037_add_school_id_to_people.sql`. El borrador permanece
+fuera de `supabase/migrations/` y no debe aplicarse en su estado actual.
+
+## 21. Resultado de la configuración tenant-aware en staging
+
+Fecha de aplicación: 27 de julio de 2026.
+
+- migración aplicada: `036_add_school_id_to_configuration.sql`;
+- entorno: staging `zhnbrpcekmxldxlqrbhr`;
+- historial local/remoto: 001-036;
+- dry-run posterior: vacío;
+- tablas adaptadas: `academic_years`, `courses`, `subjects` y
+  `course_subjects`;
+- propiedad tenant: `school_id uuid not null`, FK e índice en las cuatro;
+- integridad: FKs compuestas entre curso académico, curso, materia y relación;
+- RLS: lectura por membership/rol y escritura controlada para superadmin;
+- helper nuevo: `active_academic_year_id(uuid)`;
+- helper legado sin argumentos: conservado como puente y priorizando Peñafort;
+- datos: únicamente fixtures sintéticos con UUIDs `20e2...` y `20f3...`;
+- conteos: 2 cursos académicos, 2 cursos, 3 materias y 3 relaciones;
+- relaciones cruzadas: cero;
+- datos reales, Auth users nuevos y PII: cero.
+
+La excepción destructiva autorizada se limitó a cuatro objetos de unicidad
+global. Primero se crearon los índices tenant-aware y después se eliminaron,
+en la misma transacción, el índice global de curso activo y las tres
+constraints globales de nombre. No hubo `DROP TABLE`, `DROP COLUMN`,
+`TRUNCATE`, `DELETE` ni modificación de datos reales.
+
+Las acciones administrativas que crean configuración y los helpers de curso
+activo usan temporalmente el UUID estable de Peñafort hasta que las rutas
+propaguen un selector de centro. No se modificó la interfaz de los dashboards.
+
+La propuesta 037 fue revisada pero no aplicada ni promovida. Queda bloqueada
+hasta añadir resolución determinista para personas, FKs compuestas,
+postcondiciones, RLS y pruebas que impidan asignar identidades ambiguas a un
+centro.

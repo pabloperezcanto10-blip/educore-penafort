@@ -23,6 +23,19 @@
 4. Mejoras de reporting académico.
 5. Exportaciones oficiales y flujos administrativos avanzados.
 
+## Fundación multitenant
+
+- Completado en staging: fundación `schools`/`school_memberships`.
+- Completado en staging: identidad tenant de Peñafort y memberships QA.
+- Completado en staging: configuración académica tenant-aware
+  (`academic_years`, `courses`, `subjects`, `course_subjects`) con RLS,
+  unicidad por centro y relaciones compuestas.
+- Pendiente: retirar el centro operativo por defecto cuando todas las rutas
+  propaguen un contexto de centro seleccionado.
+- Pendiente: rediseñar y validar la propuesta 037 de personas antes de
+  aplicarla. No se ha iniciado ningún backfill de personas u operativa.
+- Producción y `main` permanecen en el estado anterior a estas oleadas.
+
 ## Corium AI futuro
 
 La futura versión contextual deberá:
