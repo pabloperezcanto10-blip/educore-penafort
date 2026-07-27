@@ -561,3 +561,26 @@ producción.
 El Sprint 20.2 puede comenzar con el diseño del backfill y la incorporación
 progresiva de `school_id`, siempre primero en staging y con una matriz de
 tablas, acciones y policies revisada.
+
+## 21. Diseño ejecutable del backfill de Peñafort
+
+El Sprint 20.2A concreta la transición sin aplicar cambios remotos. La fuente
+de verdad operativa es
+`docs/PENAFORT_TENANT_BACKFILL_PLAN.md`.
+
+Decisiones cerradas:
+
+- `schools` es la raíz tenant y `profiles` permanece global;
+- 27 tablas quedan tenant-scoped: una ya dispone de `school_id` y 26 lo
+  incorporarán de forma nullable por oleadas;
+- `courses` y `subjects` son configuración propia de cada centro;
+- `profiles.role` se conserva como compatibilidad temporal;
+- Peñafort tendrá UUID estable `20f20000-0000-4000-8000-000000000001`;
+- las dependencias críticas usarán FKs compuestas y validadores de membership;
+- las policies globales se sustituyen solo después de adaptar las consultas;
+- `audit_logs.school_id` admite `NULL` únicamente para actividad de plataforma.
+
+Los diagnósticos de `supabase/verification/020_2a_*.sql` son de solo lectura.
+Las propuestas 035-040 se guardan en `supabase/plans/20_2` y no forman parte del
+historial ejecutable. No se ha creado Peñafort como tenant, no se ha ejecutado
+backfill y no se ha modificado producción.

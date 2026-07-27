@@ -394,3 +394,31 @@ rollback ni repair de este procedimiento contra producción.
 El siguiente sprint debe diseñar el backfill tenant-aware y su orden de
 aplicación, sin trasladarlo todavía a producción ni mezclarlo con seeds de
 instancia.
+
+## 14. Plan previo al backfill tenant-aware
+
+El Sprint 20.2A usa como baseline el inventario posterior a 034:
+
+- 29 tablas públicas;
+- 258 columnas;
+- 159 constraints;
+- 97 índices;
+- 9 funciones;
+- 25 triggers;
+- 102 policies.
+
+El diseño resultante añade `school_id` a 26 tablas en futuras migraciones,
+mantiene `profiles` como identidad global y usa `schools` como raíz. No se ha
+alterado esta baseline: los borradores 035-040 están aislados en
+`supabase/plans/20_2` y `supabase db push --dry-run` debe permanecer vacío.
+
+Los scripts `020_2a_production_diagnostics.sql`,
+`020_2a_pre_backfill_checks.sql` y `020_2a_post_backfill_checks.sql` fijan los
+conteos y controles agregados que deberán ejecutarse antes y después del
+backfill. No extraen datos personales ni realizan escrituras.
+
+La lectura agregada de producción del 27 de julio de 2026 confirmó 55 perfiles,
+51 alumnos, 51 relaciones parent-student, 12 cursos, 18 materias, 102
+course-subjects, 10 assignments, 38 tramos horarios y 188 audit logs. Las
+puertas de huérfanos y conflictos académicos devolvieron cero. Producción sigue
+sin las tablas de 034, como corresponde al aislamiento de este sprint.
