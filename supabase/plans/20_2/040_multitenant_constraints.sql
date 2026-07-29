@@ -1,4 +1,5 @@
 -- DO NOT APPLY - DESIGN ONLY - SPRINT 20.2A
+-- Reserved as migration 040 after the additive tutor RLS migration 038.
 -- Proposed Wave 5a. Promote only after all pre/post checks return zero.
 
 begin;

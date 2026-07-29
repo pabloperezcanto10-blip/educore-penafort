@@ -737,7 +737,7 @@ Estado final:
 - staging y su historial están en `001-037`;
 - no hay datos operativos en las tablas de personas;
 - los fixtures QA se ejecutaron con rollback;
-- `038-040` siguen bloqueadas;
+- `039-041` siguen bloqueadas;
 - producción y `main` permanecen intactos.
 
 ## 26. Dataset sintético representativo del Sprint 20.2F
@@ -764,7 +764,8 @@ usuario sin membership activa, aunque RLS devuelve cero filas.
 Todos los fixtures 20.2F y sus credenciales efímeras se eliminaron. El
 post-cleanup demostró cero residuos y preservó la infraestructura QA anterior.
 La decisión es `GO CON BLOQUEOS`: 037 puede mantenerse como candidata, pero no
-debe promoverse a producción ni debe aplicarse 038 hasta integrar el contexto
+debe promoverse a producción ni debe aplicarse la oleada operativa, ahora
+numerada `039-041`, hasta integrar el contexto
 de centro en la aplicación y retirar el fallback legacy de las rutas
 protegidas.
 
@@ -795,10 +796,10 @@ consultas del dashboard. Las Server Actions y handlers sensibles vuelven a
 validarlo en servidor. El inventario y las decisiones completas están en
 `docs/SPRINT_20_2G_ACTIVE_SCHOOL_CONTEXT.md`.
 
-### Límites previos a 038
+### Límites previos a la oleada operativa 039
 
 `notifications`, `internal_notifications`, `teacher_schedule` y `audit_logs`
-todavía no disponen de ownership directo por `school_id`. Hasta que 038 lo
+todavía no disponen de ownership directo por `school_id`. Hasta que 039 lo
 incorpore:
 
 - una notificación solo se muestra si una entidad relacionada demuestra el
@@ -812,3 +813,27 @@ incorpore:
 Estas restricciones reducen temporalmente cobertura funcional, pero evitan
 lecturas cruzadas. La promoción de 037 a producción sigue requiriendo una
 regresión autenticada representativa y los controles del plan de backfill.
+
+## Corrección RLS de students mediante assignments
+
+El Sprint 20.2G-R2B añadió la migración ejecutable `038` únicamente en
+staging. Su alcance es deliberadamente reducido: modifica solo la policy
+SELECT de Tutor sobre `students`.
+
+La policy mantiene la tutoría directa y permite también lectura cuando existe
+una `teacher_assignment` del usuario para el mismo `school_id`, `course_id` y
+`academic_year_id` del alumno. La membership activa con rol Tutor y el centro
+activo siguen siendo obligatorios mediante `has_school_role`.
+
+La decisión arquitectónica es:
+
+- RLS continúa siendo la autoridad;
+- las consultas no duplican una restricción de tutoría directa más estrecha;
+- un assignment nunca concede acceso a otro curso, año o centro;
+- no se añaden permisos de escritura ni funciones `SECURITY DEFINER`;
+- `037` no se modifica retroactivamente;
+- los borradores de operativa pasan a `039-041`.
+
+La verificación transaccional y la regresión autenticada A -> B -> A
+confirmaron cero filas cruzadas, cero errores PostgREST y bloqueo de
+memberships inactivas, roles incompatibles y usuarios sin membership.

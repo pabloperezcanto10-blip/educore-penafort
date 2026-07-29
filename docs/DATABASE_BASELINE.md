@@ -548,7 +548,7 @@ corregir una ambigüedad PostgREST, el catálogo final contiene:
 - 0 filas en las seis tablas de personas.
 
 El historial local y remoto queda alineado en `001-037`. La siguiente oleada
-no puede comenzar hasta revisar de nuevo los borradores `038-040` contra esta
+no puede comenzar hasta revisar de nuevo los borradores `039-041` contra esta
 baseline.
 
 ## 19. Baseline tras la validación sintética 20.2F
@@ -592,10 +592,35 @@ El bloqueo aplicativo anterior queda resuelto en la rama `staging`:
 - no se autoriza mediante `profiles.role` cuando falta membership;
 - una cuenta multischool no selecciona silenciosamente el primer centro.
 
-Las tablas todavía pendientes de ownership directo en 038 se consumen con una
+Las tablas todavía pendientes de ownership directo en 039 se consumen con una
 política conservadora. Las filas cuya relación no demuestra el centro activo
 no se muestran. `audit_logs` permanece disponible solo en contexto global de
 superadmin y un horario ambiguo de un docente multischool se bloquea.
 
 El detalle de rutas, acciones, branding, caché, pruebas y límites está en
 `docs/SPRINT_20_2G_ACTIVE_SCHOOL_CONTEXT.md`.
+
+## Baseline tras la corrección RLS 20.2G-R2B
+
+Staging queda alineado en `001-038`. La migración `038` altera únicamente la
+policy SELECT `students_tutor_can_read_assigned_students`: conserva el acceso
+del tutor directo y añade acceso por `teacher_assignments` coincidentes en
+usuario, `school_id`, `course_id` y `academic_year_id`, siempre bajo una
+membership Tutor activa y un centro activo.
+
+No se añadieron columnas, funciones, índices, grants ni permisos de escritura.
+Las FKs e índices de `037` permanecen como frontera de integridad y `037` no se
+modificó.
+
+La verificación transaccional y autenticada confirmó:
+
+- tutor multischool A -> B -> A sin mezcla;
+- cero alumnos de cursos no asignados o de otro tenant;
+- cero regresiones en Superadmin, Director, Tutor directo y Family;
+- cero acceso con membership inactiva, identidad inactiva, rol incompatible o
+  ausencia de membership.
+
+Los fixtures `20_2G_QA` se conservan para R3 y no contienen actividad
+operativa. Producción, `main` y Colegio Peñafort real permanecen intactos. Los
+borradores operativos se renumeran a `039-041` y continúan fuera de
+`supabase/migrations`.

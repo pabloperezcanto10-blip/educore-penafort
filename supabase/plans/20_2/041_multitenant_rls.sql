@@ -1,4 +1,5 @@
 -- DO NOT APPLY - DESIGN ONLY - SPRINT 20.2A
+-- Reserved as migration 041 after the additive tutor RLS migration 038.
 -- Proposed Wave 5b. Requires tenant-aware application queries first.
 
 begin;

@@ -9,6 +9,7 @@ import {
   resolveActiveSchoolContext,
   SchoolContextError
 } from "@/lib/schools/context";
+import { getSchoolBranding } from "@/lib/schools/branding";
 
 type SelectSchoolPageProps = {
   searchParams?: { error?: string };
@@ -86,37 +87,41 @@ export default async function SelectSchoolPage({
         ) : null}
 
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          {schools.map(({ school, roles }) => (
-            <form
-              key={school.id}
-              action={selectActiveSchool}
-              className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
-            >
-              <input type="hidden" name="school_id" value={school.id} />
-              <div className="flex items-center gap-3">
-                <SchoolLogo
-                  size="md"
-                  src={school.logo_url ?? undefined}
-                  name={school.name}
-                  initials={initialsFor(school.short_name)}
-                />
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-slate-950">
-                    {school.name}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    {roles.map(getRoleLabel).join(" · ")}
-                  </p>
-                </div>
-              </div>
-              <button
-                type="submit"
-                className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-white transition hover:bg-primary/90"
+          {schools.map(({ school, roles }) => {
+            const branding = getSchoolBranding(school);
+
+            return (
+              <form
+                key={school.id}
+                action={selectActiveSchool}
+                className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
               >
-                Entrar en este centro
-              </button>
-            </form>
-          ))}
+                <input type="hidden" name="school_id" value={school.id} />
+                <div className="flex items-center gap-3">
+                  <SchoolLogo
+                    size="md"
+                    src={branding.logoUrl}
+                    name={school.name}
+                    initials={initialsFor(school.short_name)}
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-slate-950">
+                      {school.name}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {roles.map(getRoleLabel).join(" · ")}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-white transition hover:bg-primary/90"
+                >
+                  Entrar en este centro
+                </button>
+              </form>
+            );
+          })}
         </div>
 
         <form action="/logout" method="post" className="mt-6 text-center">

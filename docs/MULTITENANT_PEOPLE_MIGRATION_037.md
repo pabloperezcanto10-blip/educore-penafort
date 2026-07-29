@@ -141,15 +141,17 @@ decidirse, con evidencia, entre:
 
 La migración nunca activa memberships ni altera perfiles.
 
-## 8. Orden previsto 037-040
+## 8. Orden previsto 037-041
 
 1. `037`: personas y relaciones; derivación, NOT NULL, FKs compuestas, triggers
    de membership y RLS de estas tablas.
-2. `038`: operativa; resolución desde student/course o contexto explícito,
+2. `038`: corrección aditiva de lectura de students mediante
+   teacher-assignments tenant-aware.
+3. `039`: operativa; resolución desde student/course o contexto explícito,
    manteniendo `audit_logs.school_id` nullable para eventos de plataforma.
-3. `039`: integridad transversal restante entre personas y operativa; valida
+4. `040`: integridad transversal restante entre personas y operativa; valida
    todas las constraints pendientes y elimina duplicación del borrador antiguo.
-4. `040`: RLS y grants de la operativa, retirada de policies globales y
+5. `041`: RLS y grants de la operativa, retirada de policies globales y
    activación solo cuando las consultas propaguen `ActiveSchoolContext`.
 
 ## 9. Verificación futura

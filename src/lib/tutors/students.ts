@@ -200,7 +200,7 @@ export async function getStudentsWithCourseForTutor(tutorId: string): Promise<{
 
 export async function getStudentForTutor(
   studentId: string,
-  tutorId: string
+  _tutorId: string
 ): Promise<{
   student: TutorStudentDetail | null;
   errorMessage: string | null;
@@ -221,7 +221,6 @@ export async function getStudentForTutor(
     };
   }
 
-  const effectiveTutorId = user?.id ?? tutorId;
   const { academicYear } = await getActiveAcademicYear(schoolContext.schoolId);
   if (!academicYear) {
     return { student: null, errorMessage: "No hay curso escolar activo.", authUserId: user?.id ?? null };
@@ -231,7 +230,6 @@ export async function getStudentForTutor(
     .select("id,name,last_name,birth_date,course_id,active,courses(name)")
     .eq("school_id", schoolContext.schoolId)
     .eq("id", studentId)
-    .eq("tutor_teacher_id", effectiveTutorId)
     .eq("academic_year_id", academicYear.id)
     .maybeSingle<TutorStudentDetail>();
 
@@ -277,7 +275,6 @@ export async function getIncidentsForTutorStudent(
     .select("id")
     .eq("id", studentId)
     .eq("school_id", schoolContext.schoolId)
-    .eq("tutor_teacher_id", effectiveTutorId)
     .maybeSingle<{ id: string }>();
 
   if (studentError || !student) {

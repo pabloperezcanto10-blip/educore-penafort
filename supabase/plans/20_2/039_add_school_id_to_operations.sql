@@ -1,4 +1,5 @@
 -- DO NOT APPLY - DESIGN ONLY - SPRINT 20.2A
+-- Reserved as migration 039 after the additive tutor RLS migration 038.
 -- Proposed Wave 4. Sources are explicit; audit logs may remain global.
 
 begin;

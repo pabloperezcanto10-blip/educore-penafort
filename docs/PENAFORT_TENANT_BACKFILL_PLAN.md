@@ -19,9 +19,10 @@ Commit de partida de la oleada: `4c04078`
   Una futura plantilla se clona; no comparte filas operativas con Peñafort.
 - `profiles.role` se conserva durante la transición. La autorización futura se
   basa en una membership activa y un rol por centro.
-- Las migraciones 035, 036 y 037 están aplicadas únicamente en staging.
-  `038-040` no se han aplicado y no se ha ejecutado backfill de operativa.
-- Las propuestas `038-040` viven en `supabase/plans/20_2`, fuera del
+- Las migraciones 035, 036, 037 y la corrección RLS 038 están aplicadas
+  únicamente en staging. `039-041` no se han aplicado y no se ha ejecutado
+  backfill de operativa.
+- Las propuestas `039-041` viven en `supabase/plans/20_2`, fuera del
   directorio consumido por `supabase db push`.
 
 ## 2. Tenant estable de Colegio Peñafort
@@ -412,20 +413,21 @@ postcondición confirmó que el tenant y sus cuatro memberships continuaron
 activos. Ninguna tabla operativa depende aún del tenant, y `profiles.role`
 permite mantener el comportamiento anterior durante la transición.
 
-## 17. Estado de las migraciones 035-040
+## 17. Estado de las migraciones 035-041
 
 | Propuesta | Propósito |
 | --- | --- |
 | 035 | Aplicada solo en staging: Peñafort, memberships QA y pre/postcondiciones |
 | 036 | Aplicada solo en staging: configuración tenant-aware, constraints, RLS y fixtures QA |
 | 037 | Aplicada solo en staging: personas tenant-aware, FKs, triggers y RLS |
-| 038 | `school_id` nullable en operativa y diagnóstico |
-| 039 | integridad transversal restante entre personas y operativa |
-| 040 | RLS y grants de operativa tras adaptar consultas |
+| 038 | Aplicada solo en staging: lectura RLS de students por teacher assignment tenant-aware |
+| 039 | `school_id` nullable en operativa y diagnóstico |
+| 040 | integridad transversal restante entre personas y operativa |
+| 041 | RLS y grants de operativa tras adaptar consultas |
 
-Los borradores 038-040 permanecen en `supabase/plans/20_2/`, fuera del
+Los borradores `039-041` permanecen en `supabase/plans/20_2/`, fuera del
 historial de Supabase, y están marcados como no aplicables. Las versiones
-ejecutables de 035, 036 y 037 están en `supabase/migrations/`.
+ejecutables de `035-038` están en `supabase/migrations/`.
 
 ## 18. Criterios que bloquean 20.2C
 
@@ -577,9 +579,10 @@ sintéticos dentro de `BEGIN/ROLLBACK` y pasó íntegramente en staging.
 Orden revisado:
 
 1. 037 completa la frontera de personas.
-2. 038 incorpora propiedad tenant a operativa.
-3. 039 valida la integridad transversal que no pertenezca ya a 037.
-4. 040 sustituye RLS y grants de operativa cuando la aplicación propague
+2. 038 amplía exclusivamente la lectura RLS de students por assignments.
+3. 039 incorpora propiedad tenant a operativa.
+4. 040 valida la integridad transversal que no pertenezca ya a 037.
+5. 041 sustituye RLS y grants de operativa cuando la aplicación propague
    contexto escolar explícito.
 
 El estado de esta oleada es `GO CON BLOQUEOS`: 037 puede mantenerse en staging,
@@ -611,9 +614,10 @@ shell protegido.
 
 La limpieza idempotente devolvió a cero todos los conteos 20.2F y preservó
 Colegio Peñafort QA, QA School y los fixtures de sprints anteriores. 037 puede
-prepararse como candidata, pero no aplicarse en producción. 038 puede revisarse
-en diseño, pero no implementarse ni ejecutarse hasta cerrar el contexto de
-tenant en la aplicación.
+prepararse como candidata, pero no aplicarse en producción. La oleada
+operativa, ahora numerada `039-041`, puede revisarse en diseño, pero no
+implementarse ni ejecutarse hasta cerrar el contexto de tenant en la
+aplicación.
 
 ## Actualización Sprint 20.2G
 
@@ -637,11 +641,32 @@ Antes de promover 037 a producción todavía deben cumplirse:
    reales;
 2. verificar el inventario de Peñafort previo al cambio;
 3. confirmar el plan de reversión y la ventana operativa;
-4. diseñar 038 para añadir ownership directo a notificaciones, horarios y
+4. diseñar 039 para añadir ownership directo a notificaciones, horarios y
    auditoría;
 5. mantener bloqueada cualquier fila ambigua en vez de asignarle un centro por
    defecto.
 
-La estrategia de 038 debe preservar el criterio determinista usado en 036 y
+La estrategia de 039 debe preservar el criterio determinista usado en 036 y
 037: una fila sin evidencia única de tenant aborta o queda explícitamente fuera
 de alcance hasta su revisión.
+
+## Actualización Sprint 20.2G-R2B
+
+La regresión R2 confirmó que el aislamiento era correcto, pero la policy de
+`students` solo permitía lectura al tutor directo. La migración aditiva `038`
+mantiene esa vía y añade acceso para el docente con `teacher_assignment`
+coincidente en centro, curso y año académico.
+
+La prueba transaccional y la regresión autenticada verificaron:
+
+- tutor multischool A -> B -> A sin contaminación;
+- alumnos de cursos asignados visibles en su centro activo;
+- cursos sin assignment y alumnos del otro centro invisibles;
+- Director, Tutor directo, Family y Superadmin sin regresiones;
+- memberships inactivas, usuarios sin membership y roles incompatibles
+  bloqueados.
+
+No se ejecutó backfill, no se modificó `037` y no se tocó producción. Los
+fixtures `20_2G_QA` se conservan para R3. Los borradores operativos quedan
+renumerados como `039-041` y continúan bloqueados hasta completar su diseño,
+ensayo y plan de reversión.

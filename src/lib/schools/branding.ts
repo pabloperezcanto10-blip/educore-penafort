@@ -37,6 +37,10 @@ export const platformBranding: SchoolBranding = {
   poweredBy: educacoraExperienceBrand.poweredBy ?? educacoraExperienceBrand.productName
 };
 
+function normalizeBrandAssetUrl(url: string | null) {
+  return url?.replace("/brand/educacora/", "/brand/educore/") ?? null;
+}
+
 export function getSchoolBranding(school: School | null): SchoolBranding {
   if (!school) {
     return platformBranding;
@@ -45,13 +49,14 @@ export function getSchoolBranding(school: School | null): SchoolBranding {
   const fallback = school.slug.includes("penafort")
     ? legacyPenafortBranding
     : platformBranding;
+  const schoolLogoUrl = normalizeBrandAssetUrl(school.logo_url);
 
   return {
     name: school.name,
     shortName: school.short_name,
     productName: fallback.productName,
-    logoUrl: school.logo_url ?? fallback.logoUrl,
-    iconUrl: school.logo_url ?? fallback.iconUrl,
+    logoUrl: schoolLogoUrl ?? fallback.logoUrl,
+    iconUrl: schoolLogoUrl ?? fallback.iconUrl,
     primaryColor: school.primary_color ?? fallback.primaryColor,
     secondaryColor: school.secondary_color ?? fallback.secondaryColor,
     accentColor: school.accent_color ?? fallback.accentColor,
