@@ -2,11 +2,13 @@ import { createAdminClient, hasSupabaseAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/auth/session";
 import { calculateAnnualGrade, roundAnnualGrade } from "@/lib/grades/annual";
+import { requireOperationalSchoolContext } from "@/lib/schools/context";
 
 type ReportClient = Awaited<ReturnType<typeof createClient>>;
 
 type StudentRow = {
   id: string;
+  school_id: string;
   name: string;
   last_name: string;
   course_id: string;
@@ -69,6 +71,7 @@ type SubjectRow = {
 };
 
 export type FinalReportData = {
+  schoolName: string;
   academicYearName: string;
   studentName: string;
   courseName: string;
@@ -95,30 +98,34 @@ export async function getFinalReportForProfile({
   profile: Profile;
   studentId: string;
 }): Promise<{ report: FinalReportData | null; errorMessage: string | null; status: number }> {
+  const schoolContext = await requireOperationalSchoolContext(profile);
+  const contextualRole = schoolContext.role;
   const supabase = (hasSupabaseAdminClient() ? createAdminClient() : await createClient()) as unknown as ReportClient;
   const { data: student, error: studentError } = await supabase
     .from("students")
-    .select("id,name,last_name,course_id,academic_year_id")
+    .select("id,school_id,name,last_name,course_id,academic_year_id")
     .eq("id", studentId)
+    .eq("school_id", schoolContext.schoolId)
     .maybeSingle<StudentRow>();
 
   if (studentError) return { report: null, errorMessage: studentError.message, status: 500 };
   if (!student) return { report: null, errorMessage: "Alumno no encontrado.", status: 404 };
 
-  if (profile.role === "family") {
+  if (contextualRole === "family") {
     const client = await createClient();
     const { data: relation, error: relationError } = await client
       .from("parent_students")
       .select("student_id")
       .eq("parent_id", profile.id)
       .eq("student_id", studentId)
+      .eq("school_id", schoolContext.schoolId)
       .maybeSingle<{ student_id: string }>();
 
     if (relationError) return { report: null, errorMessage: relationError.message, status: 500 };
     if (!relation) return { report: null, errorMessage: "No tienes acceso a este alumno.", status: 403 };
   }
 
-  if (profile.role !== "family" && profile.role !== "director" && profile.role !== "superadmin") {
+  if (contextualRole !== "family" && contextualRole !== "director" && contextualRole !== "superadmin") {
     return { report: null, errorMessage: "No tienes permisos para descargar este boletín.", status: 403 };
   }
 
@@ -130,8 +137,8 @@ export async function getFinalReportForProfile({
     { data: termGrades, error: termGradesError },
     { data: finalRows, error: finalRowsError }
   ] = await Promise.all([
-    supabase.from("courses").select("id,name").eq("id", student.course_id).maybeSingle<CourseRow>(),
-    supabase.from("academic_years").select("id,name").eq("id", student.academic_year_id).maybeSingle<AcademicYearRow>(),
+    supabase.from("courses").select("id,name").eq("school_id", schoolContext.schoolId).eq("id", student.course_id).maybeSingle<CourseRow>(),
+    supabase.from("academic_years").select("id,name").eq("school_id", schoolContext.schoolId).eq("id", student.academic_year_id).maybeSingle<AcademicYearRow>(),
     supabase
       .from("final_evaluation_publications")
       .select("published,published_at")
@@ -141,6 +148,7 @@ export async function getFinalReportForProfile({
     supabase
       .from("teacher_assignments")
       .select("teacher_id,subject_id")
+      .eq("school_id", schoolContext.schoolId)
       .eq("course_id", student.course_id)
       .eq("academic_year_id", student.academic_year_id)
       .returns<AssignmentRow[]>(),
@@ -171,7 +179,7 @@ export async function getFinalReportForProfile({
     null;
   if (queryError) return { report: null, errorMessage: queryError, status: 500 };
 
-  if (profile.role === "family" && !publication?.published) {
+  if (contextualRole === "family" && !publication?.published) {
     return { report: null, errorMessage: "El boletín final todavía no está disponible.", status: 403 };
   }
 
@@ -183,7 +191,7 @@ export async function getFinalReportForProfile({
 
   const [{ data: subjects, error: subjectsError }, { data: weights, error: weightsError }] = await Promise.all([
     subjectIds.length
-      ? supabase.from("subjects").select("id,name").in("id", subjectIds).returns<SubjectRow[]>()
+      ? supabase.from("subjects").select("id,name").eq("school_id", schoolContext.schoolId).in("id", subjectIds).returns<SubjectRow[]>()
       : Promise.resolve({ data: [], error: null }),
     subjectIds.length
       ? supabase
@@ -240,6 +248,7 @@ export async function getFinalReportForProfile({
 
   return {
     report: {
+      schoolName: schoolContext.branding.name,
       academicYearName: academicYear?.name ?? "2026-2027",
       studentName: `${student.name} ${student.last_name}`,
       courseName: course?.name ?? student.course_id,
@@ -255,7 +264,7 @@ export function generateFinalReportPdf(report: FinalReportData) {
   const lines: string[] = [];
 
   lines.push("q 0.96 0.98 1 rg 0 780 595 62 re f Q");
-  drawText(lines, "Colegio Peñafort Platform", 46, 805, 20, true);
+  drawText(lines, report.schoolName, 46, 805, 20, true);
   drawText(lines, "Boletín final de curso", 46, 785, 11);
   drawText(lines, `Curso escolar ${report.academicYearName}`, 46, 744, 11);
   drawText(lines, `Alumno: ${report.studentName}`, 46, 724, 12, true);

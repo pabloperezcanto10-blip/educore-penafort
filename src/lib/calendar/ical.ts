@@ -1,5 +1,4 @@
-const calendarIcsUrl =
-  "https://calendar.google.com/calendar/ical/fo7mnf4nmdge5cib93bfq77414%40group.calendar.google.com/public/basic.ics";
+import { getActiveSchoolContext } from "@/lib/schools/context";
 
 export type CalendarEventSummary = {
   id: string;
@@ -21,6 +20,17 @@ export async function getDashboardCalendarEvents(): Promise<{
   upcomingEvents: CalendarEventSummary[];
   errorMessage: string | null;
 }> {
+  const schoolContext = await getActiveSchoolContext();
+  const calendarId = schoolContext?.branding.calendarId;
+
+  if (!calendarId) {
+    return emptyCalendarResult(null);
+  }
+
+  const calendarIcsUrl = `https://calendar.google.com/calendar/ical/${encodeURIComponent(
+    calendarId
+  )}/public/basic.ics`;
+
   try {
     const response = await fetch(calendarIcsUrl, {
       next: { revalidate: 900 }
@@ -248,7 +258,7 @@ function addDays(date: Date, days: number) {
   return next;
 }
 
-function emptyCalendarResult(errorMessage: string) {
+function emptyCalendarResult(errorMessage: string | null) {
   return {
     todayEvents: [],
     upcomingEvents: [],

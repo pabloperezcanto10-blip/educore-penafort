@@ -6,23 +6,22 @@ import {
   type DirectorSignals
 } from "@/components/dashboards/director/director-dashboard-view";
 import {
-  type CenterActivityItem,
-  type CenterActivityKind,
-  type CenterActivityPriority,
-  type CenterActivityTone
+  type CenterActivityItem
 } from "@/components/dashboard/center-activity-timeline";
 import { requireRole } from "@/lib/auth/session";
 import { getDashboardCalendarEvents, type CalendarEventSummary } from "@/lib/calendar/ical";
 import { getDirectorCommunications, type DirectorCommunication } from "@/lib/communications/notifications";
 import type { Database } from "@/lib/database.types";
 import type { DashboardNotification } from "@/lib/internal-notifications";
-import { getDashboardNotifications } from "@/lib/internal-notifications";
-import { penafortBrand } from "@/lib/branding/brand-config";
+import {
+  getAuthorizedInternalNotificationIds,
+  getDashboardNotifications
+} from "@/lib/internal-notifications";
+import { toBrandConfig } from "@/lib/schools/branding";
+import type { ActiveSchoolContext } from "@/lib/schools/types";
 import { createClient } from "@/lib/supabase/server";
 
-type AuditLog = Database["public"]["Tables"]["audit_logs"]["Row"];
 type InternalNotification = Database["public"]["Tables"]["internal_notifications"]["Row"];
-type CommunicationSignal = Pick<Database["public"]["Tables"]["notifications"]["Row"], "id" | "sender_id" | "receiver_id" | "read" | "created_at">;
 
 type DirectorDashboardPageProps = {
   searchParams?: {
@@ -45,7 +44,7 @@ export default async function DirectorDashboardPage({ searchParams }: DirectorDa
       communicationHref: productionDirectorDashboardRoutes.communications
     }),
     getDashboardCalendarEvents(),
-    getDirectorSignals(profile.id),
+    getDirectorSignals(profile.id, profile.schoolContext),
     getCenterActivity()
   ]);
   const errorMessage = notificationsError ?? calendarError ?? signalsResult.errorMessage ?? activityResult.errorMessage;
@@ -60,7 +59,10 @@ export default async function DirectorDashboardPage({ searchParams }: DirectorDa
     <DirectorDashboardView
       activeTab={activeTab}
       activityItems={activityItems}
-      brand={penafortBrand}
+      brand={toBrandConfig(
+        profile.schoolContext.branding,
+        profile.schoolContext.schoolId ?? "global"
+      )}
       calendarError={calendarError}
       calendarEvents={calendarEvents}
       errorMessage={errorMessage}
@@ -76,27 +78,38 @@ export default async function DirectorDashboardPage({ searchParams }: DirectorDa
   );
 }
 
-async function getDirectorSignals(userId: string): Promise<{ signals: DirectorSignals; errorMessage: string | null }> {
+async function getDirectorSignals(
+  userId: string,
+  schoolContext: ActiveSchoolContext
+): Promise<{ signals: DirectorSignals; errorMessage: string | null }> {
   const supabase = await createClient();
   const [notificationsResult, studentsResult, communicationsResult] = await Promise.all([
     supabase
       .from("internal_notifications")
-      .select("id,type,read,created_at")
+      .select("id,user_id,role,type,title,body,related_entity_type,related_entity_id,related_href,read,created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(50)
-      .returns<Pick<InternalNotification, "id" | "type" | "read" | "created_at">[]>(),
-    supabase.from("students").select("id", { count: "exact", head: true }),
-    supabase
-      .from("notifications")
-      .select("id,sender_id,receiver_id,read,created_at", { count: "exact" })
-      .order("created_at", { ascending: false })
-      .limit(50)
-      .returns<CommunicationSignal[]>()
+      .returns<InternalNotification[]>(),
+    schoolContext.schoolId
+      ? supabase.from("students").select("id", { count: "exact", head: true }).eq("school_id", schoolContext.schoolId)
+      : Promise.resolve({ count: 0, error: null }),
+    getDirectorCommunications()
   ]);
 
-  const notifications = notificationsResult.error ? [] : notificationsResult.data ?? [];
-  const communications = communicationsResult.error ? [] : communicationsResult.data ?? [];
+  const rawNotifications = notificationsResult.error
+    ? []
+    : notificationsResult.data ?? [];
+  const authorizedNotificationIds = new Set(
+    await getAuthorizedInternalNotificationIds({
+      context: schoolContext,
+      rows: rawNotifications
+    })
+  );
+  const notifications = rawNotifications.filter(({ id }) =>
+    authorizedNotificationIds.has(id)
+  );
+  const communications = communicationsResult.communications;
   const recentCutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
   const countType = (type: InternalNotification["type"]) => notifications.filter((notification) => notification.type === type && !notification.read).length;
   const communicationsPending = notifications.filter((notification) => ["new_communication", "unread_communication"].includes(notification.type) && !notification.read).length;
@@ -108,7 +121,11 @@ async function getDirectorSignals(userId: string): Promise<{ signals: DirectorSi
   const openConversations = communications.length;
   const recentCommunicationActivity = communications.filter((communication) => new Date(communication.created_at).getTime() >= recentCutoff).length;
   const recentFollowUps = notifications.filter((notification) => new Date(notification.created_at).getTime() >= recentCutoff).length;
-  const errorMessage = notificationsResult.error?.message ?? studentsResult.error?.message ?? communicationsResult.error?.message ?? null;
+  const errorMessage =
+    notificationsResult.error?.message ??
+    studentsResult.error?.message ??
+    communicationsResult.errorMessage ??
+    null;
 
   return {
     signals: {
@@ -129,45 +146,12 @@ async function getDirectorSignals(userId: string): Promise<{ signals: DirectorSi
 }
 
 async function getCenterActivity(): Promise<{ items: CenterActivityItem[]; errorMessage: string | null }> {
-  const supabase = await createClient();
-  const [{ communications, errorMessage: communicationsError }, auditResult] = await Promise.all([
-    getDirectorCommunications(),
-    supabase
-      .from("audit_logs")
-      .select("id,actor_user_id,actor_role,action,module,entity_type,entity_id,after_data,created_at")
-      .in("action", [
-        "communication_sent",
-        "communication_read",
-        "communication_closed",
-        "communication_reopened",
-        "attendance_created",
-        "attendance_updated",
-        "grade_updated",
-        "term_grade_closed",
-        "term_grade_reopened",
-        "evaluation_published"
-      ])
-      .order("created_at", { ascending: false })
-      .limit(10)
-      .returns<AuditLog[]>()
-  ]);
-
-  const auditLogs = auditResult.error ? [] : auditResult.data ?? [];
+  const { communications, errorMessage: communicationsError } =
+    await getDirectorCommunications();
   const communicationItems = communications.slice(0, 12).map(toCommunicationActivityItem);
 
-  const actorIds = [...new Set(auditLogs.map((log) => log.actor_user_id).filter(Boolean) as string[])];
-  const { data: profiles } = actorIds.length > 0
-    ? await supabase.from("profiles").select("id,full_name,email").in("id", actorIds).returns<Array<{ id: string; full_name: string | null; email: string | null }>>()
-    : { data: [] };
-  const profileMap = new Map((profiles ?? []).map((profile) => [profile.id, profile.full_name ?? profile.email ?? "Usuario"]));
-  const auditItems = auditLogs
-    .filter((log) => !log.action.startsWith("communication_"))
-    .map((log) => toActivityItem(log, profileMap.get(log.actor_user_id ?? "") ?? labelRole(log.actor_role)));
-
   return {
-    items: [...communicationItems, ...auditItems]
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 12),
+    items: communicationItems,
     errorMessage: communicationsError
   };
 }
@@ -238,47 +222,6 @@ function cleanCommunicationValue(value: string | null | undefined, emptyValue?: 
   return cleaned;
 }
 
-function toActivityItem(log: AuditLog, actorName: string): CenterActivityItem {
-  const label = auditActionLabel(log.action);
-
-  return {
-    id: log.id,
-    title: label.title,
-    meta: `${actorName} · ${label.meta}`,
-    date: log.created_at,
-    href: label.href,
-    actionLabel: label.actionLabel,
-    tone: label.tone,
-    kind: label.kind,
-    category: label.category,
-    priority: label.priority,
-    groupKey: label.groupKey
-  };
-}
-
-function auditActionLabel(action: string): {
-  title: string;
-  meta: string;
-  href: string;
-  actionLabel: string;
-  tone: CenterActivityTone;
-  kind: CenterActivityKind;
-  category: CenterActivityItem["category"];
-  priority: CenterActivityPriority;
-  groupKey: string;
-} {
-  const labels: Record<string, ReturnType<typeof auditActionLabel>> = {
-    attendance_created: { title: "Se registró una asistencia.", meta: "Registro de aula", href: productionDirectorDashboardRoutes.students, actionLabel: "Abrir alumno", tone: "green", kind: "attendance", category: "academic", priority: "info", groupKey: "attendance" },
-    attendance_updated: { title: "Se actualizó una asistencia.", meta: "Registro de aula", href: productionDirectorDashboardRoutes.students, actionLabel: "Abrir alumno", tone: "green", kind: "attendance", category: "academic", priority: "followup", groupKey: "attendance" },
-    grade_updated: { title: "Se registró una calificación.", meta: "Actividad académica", href: productionDirectorDashboardRoutes.gradebook, actionLabel: "Abrir evaluación", tone: "blue", kind: "grade", category: "academic", priority: "info", groupKey: "grades" },
-    term_grade_closed: { title: "Se cerró una evaluación.", meta: "Cierre académico", href: productionDirectorDashboardRoutes.gradebook, actionLabel: "Abrir evaluación", tone: "green", kind: "grade", category: "academic", priority: "followup", groupKey: "evaluation" },
-    term_grade_reopened: { title: "Se reabrió una evaluación.", meta: "Cierre académico", href: productionDirectorDashboardRoutes.gradebook, actionLabel: "Abrir evaluación", tone: "amber", kind: "grade", category: "academic", priority: "attention", groupKey: "evaluation" },
-    evaluation_published: { title: "Se publicó un boletín.", meta: "Publicación académica", href: productionDirectorDashboardRoutes.gradebook, actionLabel: "Ver boletín", tone: "green", kind: "report", category: "academic", priority: "followup", groupKey: "reports" }
-  };
-
-  return labels[action] ?? { title: "Se registró una actividad del centro.", meta: "Movimiento del centro", href: productionDirectorDashboardRoutes.root, actionLabel: "Ver panel", tone: "gray", kind: "system", category: "academic", priority: "info", groupKey: "system" };
-}
-
 function buildNotificationActivity(notifications: DashboardNotification[]): CenterActivityItem[] {
   return notifications.slice(0, 8).map((notification) => ({
     id: `${notification.source}-${notification.id}`,
@@ -313,14 +256,6 @@ function toCalendarActivityItem(event: CalendarEventSummary): CenterActivityItem
 
 function normalizeDirectorTab(value: string | undefined): DirectorDashboardTab {
   return directorDashboardTabs.some((tab) => tab.id === value) ? (value as DirectorDashboardTab) : "prioridades";
-}
-
-function labelRole(role: string | null) {
-  if (role === "director") return "Dirección";
-  if (role === "tutor") return "Docente";
-  if (role === "family") return "Familia";
-  if (role === "superadmin") return "Administración";
-  return "Usuario";
 }
 
 function getDirectorConversationId(communication: DirectorCommunication) {

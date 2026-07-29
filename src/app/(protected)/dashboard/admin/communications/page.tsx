@@ -2,7 +2,8 @@ import Link from "next/link";
 import { Eye, Forward, Inbox, MailOpen, MessageCircleReply, Search, Star } from "lucide-react";
 import { getAdminCourses, getAdminProfiles, getAdminStudents, getProfileDisplayName, getStudentDisplayName, type AdminProfile } from "@/lib/admin/admin";
 import { CommunicationBadge, CommunicationEmptyState, CommunicationMessageBubble, ConversationContextGrid, ConversationListCard } from "@/components/communications/communication-design";
-import { requireRole } from "@/lib/auth/session";
+import { requireRole, type AuthorizedProfile } from "@/lib/auth/session";
+import { getAllowedCommunicationIds } from "@/lib/communications/actions";
 import { createAdminClient, hasSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -104,14 +105,14 @@ const categories = [
 ];
 
 export default async function AdminCommunicationsPage({ searchParams }: PageProps) {
-  await requireRole("superadmin");
+  const profile = await requireRole("superadmin");
   const [
     { communications, errorMessage },
     { courses },
     { students },
     { profiles }
   ] = await Promise.all([
-    getAdminCommunications(searchParams),
+    getAdminCommunications(searchParams, profile),
     getAdminCourses(),
     getAdminStudents(),
     getAdminProfiles()
@@ -441,7 +442,10 @@ function MessageBubble({ message }: { message: LabeledCommunication }) {
   );
 }
 
-async function getAdminCommunications(filters: PageProps["searchParams"]): Promise<{
+async function getAdminCommunications(
+  filters: PageProps["searchParams"],
+  profile: AuthorizedProfile
+): Promise<{
   communications: LabeledCommunication[];
   errorMessage: string | null;
 }> {
@@ -465,12 +469,30 @@ async function getAdminCommunications(filters: PageProps["searchParams"]): Promi
     return { communications: [], errorMessage: error.message };
   }
 
-  return attachCommunicationLabels(data ?? [], filters.course_id);
+  const rows = data ?? [];
+  const allowedIds = new Set(
+    await getAllowedCommunicationIds({
+      actor: {
+        id: profile.id,
+        role: profile.role,
+        schoolContext: profile.schoolContext
+      },
+      ids: rows.map(({ id }) => id),
+      ownOnly: false
+    })
+  );
+
+  return attachCommunicationLabels(
+    rows.filter(({ id }) => allowedIds.has(id)),
+    filters.course_id,
+    profile.schoolContext.schoolId
+  );
 }
 
 async function attachCommunicationLabels(
   rows: AdminCommunication[],
-  courseFilterId?: string
+  courseFilterId?: string,
+  schoolId?: string | null
 ): Promise<{
   communications: LabeledCommunication[];
   errorMessage: string | null;
@@ -482,13 +504,20 @@ async function attachCommunicationLabels(
   const supabase = await createCommunicationClient();
   const profileIds = Array.from(new Set(rows.flatMap((row) => [row.sender_id, row.receiver_id])));
   const studentIds = Array.from(new Set(rows.map((row) => row.student_id).filter((id): id is string => Boolean(id))));
+  let studentQuery = supabase
+    .from("students")
+    .select("id,name,last_name,course_id")
+    .in("id", studentIds);
+  if (schoolId) {
+    studentQuery = studentQuery.eq("school_id", schoolId);
+  }
   const [
     { data: profiles, error: profilesError },
     { data: students, error: studentsError }
   ] = await Promise.all([
     supabase.from("profiles").select("id,email,full_name,role").in("id", profileIds).returns<ProfileLabel[]>(),
     studentIds.length > 0
-      ? supabase.from("students").select("id,name,last_name,course_id").in("id", studentIds).returns<StudentLabel[]>()
+      ? studentQuery.returns<StudentLabel[]>()
       : Promise.resolve({ data: [] as StudentLabel[], error: null })
   ]);
   const firstError = profilesError?.message ?? studentsError?.message ?? null;
@@ -498,9 +527,16 @@ async function attachCommunicationLabels(
   }
 
   const courseIds = Array.from(new Set((students ?? []).map((student) => student.course_id)));
+  let courseQuery = supabase
+    .from("courses")
+    .select("id,name")
+    .in("id", courseIds);
+  if (schoolId) {
+    courseQuery = courseQuery.eq("school_id", schoolId);
+  }
   const { data: courses, error: coursesError } =
     courseIds.length > 0
-      ? await supabase.from("courses").select("id,name").in("id", courseIds).returns<CourseLabel[]>()
+      ? await courseQuery.returns<CourseLabel[]>()
       : { data: [] as CourseLabel[], error: null };
 
   if (coursesError) {

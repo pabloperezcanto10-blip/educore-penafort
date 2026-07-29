@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { logAuditAction } from "@/lib/audit";
-import { getCurrentUserProfile } from "@/lib/auth/session";
+import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { createInternalNotifications, type InternalNotificationInsert } from "@/lib/internal-notifications";
 import { withToast } from "@/lib/toast";
@@ -14,11 +14,9 @@ const validTerms = ["1", "2", "3"] as const;
 type EvaluationPublicationInsert = Database["public"]["Tables"]["evaluation_publications"]["Insert"];
 
 export async function publishEvaluation(formData: FormData) {
-  const profile = await getCurrentUserProfile();
-
-  if (!profile || (profile.role !== "director" && profile.role !== "superadmin")) {
-    throw new Error("No tienes permisos para publicar evaluaciones.");
-  }
+  const profile = await requireRole(["director", "superadmin"]);
+  const schoolId = profile.schoolContext.schoolId;
+  if (!schoolId) throw new Error("Selecciona un centro antes de publicar evaluaciones.");
 
   const courseId = String(formData.get("course_id") ?? "").trim();
   const termValue = String(formData.get("term") ?? "1");
@@ -38,6 +36,17 @@ export async function publishEvaluation(formData: FormData) {
 
   if (authError || !user) {
     throw new Error(authError?.message ?? "No hay sesion activa.");
+  }
+
+  const { data: course, error: courseError } = await supabase
+    .from("courses")
+    .select("id")
+    .eq("id", courseId)
+    .eq("school_id", schoolId)
+    .maybeSingle<{ id: string }>();
+
+  if (courseError || !course) {
+    throw new Error(courseError?.message ?? "El curso no pertenece al centro activo.");
   }
 
   const row: EvaluationPublicationInsert = {
@@ -70,7 +79,7 @@ export async function publishEvaluation(formData: FormData) {
     }
   });
 
-  await notifyFamiliesAboutPublishedReport(supabase, courseId, term);
+  await notifyFamiliesAboutPublishedReport(supabase, schoolId, courseId, term);
 
   revalidatePath("/dashboard/director/reports");
   revalidatePath("/dashboard/admin/reports");
@@ -83,12 +92,14 @@ export async function publishEvaluation(formData: FormData) {
 
 async function notifyFamiliesAboutPublishedReport(
   supabase: Awaited<ReturnType<typeof createClient>>,
+  schoolId: string,
   courseId: string,
   term: (typeof validTerms)[number]
 ) {
   const { data: students } = await supabase
     .from("students")
     .select("id")
+    .eq("school_id", schoolId)
     .eq("course_id", courseId)
     .returns<{ id: string }[]>();
 
@@ -99,6 +110,7 @@ async function notifyFamiliesAboutPublishedReport(
   const { data: families } = await supabase
     .from("parent_students")
     .select("parent_id,student_id")
+    .eq("school_id", schoolId)
     .in("student_id", studentIds)
     .returns<{ parent_id: string; student_id: string }[]>();
 

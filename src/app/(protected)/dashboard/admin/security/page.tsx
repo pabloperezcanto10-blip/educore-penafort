@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Eye, Search, ShieldCheck } from "lucide-react";
 import { requireRole } from "@/lib/auth/session";
+import type { ActiveSchoolContext } from "@/lib/schools/types";
 import { createClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/lib/database.types";
 
@@ -31,8 +32,11 @@ type LabeledAuditLog = AuditLog & {
 const pageSize = 100;
 
 export default async function AdminSecurityPage({ searchParams }: PageProps) {
-  await requireRole("superadmin");
-  const { logs, profiles, errorMessage } = await getAuditLogs(searchParams);
+  const profile = await requireRole("superadmin");
+  const { logs, profiles, errorMessage } = await getAuditLogs(
+    searchParams,
+    profile.schoolContext
+  );
   const selectedLog = logs.find((log) => log.id === searchParams.log_id) ?? null;
 
   return (
@@ -73,7 +77,14 @@ export default async function AdminSecurityPage({ searchParams }: PageProps) {
   );
 }
 
-async function getAuditLogs(searchParams: PageProps["searchParams"]) {
+async function getAuditLogs(
+  searchParams: PageProps["searchParams"],
+  schoolContext: ActiveSchoolContext
+) {
+  if (schoolContext.schoolId) {
+    return { logs: [], profiles: [], errorMessage: null };
+  }
+
   const supabase = await createClient();
   let query = supabase
     .from("audit_logs")

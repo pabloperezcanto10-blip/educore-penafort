@@ -184,6 +184,7 @@ export type Database = {
       students: {
         Row: {
           id: string;
+          school_id: string;
           name: string;
           last_name: string;
           birth_date: string | null;
@@ -195,6 +196,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
+          school_id: string;
           name: string;
           last_name: string;
           birth_date?: string | null;
@@ -205,6 +207,7 @@ export type Database = {
           created_at?: string;
         };
         Update: {
+          school_id?: string;
           name?: string;
           last_name?: string;
           birth_date?: string | null;
@@ -286,6 +289,7 @@ export type Database = {
       teacher_assignments: {
         Row: {
           id: string;
+          school_id: string;
           teacher_id: string;
           subject_id: string | null;
           course_id: string;
@@ -294,6 +298,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
+          school_id: string;
           teacher_id: string;
           subject_id: string;
           course_id: string;
@@ -301,6 +306,7 @@ export type Database = {
           created_at?: string;
         };
         Update: {
+          school_id?: string;
           teacher_id?: string;
           subject_id?: string;
           course_id?: string;
@@ -815,10 +821,12 @@ export type Database = {
       };
       parent_students: {
         Row: {
+          school_id: string;
           parent_id: string;
           student_id: string;
         };
         Insert: {
+          school_id: string;
           parent_id: string;
           student_id: string;
         };

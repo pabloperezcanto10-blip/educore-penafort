@@ -1,4 +1,5 @@
 import { getAdminProfiles, getAdminStudents, type AdminProfile, type AdminStudent } from "@/lib/admin/admin";
+import { requireOperationalSchoolContext } from "@/lib/schools/context";
 
 export type ImportPreviewStatus = "nuevo" | "duplicado" | "error";
 
@@ -36,7 +37,7 @@ export function normalizeForEmail(value: string) {
     .replace(/\.+/g, ".");
 }
 
-export function parseStudentLine(rawLine: string) {
+export function parseStudentLine(rawLine: string, familyEmailDomain: string) {
   const cleaned = rawLine.trim().replace(/\s+/g, " ");
   const parts = cleaned.split(" ").filter(Boolean);
 
@@ -53,7 +54,7 @@ export function parseStudentLine(rawLine: string) {
     firstName,
     lastName1,
     lastName2,
-    familyEmail: `familia.${normalizeForEmail(lastName1)}.${normalizeForEmail(lastName2)}@penafort.com`
+    familyEmail: `familia.${normalizeForEmail(lastName1)}.${normalizeForEmail(lastName2)}@${familyEmailDomain}`
   };
 }
 
@@ -68,6 +69,20 @@ export async function buildImportPreview({
   summary: ImportPreviewSummary;
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireOperationalSchoolContext();
+  const familyEmailDomain = schoolContext.branding.familyEmailDomain
+    ?.trim()
+    .toLowerCase();
+
+  if (!familyEmailDomain) {
+    return {
+      rows: [],
+      summary: { nuevos: 0, duplicados: 0, errores: 0 },
+      errorMessage:
+        "El centro activo no tiene un dominio familiar configurado."
+    };
+  }
+
   const [{ students, errorMessage: studentsError }, { profiles, errorMessage: profilesError }] = await Promise.all([
     getAdminStudents(),
     getAdminProfiles()
@@ -100,7 +115,7 @@ export async function buildImportPreview({
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line, index) => {
-      const parsed = parseStudentLine(line);
+      const parsed = parseStudentLine(line, familyEmailDomain);
 
       if (!parsed) {
         return createPreviewRow({

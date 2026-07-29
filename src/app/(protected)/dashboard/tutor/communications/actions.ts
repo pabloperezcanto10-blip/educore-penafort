@@ -4,7 +4,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth/session";
 import { logAuditAction } from "@/lib/audit";
-import { markCommunicationsRead, parseCommunicationIds, setCommunicationsStatus } from "@/lib/communications/actions";
+import {
+  getAllowedCommunicationIds,
+  markCommunicationsRead,
+  parseCommunicationIds,
+  setCommunicationsStatus
+} from "@/lib/communications/actions";
 import { createAdminClient, hasSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { withToast } from "@/lib/toast";
@@ -19,6 +24,15 @@ export async function replyToTutorCommunication(formData: FormData) {
   }
 
   const supabase = await createClient();
+  const allowedIds = await getAllowedCommunicationIds({
+    actor: profile,
+    ids: [communicationId],
+    ownOnly: true
+  });
+  if (allowedIds.length !== 1) {
+    throw new Error("No tienes acceso a esta comunicacion en el centro activo.");
+  }
+
   const { data: original, error: originalError } = await supabase
     .from("notifications")
     .select("id,sender_id,receiver_id,student_id,title,category,status")

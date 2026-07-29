@@ -1,4 +1,8 @@
-import { penafortBrand, type BrandConfig } from "@/lib/branding/brand-config";
+import {
+  educacoraExperienceBrand,
+  penafortBrand,
+  type BrandConfig
+} from "@/lib/branding/brand-config";
 import type { School, SchoolBranding } from "@/lib/schools/types";
 
 export const legacyPenafortBranding: SchoolBranding = {
@@ -17,25 +21,45 @@ export const legacyPenafortBranding: SchoolBranding = {
   poweredBy: penafortBrand.poweredBy ?? penafortBrand.productName
 };
 
+export const platformBranding: SchoolBranding = {
+  name: "EducaCora",
+  shortName: "EducaCora",
+  productName: educacoraExperienceBrand.productName,
+  logoUrl: educacoraExperienceBrand.assets.logo,
+  iconUrl: educacoraExperienceBrand.assets.icon,
+  primaryColor: educacoraExperienceBrand.colors.primary,
+  secondaryColor: educacoraExperienceBrand.colors.secondary,
+  accentColor: educacoraExperienceBrand.colors.accent,
+  backgroundColor: educacoraExperienceBrand.colors.background,
+  foregroundColor: educacoraExperienceBrand.colors.foreground,
+  familyEmailDomain: null,
+  calendarId: null,
+  poweredBy: educacoraExperienceBrand.poweredBy ?? educacoraExperienceBrand.productName
+};
+
 export function getSchoolBranding(school: School | null): SchoolBranding {
   if (!school) {
-    return legacyPenafortBranding;
+    return platformBranding;
   }
+
+  const fallback = school.slug.includes("penafort")
+    ? legacyPenafortBranding
+    : platformBranding;
 
   return {
     name: school.name,
     shortName: school.short_name,
-    productName: penafortBrand.productName,
-    logoUrl: school.logo_url ?? penafortBrand.assets.logo,
-    iconUrl: school.logo_url ?? penafortBrand.assets.icon,
-    primaryColor: school.primary_color ?? penafortBrand.colors.primary,
-    secondaryColor: school.secondary_color ?? penafortBrand.colors.secondary,
-    accentColor: school.accent_color ?? penafortBrand.colors.accent,
-    backgroundColor: penafortBrand.colors.background,
-    foregroundColor: penafortBrand.colors.foreground,
+    productName: fallback.productName,
+    logoUrl: school.logo_url ?? fallback.logoUrl,
+    iconUrl: school.logo_url ?? fallback.iconUrl,
+    primaryColor: school.primary_color ?? fallback.primaryColor,
+    secondaryColor: school.secondary_color ?? fallback.secondaryColor,
+    accentColor: school.accent_color ?? fallback.accentColor,
+    backgroundColor: fallback.backgroundColor,
+    foregroundColor: fallback.foregroundColor,
     familyEmailDomain: school.family_email_domain,
     calendarId: school.calendar_id,
-    poweredBy: penafortBrand.poweredBy ?? penafortBrand.productName
+    poweredBy: fallback.poweredBy
   };
 }
 

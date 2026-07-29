@@ -1,6 +1,6 @@
 import Image from "next/image";
 import type { TermReportData } from "@/lib/reports/term-report-pdf";
-import { platformSettings, schoolSettings } from "@/lib/settings";
+import { platformSettings } from "@/lib/settings";
 
 export function ReportCardTemplate({ report }: { report: TermReportData }) {
   const issuedAt = new Intl.DateTimeFormat("es-ES", {
@@ -19,15 +19,15 @@ export function ReportCardTemplate({ report }: { report: TermReportData }) {
         <div className="flex items-start justify-between gap-8">
           <div className="flex items-center gap-4">
             <Image
-              src="/branding/penafort-logo.jpg"
-              alt="Logo Colegio Peñafort"
+              src={report.schoolLogoUrl}
+              alt={`Logo ${report.schoolName}`}
               width={58}
               height={58}
               className="h-14 w-14 object-contain"
               priority
             />
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-950">{schoolSettings.name}</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-950">{report.schoolName}</h1>
               <p className="mt-1 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
                 Boletín de Calificaciones
               </p>
@@ -87,7 +87,7 @@ export function ReportCardTemplate({ report }: { report: TermReportData }) {
       <footer className="mt-auto border-t border-slate-200 pt-4 text-[11px] leading-5 text-slate-500">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="font-semibold text-slate-700">{schoolSettings.name}</p>
+            <p className="font-semibold text-slate-700">{report.schoolName}</p>
             <p>Boletín emitido el {footerDate}. Página 1 de 1.</p>
           </div>
           <p className="text-right text-[10px] text-slate-400">Powered by {platformSettings.name}</p>

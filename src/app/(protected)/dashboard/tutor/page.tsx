@@ -12,7 +12,7 @@ import { getDashboardCalendarEvents } from "@/lib/calendar/ical";
 import { getTutorUnreadCommunicationsCount } from "@/lib/communications/notifications";
 import { getSubjectCoursesForTeacher } from "@/lib/grades/grades";
 import { getDashboardNotifications } from "@/lib/internal-notifications";
-import { penafortBrand } from "@/lib/branding/brand-config";
+import { toBrandConfig } from "@/lib/schools/branding";
 import { getTeacherScheduleForToday } from "@/lib/tutors/schedule";
 
 type TutorDashboardPageProps = {
@@ -53,7 +53,10 @@ export default async function TutorDashboardPage({ searchParams }: TutorDashboar
   return (
     <TutorDashboardView
       activeTab={activeTab}
-      brand={penafortBrand}
+      brand={toBrandConfig(
+        profile.schoolContext.branding,
+        profile.schoolContext.schoolId ?? "global"
+      )}
       mode="production"
       routes={productionTutorDashboardRoutes}
       data={{

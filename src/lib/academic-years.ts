@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { DEFAULT_OPERATIONAL_SCHOOL_ID } from "@/lib/schools/constants";
+import { getActiveSchoolContext } from "@/lib/schools/context";
 
 export type AcademicYear = {
   id: string;
@@ -14,16 +14,24 @@ export type AcademicYear = {
 const academicYearSelect = "id,school_id,name,start_date,end_date,active,created_at";
 
 export async function getActiveAcademicYear(
-  schoolId = DEFAULT_OPERATIONAL_SCHOOL_ID
+  schoolId?: string
 ): Promise<{
   academicYear: AcademicYear | null;
   errorMessage: string | null;
 }> {
+  const resolvedSchoolId = schoolId ?? (await getActiveSchoolContext())?.schoolId;
+  if (!resolvedSchoolId) {
+    return {
+      academicYear: null,
+      errorMessage: "Selecciona un centro para consultar el curso escolar."
+    };
+  }
+
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("academic_years")
     .select(academicYearSelect)
-    .eq("school_id", schoolId)
+    .eq("school_id", resolvedSchoolId)
     .eq("active", true)
     .maybeSingle<AcademicYear>();
 
@@ -35,16 +43,24 @@ export async function getActiveAcademicYear(
 }
 
 export async function getAcademicYears(
-  schoolId = DEFAULT_OPERATIONAL_SCHOOL_ID
+  schoolId?: string
 ): Promise<{
   academicYears: AcademicYear[];
   errorMessage: string | null;
 }> {
+  const resolvedSchoolId = schoolId ?? (await getActiveSchoolContext())?.schoolId;
+  if (!resolvedSchoolId) {
+    return {
+      academicYears: [],
+      errorMessage: "Selecciona un centro para consultar los cursos escolares."
+    };
+  }
+
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("academic_years")
     .select(academicYearSelect)
-    .eq("school_id", schoolId)
+    .eq("school_id", resolvedSchoolId)
     .order("start_date", { ascending: false })
     .order("name", { ascending: false })
     .returns<AcademicYear[]>();

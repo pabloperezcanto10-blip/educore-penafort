@@ -20,6 +20,10 @@ type ExistingRecord = Pick<
 
 export async function saveSessionAttendance(formData: FormData) {
   const profile = await requireRole("tutor");
+  const schoolId = profile.schoolContext.schoolId;
+  if (!schoolId) {
+    redirect(withToast("/dashboard/tutor/attendance", "error", "No hay un centro activo seleccionado."));
+  }
   const sessionId = String(formData.get("session_id") ?? "").trim();
   const courseId = String(formData.get("course_id") ?? "").trim();
   const subjectIdValue = String(formData.get("subject_id") ?? "").trim();
@@ -34,18 +38,50 @@ export async function saveSessionAttendance(formData: FormData) {
   const supabase = await createClient();
   const { data: schedule, error: scheduleError } = await supabase
     .from("teacher_schedule")
-    .select("id,teacher_id")
+    .select("id,teacher_id,course_name,is_break")
     .eq("id", sessionId)
     .eq("teacher_id", profile.id)
-    .maybeSingle<{ id: string; teacher_id: string }>();
+    .maybeSingle<{
+      id: string;
+      teacher_id: string;
+      course_name: string;
+      is_break: boolean;
+    }>();
 
-  if (scheduleError || !schedule) {
+  if (scheduleError || !schedule || schedule.is_break) {
     redirect(withToast(`/dashboard/tutor/attendance/${sessionId}`, "error", "No se pudo guardar la asistencia."));
+  }
+
+  const { data: course, error: courseError } = await supabase
+    .from("courses")
+    .select("id,name")
+    .eq("school_id", schoolId)
+    .eq("id", courseId)
+    .maybeSingle<{ id: string; name: string }>();
+
+  if (courseError || !course || course.name !== schedule.course_name) {
+    redirect(withToast(`/dashboard/tutor/attendance/${sessionId}`, "error", "La sesion no pertenece al centro activo."));
+  }
+
+  if (subjectId) {
+    const { data: assignment, error: assignmentError } = await supabase
+      .from("teacher_assignments")
+      .select("id")
+      .eq("school_id", schoolId)
+      .eq("teacher_id", profile.id)
+      .eq("course_id", courseId)
+      .eq("subject_id", subjectId)
+      .maybeSingle<{ id: string }>();
+
+    if (assignmentError || !assignment) {
+      redirect(withToast(`/dashboard/tutor/attendance/${sessionId}`, "error", "La asignacion no pertenece al centro activo."));
+    }
   }
 
   const { data: students, error: studentsError } = await supabase
     .from("students")
     .select("id")
+    .eq("school_id", schoolId)
     .eq("course_id", courseId)
     .eq("active", true)
     .in("id", studentIds)

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getActiveAcademicYear } from "@/lib/academic-years";
 import { getTodayDate } from "@/lib/attendance/attendance";
 import type { TeacherScheduleSlot } from "@/lib/tutors/schedule";
+import { requireOperationalSchoolContext } from "@/lib/schools/context";
 
 export type SessionAttendanceStatus = "present" | "absent" | "late" | "justified";
 
@@ -74,8 +75,9 @@ export async function getSessionAttendanceContext({
   context: SessionAttendanceContext | null;
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireOperationalSchoolContext();
   const supabase = await createClient();
-  const { academicYear } = await getActiveAcademicYear();
+  const { academicYear } = await getActiveAcademicYear(schoolContext.schoolId);
 
   if (!academicYear) {
     return { context: null, errorMessage: "No hay curso escolar activo." };
@@ -99,6 +101,7 @@ export async function getSessionAttendanceContext({
   const { data: course, error: courseError } = await supabase
     .from("courses")
     .select("id,name")
+    .eq("school_id", schoolContext.schoolId)
     .eq("name", schedule.course_name)
     .eq("academic_year_id", academicYear.id)
     .maybeSingle<{ id: string; name: string }>();
@@ -112,11 +115,14 @@ export async function getSessionAttendanceContext({
   }
 
   const subjectName = schedule.subject_name ? (subjectAliases[schedule.subject_name] ?? schedule.subject_name) : null;
-  const subject = subjectName ? await findSubjectByName(subjectName) : null;
+  const subject = subjectName
+    ? await findSubjectByName(subjectName, schoolContext.schoolId)
+    : null;
 
   const { data: students, error: studentsError } = await supabase
     .from("students")
     .select("id,name,last_name")
+    .eq("school_id", schoolContext.schoolId)
     .eq("course_id", course.id)
     .eq("academic_year_id", academicYear.id)
     .eq("active", true)
@@ -222,11 +228,12 @@ async function getSessionAttendanceRecords({
   return { records: data ?? [], errorMessage: null };
 }
 
-async function findSubjectByName(subjectName: string) {
+async function findSubjectByName(subjectName: string, schoolId: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("subjects")
     .select("id,name")
+    .eq("school_id", schoolId)
     .eq("name", subjectName)
     .maybeSingle<{ id: string; name: string }>();
 

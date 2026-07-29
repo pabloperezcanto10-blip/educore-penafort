@@ -6,6 +6,7 @@ import type { AttendanceRecord } from "@/lib/attendance/attendance";
 import type { DirectorCommunication } from "@/lib/communications/notifications";
 import type { PartialGrade } from "@/lib/grades/grades";
 import type { StudentIncident, StudentObservation, TutorStudentDetail } from "@/lib/tutors/students";
+import { requireOperationalSchoolContext } from "@/lib/schools/context";
 
 type SupervisionClient = ReturnType<typeof createAdminClient>;
 
@@ -37,14 +38,16 @@ export async function getDirectorStudents(): Promise<{
   students: DirectorStudentListItem[];
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireOperationalSchoolContext();
   const supabase = await createClient();
-  const { academicYear } = await getActiveAcademicYear();
+  const { academicYear } = await getActiveAcademicYear(schoolContext.schoolId);
   if (!academicYear) {
     return { students: [], errorMessage: "No hay curso escolar activo." };
   }
   const { data, error } = await supabase
     .from("students")
     .select("id,name,last_name,birth_date,course_id,active,courses(name)")
+    .eq("school_id", schoolContext.schoolId)
     .eq("academic_year_id", academicYear.id)
     .order("last_name", { ascending: true })
     .order("name", { ascending: true })
@@ -66,8 +69,9 @@ export async function getDirectorStudentDetail(studentId: string): Promise<{
   communications: DirectorCommunication[];
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireOperationalSchoolContext();
   const supabase = await createSupervisionClient();
-  const { academicYear } = await getActiveAcademicYear();
+  const { academicYear } = await getActiveAcademicYear(schoolContext.schoolId);
   if (!academicYear) {
     return emptyDirectorStudentDetail("No hay curso escolar activo.");
   }
@@ -75,6 +79,7 @@ export async function getDirectorStudentDetail(studentId: string): Promise<{
     .from("students")
     .select("id,name,last_name,birth_date,course_id,active,courses(name)")
     .eq("id", studentId)
+    .eq("school_id", schoolContext.schoolId)
     .eq("academic_year_id", academicYear.id)
     .maybeSingle<TutorStudentDetail>();
 

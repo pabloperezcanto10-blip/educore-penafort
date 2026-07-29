@@ -10,6 +10,7 @@ import { withToast } from "@/lib/toast";
 
 export async function saveAnnualWeights(formData: FormData) {
   const profile = await requireRole("tutor");
+  const schoolId = requireContextSchoolId(profile.schoolContext.schoolId);
   const courseId = stringValue(formData, "course_id");
   const subjectId = stringValue(formData, "subject_id");
   const term1 = numberValue(formData, "term1_weight");
@@ -25,6 +26,13 @@ export async function saveAnnualWeights(formData: FormData) {
   }
 
   const supabase = await createClient();
+  await assertTeacherCourseSubject(
+    supabase,
+    schoolId,
+    profile.id,
+    courseId,
+    subjectId
+  );
   const { error } = await supabase.from("annual_evaluation_weights").upsert(
     {
       teacher_id: profile.id,
@@ -46,6 +54,7 @@ export async function saveAnnualWeights(formData: FormData) {
 
 export async function saveFinalCourseGrade(formData: FormData) {
   const profile = await requireRole("tutor");
+  const schoolId = requireContextSchoolId(profile.schoolContext.schoolId);
   const studentId = stringValue(formData, "student_id");
   const courseId = stringValue(formData, "course_id");
   const subjectId = stringValue(formData, "subject_id");
@@ -70,6 +79,25 @@ export async function saveFinalCourseGrade(formData: FormData) {
   }
 
   const supabase = await createClient();
+  await assertTeacherCourseSubject(
+    supabase,
+    schoolId,
+    profile.id,
+    courseId,
+    subjectId
+  );
+  const { data: student, error: studentError } = await supabase
+    .from("students")
+    .select("id")
+    .eq("school_id", schoolId)
+    .eq("course_id", courseId)
+    .eq("id", studentId)
+    .maybeSingle<{ id: string }>();
+
+  if (studentError || !student) {
+    throw new Error(studentError?.message ?? "El alumno no pertenece al centro activo.");
+  }
+
   const { error } = await supabase.from("final_course_grades").upsert(
     {
       student_id: studentId,
@@ -127,4 +155,33 @@ function numberValue(formData: FormData, name: string) {
 function nullableNumberValue(formData: FormData, name: string) {
   const value = stringValue(formData, name);
   return value ? Number(value) : null;
+}
+
+async function assertTeacherCourseSubject(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  schoolId: string,
+  teacherId: string,
+  courseId: string,
+  subjectId: string
+) {
+  const { data, error } = await supabase
+    .from("teacher_assignments")
+    .select("id")
+    .eq("school_id", schoolId)
+    .eq("teacher_id", teacherId)
+    .eq("course_id", courseId)
+    .eq("subject_id", subjectId)
+    .maybeSingle<{ id: string }>();
+
+  if (error || !data) {
+    throw new Error(error?.message ?? "La asignacion no pertenece al centro activo.");
+  }
+}
+
+function requireContextSchoolId(schoolId: string | null) {
+  if (!schoolId) {
+    throw new Error("No hay un centro activo seleccionado.");
+  }
+
+  return schoolId;
 }

@@ -3,16 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { logAuditAction } from "@/lib/audit";
-import { getCurrentUserProfile } from "@/lib/auth/session";
+import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { withToast } from "@/lib/toast";
 
 export async function publishFinalEvaluation(formData: FormData) {
-  const profile = await getCurrentUserProfile();
-
-  if (!profile || (profile.role !== "director" && profile.role !== "superadmin")) {
-    throw new Error("No tienes permisos para publicar el boletin final.");
-  }
+  const profile = await requireRole(["director", "superadmin"]);
+  const schoolId = profile.schoolContext.schoolId;
+  if (!schoolId) throw new Error("Selecciona un centro antes de publicar el boletin final.");
 
   const courseId = String(formData.get("course_id") ?? "").trim();
 
@@ -28,6 +26,17 @@ export async function publishFinalEvaluation(formData: FormData) {
 
   if (authError || !user) {
     throw new Error(authError?.message ?? "No hay sesion activa.");
+  }
+
+  const { data: course, error: courseError } = await supabase
+    .from("courses")
+    .select("id")
+    .eq("id", courseId)
+    .eq("school_id", schoolId)
+    .maybeSingle<{ id: string }>();
+
+  if (courseError || !course) {
+    throw new Error(courseError?.message ?? "El curso no pertenece al centro activo.");
   }
 
   const { error } = await supabase.from("final_evaluation_publications").upsert(

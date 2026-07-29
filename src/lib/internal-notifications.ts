@@ -1,6 +1,9 @@
 import type { Role } from "@/lib/auth/roles";
 import type { Database } from "@/lib/database.types";
 import { createClient } from "@/lib/supabase/server";
+import { getAllowedCommunicationIds } from "@/lib/communications/actions";
+import { requireSchoolContext } from "@/lib/schools/context";
+import type { ActiveSchoolContext } from "@/lib/schools/types";
 
 export type DashboardNotification = {
   id: string;
@@ -14,10 +17,13 @@ export type DashboardNotification = {
 
 export type InternalNotificationInsert = Database["public"]["Tables"]["internal_notifications"]["Insert"];
 
-type InternalNotificationRow = Database["public"]["Tables"]["internal_notifications"]["Row"];
+export type InternalNotificationRow = Database["public"]["Tables"]["internal_notifications"]["Row"];
 
 type CommunicationNotificationRow = {
   id: string;
+  sender_id: string;
+  receiver_id: string;
+  student_id: string | null;
   title: string;
   message: string;
   read: boolean;
@@ -37,6 +43,7 @@ export async function getDashboardNotifications({
   unreadCount: number;
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireSchoolContext();
   const supabase = await createClient();
   const [internalResult, communicationResult] = await Promise.all([
     supabase
@@ -44,20 +51,41 @@ export async function getDashboardNotifications({
       .select("id,user_id,role,type,title,body,related_entity_type,related_entity_id,related_href,read,created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
-      .limit(8)
+      .limit(50)
       .returns<InternalNotificationRow[]>(),
     supabase
       .from("notifications")
-      .select("id,title,message,read,created_at")
+      .select("id,sender_id,receiver_id,student_id,title,message,read,created_at")
       .eq("receiver_id", userId)
       .eq("read", false)
       .order("created_at", { ascending: false })
-      .limit(5)
+      .limit(50)
       .returns<CommunicationNotificationRow[]>()
   ]);
 
-  const internalRows = internalResult.error ? [] : internalResult.data ?? [];
-  const communicationRows = communicationResult.error ? [] : communicationResult.data ?? [];
+  const rawInternalRows = internalResult.error ? [] : internalResult.data ?? [];
+  const rawCommunicationRows = communicationResult.error
+    ? []
+    : communicationResult.data ?? [];
+  const authorizedInternalIds = new Set(
+    await getAuthorizedInternalNotificationIds({
+      context: schoolContext,
+      rows: rawInternalRows
+    })
+  );
+  const authorizedCommunicationIds = new Set(
+    await getAllowedCommunicationIds({
+      actor: { id: userId, role: schoolContext.role, schoolContext },
+      ids: rawCommunicationRows.map(({ id }) => id),
+      ownOnly: true
+    })
+  );
+  const internalRows = rawInternalRows.filter(({ id }) =>
+    authorizedInternalIds.has(id)
+  );
+  const communicationRows = rawCommunicationRows.filter(({ id }) =>
+    authorizedCommunicationIds.has(id)
+  );
   const errorMessage = communicationResult.error?.message ?? null;
   const internalNotifications = internalRows.map((notification) => ({
     id: notification.id,
@@ -86,6 +114,65 @@ export async function getDashboardNotifications({
     unreadCount: notifications.filter((notification) => !notification.read).length,
     errorMessage
   };
+}
+
+export async function getAuthorizedInternalNotificationIds({
+  context,
+  rows
+}: {
+  context: ActiveSchoolContext;
+  rows: InternalNotificationRow[];
+}) {
+  if (context.isGlobalSuperadmin && !context.schoolId) {
+    return rows.map(({ id }) => id);
+  }
+
+  if (!context.schoolId) return [];
+
+  const supabase = await createClient();
+  const resourceTables = {
+    student: "students",
+    course: "courses",
+    subject: "subjects"
+  } as const;
+  const authorizedIds = new Set<string>();
+
+  for (const [entityType, table] of Object.entries(resourceTables)) {
+    const entityIds = Array.from(
+      new Set(
+        rows.flatMap((row) =>
+          row.related_entity_type === entityType && row.related_entity_id
+            ? [row.related_entity_id]
+            : []
+        )
+      )
+    );
+    if (entityIds.length === 0) continue;
+
+    const { data, error } = await supabase
+      .from(table)
+      .select("id")
+      .eq("school_id", context.schoolId)
+      .in("id", entityIds)
+      .returns<{ id: string }[]>();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const allowedEntities = new Set((data ?? []).map(({ id }) => id));
+    rows.forEach((row) => {
+      if (
+        row.related_entity_type === entityType &&
+        row.related_entity_id &&
+        allowedEntities.has(row.related_entity_id)
+      ) {
+        authorizedIds.add(row.id);
+      }
+    });
+  }
+
+  return [...authorizedIds];
 }
 
 export async function createInternalNotifications(rows: InternalNotificationInsert[]) {

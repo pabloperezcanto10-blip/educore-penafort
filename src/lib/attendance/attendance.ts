@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getStudentsForTutor, type TutorStudent } from "@/lib/tutors/students";
+import { requireSchoolRole } from "@/lib/schools/context";
 
 export type AttendanceStatus = "present" | "absent" | "late";
 
@@ -121,7 +122,29 @@ export async function getStudentAttendanceSummary(
   summary: StudentAttendanceSummary;
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireSchoolRole(["tutor"]);
+  if (!schoolContext.schoolId) {
+    return {
+      summary: { absences: 0, lates: 0, history: [] },
+      errorMessage: "No hay un centro activo seleccionado."
+    };
+  }
+
   const supabase = await createClient();
+  const { data: student, error: studentError } = await supabase
+    .from("students")
+    .select("id")
+    .eq("id", studentId)
+    .eq("school_id", schoolContext.schoolId)
+    .maybeSingle<{ id: string }>();
+
+  if (studentError || !student) {
+    return {
+      summary: { absences: 0, lates: 0, history: [] },
+      errorMessage: studentError?.message ?? "El alumno no pertenece al centro activo."
+    };
+  }
+
   const { data, error } = await supabase
     .from("student_attendance")
     .select("id,student_id,tutor_id,status,date,notes,justified,justification_text,justification_file_url,created_at")
@@ -153,10 +176,16 @@ export async function getFamilyAttendance(familyId: string): Promise<{
   rows: FamilyAttendanceRow[];
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireSchoolRole(["family"]);
+  if (!schoolContext.schoolId) {
+    return { rows: [], errorMessage: "No hay un centro activo seleccionado." };
+  }
+
   const supabase = await createClient();
   const { data: relations, error: relationsError } = await supabase
     .from("parent_students")
     .select("student_id")
+    .eq("school_id", schoolContext.schoolId)
     .eq("parent_id", familyId)
     .returns<{ student_id: string }[]>();
 
@@ -194,10 +223,31 @@ export async function getDirectorAttendance(): Promise<{
   rows: DirectorAttendanceRow[];
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireSchoolRole(["director"]);
+  if (!schoolContext.schoolId) {
+    return { rows: [], errorMessage: "No hay un centro activo seleccionado." };
+  }
+
   const supabase = await createClient();
+  const { data: students, error: studentsError } = await supabase
+    .from("students")
+    .select("id,name,last_name")
+    .eq("school_id", schoolContext.schoolId)
+    .returns<AttendanceStudent[]>();
+
+  if (studentsError) {
+    return { rows: [], errorMessage: studentsError.message };
+  }
+
+  const studentIds = (students ?? []).map(({ id }) => id);
+  if (studentIds.length === 0) {
+    return { rows: [], errorMessage: null };
+  }
+
   const { data: attendance, error } = await supabase
     .from("student_attendance")
     .select("id,student_id,tutor_id,status,date,notes,justified,justification_text,justification_file_url,created_at")
+    .in("student_id", studentIds)
     .in("status", ["absent", "late"])
     .order("date", { ascending: false })
     .returns<AttendanceRecord[]>();
@@ -210,17 +260,6 @@ export async function getDirectorAttendance(): Promise<{
 
   if (records.length === 0) {
     return { rows: [], errorMessage: null };
-  }
-
-  const studentIds = Array.from(new Set(records.map((record) => record.student_id)));
-  const { data: students, error: studentsError } = await supabase
-    .from("students")
-    .select("id,name,last_name")
-    .in("id", studentIds)
-    .returns<AttendanceStudent[]>();
-
-  if (studentsError) {
-    return { rows: [], errorMessage: studentsError.message };
   }
 
   const studentsById = new Map((students ?? []).map((student) => [student.id, student]));

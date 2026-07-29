@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserProfile } from "@/lib/auth/session";
-import { getDashboardPathForRole } from "@/lib/auth/roles";
+import { getAuthenticatedEntryPath } from "@/lib/schools/context";
 
 export type LoginState = {
   message?: string;
@@ -32,5 +32,9 @@ export async function login(_: LoginState, formData: FormData): Promise<LoginSta
     redirect("/change-password");
   }
 
-  redirect(getDashboardPathForRole(profile?.role ?? "family"));
+  if (!profile) {
+    return { message: "La cuenta no tiene un perfil activo configurado." };
+  }
+
+  redirect(await getAuthenticatedEntryPath(profile));
 }

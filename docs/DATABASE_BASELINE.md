@@ -576,3 +576,26 @@ El bloqueo vigente es aplicativo: `ActiveSchoolContext` aún no se propaga a
 todas las rutas académicas y el fallback `legacy-profile` todavía permite
 cargar shells sin membership activa. Hasta resolverlo, 037 no debe promoverse
 a producción y 038 no debe aplicarse.
+
+## Estado aplicativo tras Sprint 20.2G
+
+La baseline remota no cambia: staging continúa alineado en `001-037` y no se
+ha ejecutado SQL ni `db push`.
+
+El bloqueo aplicativo anterior queda resuelto en la rama `staging`:
+
+- el contexto activo se resuelve desde memberships y centros activos;
+- todas las rutas protegidas heredan un layout que exige contexto válido;
+- cada layout de rol exige el rol de la membership contextual;
+- las operaciones académicas usan `school_id` y curso activo del contexto;
+- no existe centro operativo por defecto en la aplicación protegida;
+- no se autoriza mediante `profiles.role` cuando falta membership;
+- una cuenta multischool no selecciona silenciosamente el primer centro.
+
+Las tablas todavía pendientes de ownership directo en 038 se consumen con una
+política conservadora. Las filas cuya relación no demuestra el centro activo
+no se muestran. `audit_logs` permanece disponible solo en contexto global de
+superadmin y un horario ambiguo de un docente multischool se bloquea.
+
+El detalle de rutas, acciones, branding, caché, pruebas y límites está en
+`docs/SPRINT_20_2G_ACTIVE_SCHOOL_CONTEXT.md`.

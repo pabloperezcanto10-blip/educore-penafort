@@ -2,6 +2,7 @@
 import { getCurrentUserProfile } from "@/lib/auth/session";
 import { logAuditAction } from "@/lib/audit";
 import { AiProviderError, callSelectedAiProvider, type AiChatMessage } from "@/lib/ai/providers";
+import { getActiveSchoolContext } from "@/lib/schools/context";
 
 const allowedRoles = new Set(["tutor", "director", "superadmin"]);
 const maxMessageLength = 2000;
@@ -18,7 +19,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
 
-  if (!allowedRoles.has(profile.role)) {
+  const schoolContext = await getActiveSchoolContext(undefined, profile).catch(() => null);
+  if (!schoolContext || !allowedRoles.has(schoolContext.role)) {
     return NextResponse.json({ error: "No autorizado." }, { status: 403 });
   }
 
@@ -57,7 +59,7 @@ export async function POST(request: Request) {
     },
     {
       role: "user",
-      content: `Contexto de uso: rol=${profile.role}; ruta=${route}.`
+      content: `Contexto de uso: rol=${schoolContext.role}; ruta=${route}.`
     },
     ...history
       .filter((item) => (item.role === "user" || item.role === "assistant") && typeof item.content === "string")
@@ -73,7 +75,7 @@ export async function POST(request: Request) {
 
     await logAuditAction({
       actorUserId: profile.id,
-      actorRole: profile.role,
+      actorRole: schoolContext.role,
       action: "ai_assistant_used",
       module: "ai_assistant",
       entityType: "ai_request",

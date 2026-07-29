@@ -1,5 +1,9 @@
 import { createAdminClient, hasSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import {
+  requireOperationalSchoolContext,
+  requireSchoolRole
+} from "@/lib/schools/context";
 
 type CommunicationLabelClient = ReturnType<typeof createAdminClient>;
 
@@ -174,12 +178,25 @@ export async function getFamilyRecipientsForStudent(studentId: string): Promise<
     return { recipients: [], errorMessage: null };
   }
 
+  const schoolContext = await requireOperationalSchoolContext();
+  const validationClient = await createClient();
+  const { data: allowedStudent } = await validationClient
+    .from("students")
+    .select("id")
+    .eq("id", studentId)
+    .eq("school_id", schoolContext.schoolId)
+    .maybeSingle();
+  if (!allowedStudent) {
+    return { recipients: [], errorMessage: "El alumno no pertenece al centro activo." };
+  }
+
   if (hasSupabaseAdminClient()) {
     const supabaseAdmin = createAdminClient();
     const { data, error } = await supabaseAdmin
       .from("parent_students")
       .select("parent_id")
       .eq("student_id", studentId)
+      .eq("school_id", schoolContext.schoolId)
       .returns<FamilyRecipient[]>();
 
     return normalizeFamilyRecipients(data, error?.message ?? null);
@@ -190,6 +207,7 @@ export async function getFamilyRecipientsForStudent(studentId: string): Promise<
     .from("parent_students")
     .select("parent_id")
     .eq("student_id", studentId)
+    .eq("school_id", schoolContext.schoolId)
     .returns<FamilyRecipient[]>();
 
   return normalizeFamilyRecipients(data, error?.message ?? null);
@@ -215,11 +233,31 @@ export async function getFamilyNotifications(familyId: string): Promise<{
   notifications: FamilyNotification[];
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireSchoolRole(["family"]);
+  if (!schoolContext.schoolId) {
+    return { notifications: [], errorMessage: "No hay un centro activo seleccionado." };
+  }
+
   const supabase = await createClient();
+  const { data: relations, error: relationsError } = await supabase
+    .from("parent_students")
+    .select("student_id")
+    .eq("school_id", schoolContext.schoolId)
+    .eq("parent_id", familyId)
+    .returns<Array<{ student_id: string }>>();
+  if (relationsError) {
+    return { notifications: [], errorMessage: relationsError.message };
+  }
+  const studentIds = (relations ?? []).map(({ student_id }) => student_id);
+  if (studentIds.length === 0) {
+    return { notifications: [], errorMessage: null };
+  }
+
   const { data, error } = await supabase
     .from("notifications")
     .select("id,sender_id,student_id,title,message,category,read,read_at,status,created_at,students(name,last_name)")
     .eq("receiver_id", familyId)
+    .in("student_id", studentIds)
     .order("created_at", { ascending: false })
     .returns<FamilyNotification[]>();
 
@@ -243,11 +281,31 @@ export async function getFamilyCommunications(
   communications: FamilyCommunication[];
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireSchoolRole(["family"]);
+  if (!schoolContext.schoolId) {
+    return { communications: [], errorMessage: "No hay un centro activo seleccionado." };
+  }
+
   const supabase = await createClient();
+  const { data: relations, error: relationsError } = await supabase
+    .from("parent_students")
+    .select("student_id")
+    .eq("school_id", schoolContext.schoolId)
+    .eq("parent_id", familyId)
+    .returns<Array<{ student_id: string }>>();
+  if (relationsError) {
+    return { communications: [], errorMessage: relationsError.message };
+  }
+  const studentIds = (relations ?? []).map(({ student_id }) => student_id);
+  if (studentIds.length === 0) {
+    return { communications: [], errorMessage: null };
+  }
+
   let query = supabase
     .from("notifications")
     .select("id,sender_id,receiver_id,student_id,title,message,category,read,read_at,status,created_at")
     .or(`sender_id.eq.${familyId},receiver_id.eq.${familyId}`)
+    .in("student_id", studentIds)
     .order("created_at", { ascending: false });
 
   if (filters.direction === "sent") {
@@ -293,10 +351,16 @@ export async function getFamilyStudentContacts(familyId: string): Promise<{
   teachers: ProfileLabel[];
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireSchoolRole(["family"]);
+  if (!schoolContext.schoolId) {
+    return { students: [], directors: [], teachers: [], errorMessage: "No hay un centro activo seleccionado." };
+  }
+
   const labelClient = await createCommunicationLabelClient();
   const { data: relations, error: relationsError } = await labelClient
     .from("parent_students")
     .select("student_id")
+    .eq("school_id", schoolContext.schoolId)
     .eq("parent_id", familyId)
     .returns<{ student_id: string }[]>();
 
@@ -305,35 +369,58 @@ export async function getFamilyStudentContacts(familyId: string): Promise<{
   }
 
   const studentIds = (relations ?? []).map((relation) => relation.student_id);
-  const { data: directors, error: directorsError } = await labelClient
-    .from("profiles")
-    .select("id,email,full_name")
-    .eq("role", "director")
+  const { data: memberships, error: membershipsError } = await labelClient
+    .from("school_memberships")
+    .select("user_id,role")
+    .eq("school_id", schoolContext.schoolId)
     .eq("active", true)
-    .returns<ProfileLabel[]>();
-  const { data: teachers, error: teachersError } = await labelClient
-    .from("profiles")
-    .select("id,email,full_name")
-    .eq("role", "tutor")
-    .eq("active", true)
-    .returns<ProfileLabel[]>();
+    .in("role", ["director", "tutor"])
+    .returns<Array<{ user_id: string; role: "director" | "tutor" }>>();
+  const directorIds = (memberships ?? [])
+    .filter(({ role }) => role === "director")
+    .map(({ user_id }) => user_id);
+  const teacherIds = (memberships ?? [])
+    .filter(({ role }) => role === "tutor")
+    .map(({ user_id }) => user_id);
+  const { data: directors, error: directorsError } = directorIds.length
+    ? await labelClient
+        .from("profiles")
+        .select("id,email,full_name")
+        .in("id", directorIds)
+        .eq("active", true)
+        .returns<ProfileLabel[]>()
+    : { data: [], error: null };
+  const { data: teachers, error: teachersError } = teacherIds.length
+    ? await labelClient
+        .from("profiles")
+        .select("id,email,full_name")
+        .in("id", teacherIds)
+        .eq("active", true)
+        .returns<ProfileLabel[]>()
+    : { data: [], error: null };
 
   if (studentIds.length === 0) {
     return {
       students: [],
       directors: directors ?? [],
       teachers: teachers ?? [],
-      errorMessage: directorsError?.message ?? teachersError?.message ?? null
+      errorMessage: membershipsError?.message ?? directorsError?.message ?? teachersError?.message ?? null
     };
   }
 
   const { data: students, error: studentsError } = await labelClient
     .from("students")
     .select("id,name,last_name,course_id,tutor_teacher_id")
+    .eq("school_id", schoolContext.schoolId)
     .in("id", studentIds)
     .returns<FamilyStudentLabel[]>();
 
-  const firstError = studentsError?.message ?? directorsError?.message ?? teachersError?.message ?? null;
+  const firstError =
+    membershipsError?.message ??
+    studentsError?.message ??
+    directorsError?.message ??
+    teachersError?.message ??
+    null;
 
   if (firstError) {
     return { students: [], directors: [], teachers: [], errorMessage: firstError };
@@ -346,7 +433,7 @@ export async function getFamilyStudentContacts(familyId: string): Promise<{
     { data: tutors, error: tutorsError }
   ] = await Promise.all([
     courseIds.length > 0
-      ? labelClient.from("courses").select("id,name").in("id", courseIds).returns<CourseLabel[]>()
+      ? labelClient.from("courses").select("id,name").eq("school_id", schoolContext.schoolId).in("id", courseIds).returns<CourseLabel[]>()
       : Promise.resolve({ data: [] as CourseLabel[], error: null }),
     tutorIds.length > 0
       ? labelClient.from("profiles").select("id,email,full_name").in("id", tutorIds).returns<ProfileLabel[]>()
@@ -382,10 +469,29 @@ export async function getDirectorCommunications(filters: DirectorCommunicationFi
   communications: DirectorCommunication[];
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireSchoolRole(["director"]);
+  if (!schoolContext.schoolId) {
+    return { communications: [], errorMessage: "No hay un centro activo seleccionado." };
+  }
+
   const supabase = await createClient();
+  const { data: students, error: studentsError } = await supabase
+    .from("students")
+    .select("id")
+    .eq("school_id", schoolContext.schoolId)
+    .returns<Array<{ id: string }>>();
+  if (studentsError) {
+    return { communications: [], errorMessage: studentsError.message };
+  }
+  const studentIds = (students ?? []).map(({ id }) => id);
+  if (studentIds.length === 0) {
+    return { communications: [], errorMessage: null };
+  }
+
   let query = supabase
     .from("notifications")
     .select("id,sender_id,receiver_id,student_id,title,message,category,read,read_at,status,created_at,students(name,last_name)")
+    .in("student_id", studentIds)
     .order("created_at", { ascending: false });
 
   if (filters.studentId) {
@@ -431,11 +537,30 @@ export async function getTutorCommunications(
   communications: TutorCommunication[];
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireSchoolRole(["tutor"]);
+  if (!schoolContext.schoolId) {
+    return { communications: [], errorMessage: "No hay un centro activo seleccionado." };
+  }
+
   const supabase = await createClient();
+  const { data: students, error: studentsError } = await supabase
+    .from("students")
+    .select("id")
+    .eq("school_id", schoolContext.schoolId)
+    .returns<Array<{ id: string }>>();
+  if (studentsError) {
+    return { communications: [], errorMessage: studentsError.message };
+  }
+  const studentIds = (students ?? []).map(({ id }) => id);
+  if (studentIds.length === 0) {
+    return { communications: [], errorMessage: null };
+  }
+
   let query = supabase
     .from("notifications")
     .select("id,sender_id,receiver_id,student_id,title,message,category,read,read_at,status,created_at")
     .or(`sender_id.eq.${tutorId},receiver_id.eq.${tutorId}`)
+    .in("student_id", studentIds)
     .order("created_at", { ascending: false });
 
   if (filters.direction === "sent") {
@@ -485,12 +610,31 @@ export async function getTutorUnreadCommunicationsCount(tutorId: string): Promis
   count: number;
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireSchoolRole(["tutor"]);
+  if (!schoolContext.schoolId) {
+    return { count: 0, errorMessage: "No hay un centro activo seleccionado." };
+  }
+
   const supabase = await createClient();
+  const { data: students, error: studentsError } = await supabase
+    .from("students")
+    .select("id")
+    .eq("school_id", schoolContext.schoolId)
+    .returns<Array<{ id: string }>>();
+  if (studentsError) {
+    return { count: 0, errorMessage: studentsError.message };
+  }
+  const studentIds = (students ?? []).map(({ id }) => id);
+  if (studentIds.length === 0) {
+    return { count: 0, errorMessage: null };
+  }
+
   const { count, error } = await supabase
     .from("notifications")
     .select("id", { count: "exact", head: true })
     .eq("sender_id", tutorId)
-    .eq("read", false);
+    .eq("read", false)
+    .in("student_id", studentIds);
 
   if (error) {
     return { count: 0, errorMessage: error.message };

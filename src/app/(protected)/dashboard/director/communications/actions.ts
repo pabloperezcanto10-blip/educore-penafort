@@ -4,7 +4,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth/session";
 import { logAuditAction } from "@/lib/audit";
-import { markCommunicationsRead, parseCommunicationIds, setCommunicationsStatus } from "@/lib/communications/actions";
+import {
+  getAllowedCommunicationIds,
+  markCommunicationsRead,
+  parseCommunicationIds,
+  setCommunicationsStatus
+} from "@/lib/communications/actions";
 import { createAdminClient, hasSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { withToast } from "@/lib/toast";
@@ -26,6 +31,8 @@ type CommunicationReadClient = {
 
 export async function sendDirectorCommunication(formData: FormData) {
   const profile = await requireRole("director");
+  const schoolId = profile.schoolContext.schoolId;
+  if (!schoolId) throw new Error("No hay un centro activo seleccionado.");
   const recipientMode = String(formData.get("recipient_mode") ?? "student_family").trim();
   const receiverId = String(formData.get("receiver_id") ?? "").trim();
   const courseId = String(formData.get("course_id") ?? "").trim();
@@ -41,6 +48,19 @@ export async function sendDirectorCommunication(formData: FormData) {
 
   const supabase = await createClient();
   const readClient: CommunicationReadClient = (hasSupabaseAdminClient() ? createAdminClient() : supabase) as CommunicationReadClient;
+  if (studentId) {
+    const { data: selectedStudent, error: studentError } = await readClient
+      .from("students")
+      .select("id")
+      .eq("school_id", schoolId)
+      .eq("id", studentId)
+      .maybeSingle();
+
+    if (studentError || !selectedStudent) {
+      throw new Error(studentError?.message ?? "El alumno no pertenece al centro activo.");
+    }
+  }
+
   const baseRow = {
     sender_id: profile.id,
     student_id: studentId,
@@ -60,6 +80,7 @@ export async function sendDirectorCommunication(formData: FormData) {
     const { data: relations, error: relationsError } = await readClient
       .from("parent_students")
       .select("parent_id,student_id")
+      .eq("school_id", schoolId)
       .eq("student_id", studentId);
 
     if (relationsError) {
@@ -78,6 +99,7 @@ export async function sendDirectorCommunication(formData: FormData) {
       throw new Error("Selecciona un docente.");
     }
 
+    await assertRecipientMembership(readClient, schoolId, receiverId, ["tutor"]);
     rows = [{
       ...baseRow,
       receiver_id: receiverId
@@ -85,11 +107,11 @@ export async function sendDirectorCommunication(formData: FormData) {
   }
 
   if (recipientMode === "course_families" || recipientMode === "course_all") {
-    rows = [...rows, ...(await getCourseFamilyRows({ readClient, baseRow, courseId }))];
+    rows = [...rows, ...(await getCourseFamilyRows({ readClient, baseRow, courseId, schoolId }))];
   }
 
   if (recipientMode === "course_teachers" || recipientMode === "course_all") {
-    rows = [...rows, ...(await getCourseTeacherRows({ readClient, baseRow, courseId, directorId: profile.id }))];
+    rows = [...rows, ...(await getCourseTeacherRows({ readClient, baseRow, courseId, directorId: profile.id, schoolId }))];
   }
 
   rows = dedupeNotificationRows(rows);
@@ -134,6 +156,15 @@ export async function replyToDirectorCommunication(formData: FormData) {
   }
 
   const supabase = await createClient();
+  const allowedIds = await getAllowedCommunicationIds({
+    actor: profile,
+    ids: [communicationId],
+    ownOnly: true
+  });
+  if (allowedIds.length !== 1) {
+    throw new Error("No tienes acceso a esta comunicacion en el centro activo.");
+  }
+
   const { data: original, error: originalError } = await supabase
     .from("notifications")
     .select("id,sender_id,receiver_id,student_id,title,category,status")
@@ -207,6 +238,23 @@ export async function forwardDirectorCommunication(formData: FormData) {
 
   const supabase = await createClient();
   const readClient: CommunicationReadClient = (hasSupabaseAdminClient() ? createAdminClient() : supabase) as CommunicationReadClient;
+  const allowedIds = await getAllowedCommunicationIds({
+    actor: profile,
+    ids: [communicationId],
+    ownOnly: false
+  });
+  if (allowedIds.length !== 1) {
+    throw new Error("No tienes acceso a esta comunicacion en el centro activo.");
+  }
+  if (!profile.schoolContext.schoolId) {
+    throw new Error("No hay un centro activo seleccionado.");
+  }
+  await assertRecipientMembership(
+    readClient,
+    profile.schoolContext.schoolId,
+    receiverId,
+    ["director", "tutor", "family"]
+  );
   const { data: original, error: originalError } = await readClient
     .from("notifications")
     .select("id,student_id,title,message,category,status")
@@ -298,7 +346,7 @@ export async function reopenDirectorConversation(formData: FormData) {
 }
 
 export async function markDirectorConversationImportant(formData: FormData) {
-  await requireRole("director");
+  const profile = await requireRole("director");
   const ids = String(formData.get("communication_ids") ?? "")
     .split(",")
     .map((id) => id.trim())
@@ -308,12 +356,19 @@ export async function markDirectorConversationImportant(formData: FormData) {
     return;
   }
 
+  const allowedIds = await getAllowedCommunicationIds({
+    actor: profile,
+    ids,
+    ownOnly: false
+  });
+  if (allowedIds.length === 0) return;
+
   const supabase = await createClient();
   const writeClient: CommunicationReadClient = (hasSupabaseAdminClient() ? createAdminClient() : supabase) as CommunicationReadClient;
   const { data, error: readError } = await writeClient
     .from("notifications")
     .select("id,title")
-    .in("id", ids);
+    .in("id", allowedIds);
 
   if (readError) {
     throw new Error(readError.message);
@@ -337,11 +392,13 @@ export async function markDirectorConversationImportant(formData: FormData) {
 async function getCourseFamilyRows({
   readClient,
   baseRow,
-  courseId
+  courseId,
+  schoolId
 }: {
   readClient: CommunicationReadClient;
   baseRow: Omit<NotificationInsert, "receiver_id">;
   courseId: string;
+  schoolId: string;
 }) {
   if (!courseId) {
     throw new Error("Selecciona un curso.");
@@ -350,6 +407,7 @@ async function getCourseFamilyRows({
   const { data: students, error: studentsError } = await readClient
     .from("students")
     .select("id")
+    .eq("school_id", schoolId)
     .eq("course_id", courseId)
     .eq("active", true);
 
@@ -366,6 +424,7 @@ async function getCourseFamilyRows({
   const { data: relations, error: relationsError } = await readClient
     .from("parent_students")
     .select("parent_id,student_id")
+    .eq("school_id", schoolId)
     .in("student_id", studentIds);
 
   if (relationsError) {
@@ -383,12 +442,14 @@ async function getCourseTeacherRows({
   readClient,
   baseRow,
   courseId,
-  directorId
+  directorId,
+  schoolId
 }: {
   readClient: CommunicationReadClient;
   baseRow: Omit<NotificationInsert, "receiver_id">;
   courseId: string;
   directorId: string;
+  schoolId: string;
 }) {
   if (!courseId) {
     throw new Error("Selecciona un curso.");
@@ -397,6 +458,7 @@ async function getCourseTeacherRows({
   const { data: assignments, error } = await readClient
     .from("teacher_assignments")
     .select("teacher_id")
+    .eq("school_id", schoolId)
     .eq("course_id", courseId);
 
   if (error) {
@@ -412,6 +474,26 @@ async function getCourseTeacherRows({
     receiver_id: teacherId,
     student_id: null
   }));
+}
+
+async function assertRecipientMembership(
+  readClient: CommunicationReadClient,
+  schoolId: string,
+  receiverId: string,
+  roles: string[]
+) {
+  const { data, error } = await readClient
+    .from("school_memberships")
+    .select("user_id")
+    .eq("school_id", schoolId)
+    .eq("user_id", receiverId)
+    .eq("active", true)
+    .in("role", roles)
+    .maybeSingle();
+
+  if (error || !data) {
+    throw new Error(error?.message ?? "El destinatario no pertenece al centro activo.");
+  }
 }
 
 function dedupeNotificationRows(rows: NotificationInsert[]) {

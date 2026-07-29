@@ -1,18 +1,21 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logAuditAction, type AuditAction } from "@/lib/audit";
 import type { Role } from "@/lib/auth/roles";
+import type { ActiveSchoolContext } from "@/lib/schools/types";
 
 export type CommunicationStatus = "open" | "closed";
 
 type ActorProfile = {
   id: string;
   role: Role | string;
+  schoolContext: ActiveSchoolContext;
 };
 
 type NotificationAccessRow = {
   id: string;
   sender_id: string;
   receiver_id: string;
+  student_id: string | null;
 };
 
 export function parseCommunicationIds(value: FormDataEntryValue | null) {
@@ -92,7 +95,7 @@ export async function setCommunicationsStatus({
   return allowedIds.length;
 }
 
-async function getAllowedCommunicationIds({
+export async function getAllowedCommunicationIds({
   actor,
   ids,
   ownOnly
@@ -105,9 +108,10 @@ async function getAllowedCommunicationIds({
     return [];
   }
 
-  const { data, error } = await createAdminClient()
+  const admin = createAdminClient();
+  const { data, error } = await admin
     .from("notifications")
-    .select("id,sender_id,receiver_id")
+    .select("id,sender_id,receiver_id,student_id")
     .in("id", ids)
     .returns<NotificationAccessRow[]>();
 
@@ -115,8 +119,76 @@ async function getAllowedCommunicationIds({
     throw new Error(error.message);
   }
 
-  return (data ?? [])
-    .filter((row) => !ownOnly || row.sender_id === actor.id || row.receiver_id === actor.id)
+  const rows = (data ?? []).filter(
+    (row) => !ownOnly || row.sender_id === actor.id || row.receiver_id === actor.id
+  );
+
+  if (actor.schoolContext.isGlobalSuperadmin && !actor.schoolContext.schoolId) {
+    return rows.map((row) => row.id);
+  }
+
+  const schoolId = actor.schoolContext.schoolId;
+  if (!schoolId) {
+    return [];
+  }
+
+  const participantIds = Array.from(
+    new Set(rows.flatMap((row) => [row.sender_id, row.receiver_id]))
+  );
+  const studentIds = Array.from(
+    new Set(rows.flatMap((row) => (row.student_id ? [row.student_id] : [])))
+  );
+
+  const [{ data: memberships, error: membershipsError }, studentResult] =
+    await Promise.all([
+      participantIds.length > 0
+        ? admin
+            .from("school_memberships")
+            .select("user_id")
+            .eq("school_id", schoolId)
+            .eq("active", true)
+            .in("user_id", participantIds)
+            .returns<{ user_id: string }[]>()
+        : Promise.resolve({ data: [] as { user_id: string }[], error: null }),
+      studentIds.length > 0
+        ? admin
+            .from("students")
+            .select("id")
+            .eq("school_id", schoolId)
+            .in("id", studentIds)
+            .returns<{ id: string }[]>()
+        : Promise.resolve({ data: [] as { id: string }[], error: null })
+    ]);
+
+  if (membershipsError || studentResult.error) {
+    throw new Error(
+      membershipsError?.message ??
+        studentResult.error?.message ??
+        "No se pudo validar el centro de la comunicación."
+    );
+  }
+
+  const authorizedParticipants = new Set(
+    (memberships ?? []).map(({ user_id }) => user_id)
+  );
+  const authorizedStudents = new Set(
+    (studentResult.data ?? []).map(({ id }) => id)
+  );
+
+  return rows
+    .filter((row) => {
+      const participantsBelongToSchool =
+        authorizedParticipants.has(row.sender_id) &&
+        authorizedParticipants.has(row.receiver_id);
+
+      if (!participantsBelongToSchool) {
+        return false;
+      }
+
+      return row.student_id
+        ? authorizedStudents.has(row.student_id)
+        : true;
+    })
     .map((row) => row.id);
 }
 

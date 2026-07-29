@@ -13,16 +13,19 @@ import {
   Wrench,
   type LucideIcon
 } from "lucide-react";
-import { DEFAULT_OPERATIONAL_SCHOOL_ID } from "@/lib/schools/constants";
-
 import { CenterActivityTimeline, type CenterActivityItem } from "@/components/dashboard/center-activity-timeline";
 import { WorkCenterTabs } from "@/components/dashboard/work-center-tabs";
 import { GradebookBadge, GradebookCard, GradebookCardHeader } from "@/components/grades/gradebook-design";
 import { requireRole } from "@/lib/auth/session";
+import { getAdminProfiles } from "@/lib/admin/admin";
 import { getDashboardCalendarEvents, type CalendarEventSummary } from "@/lib/calendar/ical";
 import type { Database } from "@/lib/database.types";
 import type { DashboardNotification } from "@/lib/internal-notifications";
-import { getDashboardNotifications } from "@/lib/internal-notifications";
+import {
+  getAuthorizedInternalNotificationIds,
+  getDashboardNotifications
+} from "@/lib/internal-notifications";
+import type { ActiveSchoolContext } from "@/lib/schools/types";
 import { createClient } from "@/lib/supabase/server";
 
 type AdminDashboardTab = "prioridades" | "estructura" | "importacion" | "evaluacion" | "seguridad" | "calendario";
@@ -79,8 +82,8 @@ export default async function AdminDashboardPage({ searchParams }: AdminDashboar
       communicationHref: "/dashboard/admin/communications"
     }),
     getDashboardCalendarEvents(),
-    getAdminSignals(),
-    getAdminActivity()
+    getAdminSignals(profile.schoolContext),
+    getAdminActivity(profile.schoolContext)
   ]);
   const signals = {
     ...signalsResult.signals,
@@ -383,9 +386,13 @@ function EmptyPanel({
   );
 }
 
-async function getAdminSignals(): Promise<{ signals: AdminSignals; errorMessage: string | null }> {
+async function getAdminSignals(
+  schoolContext: ActiveSchoolContext
+): Promise<{ signals: AdminSignals; errorMessage: string | null }> {
+  const schoolId = schoolContext.schoolId;
   const supabase = await createClient();
   const recentCutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const scopedProfilesResult = schoolId ? await getAdminProfiles() : null;
   const [
     academicYearResult,
     profilesResult,
@@ -396,33 +403,66 @@ async function getAdminSignals(): Promise<{ signals: AdminSignals; errorMessage:
     notificationsResult,
     auditResult
   ] = await Promise.all([
-    supabase
-      .from("academic_years")
-      .select("id,name,active")
-      .eq("school_id", DEFAULT_OPERATIONAL_SCHOOL_ID)
-      .eq("active", true)
-      .maybeSingle(),
-    supabase.from("profiles").select("id,role,active,must_change_password").returns<Array<{ id: string; role: string; active: boolean; must_change_password: boolean }>>(),
-    supabase.from("students").select("id", { count: "exact", head: true }),
-    supabase.from("courses").select("id", { count: "exact", head: true }),
-    supabase.from("subjects").select("id", { count: "exact", head: true }),
-    supabase.from("teacher_assignments").select("id", { count: "exact", head: true }),
+    schoolId
+      ? supabase
+          .from("academic_years")
+          .select("id,name,active")
+          .eq("school_id", schoolId)
+          .eq("active", true)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    scopedProfilesResult
+      ? Promise.resolve({
+          data: scopedProfilesResult.profiles,
+          error: scopedProfilesResult.errorMessage
+            ? { message: scopedProfilesResult.errorMessage }
+            : null
+        })
+      : supabase.from("profiles").select("id,role,active,must_change_password").returns<Array<{ id: string; role: string; active: boolean; must_change_password: boolean }>>(),
+    schoolId
+      ? supabase.from("students").select("id", { count: "exact", head: true }).eq("school_id", schoolId)
+      : supabase.from("students").select("id", { count: "exact", head: true }),
+    schoolId
+      ? supabase.from("courses").select("id", { count: "exact", head: true }).eq("school_id", schoolId)
+      : supabase.from("courses").select("id", { count: "exact", head: true }),
+    schoolId
+      ? supabase.from("subjects").select("id", { count: "exact", head: true }).eq("school_id", schoolId)
+      : supabase.from("subjects").select("id", { count: "exact", head: true }),
+    schoolId
+      ? supabase.from("teacher_assignments").select("id", { count: "exact", head: true }).eq("school_id", schoolId)
+      : supabase.from("teacher_assignments").select("id", { count: "exact", head: true }),
     supabase
       .from("internal_notifications")
-      .select("id,type,read,created_at")
+      .select("id,user_id,role,type,title,body,related_entity_type,related_entity_id,related_href,read,created_at")
       .eq("role", "superadmin")
       .order("created_at", { ascending: false })
       .limit(50)
-      .returns<Pick<InternalNotification, "id" | "type" | "read" | "created_at">[]>(),
-    supabase
-      .from("audit_logs")
-      .select("id,action,module,created_at")
-      .order("created_at", { ascending: false })
-      .limit(100)
-      .returns<Pick<AuditLog, "id" | "action" | "module" | "created_at">[]>()
+      .returns<InternalNotification[]>(),
+    schoolId
+      ? Promise.resolve({
+          data: [] as Pick<AuditLog, "id" | "action" | "module" | "created_at">[],
+          error: null
+        })
+      : supabase
+          .from("audit_logs")
+          .select("id,action,module,created_at")
+          .order("created_at", { ascending: false })
+          .limit(100)
+          .returns<Pick<AuditLog, "id" | "action" | "module" | "created_at">[]>()
   ]);
   const profiles = profilesResult.error ? [] : profilesResult.data ?? [];
-  const notifications = notificationsResult.error ? [] : notificationsResult.data ?? [];
+  const rawNotifications = notificationsResult.error
+    ? []
+    : notificationsResult.data ?? [];
+  const authorizedNotificationIds = new Set(
+    await getAuthorizedInternalNotificationIds({
+      context: schoolContext,
+      rows: rawNotifications
+    })
+  );
+  const notifications = rawNotifications.filter(({ id }) =>
+    authorizedNotificationIds.has(id)
+  );
   const auditLogs = auditResult.error ? [] : auditResult.data ?? [];
   const countType = (type: InternalNotification["type"]) => notifications.filter((notification) => notification.type === type && !notification.read).length;
   const recentImports = auditLogs.filter((log) => ["student_imported", "family_created", "bulk_import_completed"].includes(log.action) && log.created_at >= recentCutoff).length;
@@ -468,7 +508,13 @@ async function getAdminSignals(): Promise<{ signals: AdminSignals; errorMessage:
   return { signals, errorMessage };
 }
 
-async function getAdminActivity(): Promise<{ items: CenterActivityItem[]; errorMessage: string | null }> {
+async function getAdminActivity(
+  schoolContext: ActiveSchoolContext
+): Promise<{ items: CenterActivityItem[]; errorMessage: string | null }> {
+  if (schoolContext.schoolId) {
+    return { items: [], errorMessage: null };
+  }
+
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("audit_logs")

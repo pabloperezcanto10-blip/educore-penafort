@@ -25,12 +25,27 @@ export type SchoolMembershipWithSchool = SchoolMembership & {
   school: School;
 };
 
+export type AvailableSchool = {
+  id: string;
+  name: string;
+  shortName: string;
+  logoUrl: string | null;
+  roles: SchoolRole[];
+};
+
 export type ActiveSchoolContext = {
   userId: string;
   schoolId: string | null;
   membershipId: string | null;
+  membershipRole: SchoolRole;
+  membershipStatus: "active" | null;
   role: SchoolRole;
   school: School | null;
+  isGlobalSuperadmin: boolean;
+  availableSchools: AvailableSchool[];
+  availableMemberships: SchoolMembershipWithSchool[];
+  requiresSchoolSelection: boolean;
   branding: SchoolBranding;
-  source: "membership" | "legacy-profile";
+  activeAcademicYearId: string | null;
+  source: "membership" | "global-superadmin";
 };

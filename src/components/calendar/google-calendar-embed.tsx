@@ -1,9 +1,19 @@
 import Link from "next/link";
 
-const calendarEmbedUrl =
-  "https://calendar.google.com/calendar/embed?src=fo7mnf4nmdge5cib93bfq77414%40group.calendar.google.com&ctz=Africa%2FCeuta";
-
-export function GoogleCalendarEmbed({ backHref }: { backHref: string }) {
+export function GoogleCalendarEmbed({
+  backHref,
+  calendarId,
+  centerName
+}: {
+  backHref: string;
+  calendarId: string | null;
+  centerName: string;
+}) {
+  const calendarEmbedUrl = calendarId
+    ? `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(
+        calendarId
+      )}&ctz=Europe%2FMadrid`
+    : null;
   return (
     <section className="space-y-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -23,14 +33,19 @@ export function GoogleCalendarEmbed({ backHref }: { backHref: string }) {
 
       <div className="rounded-lg border border-border bg-white p-3 shadow-sm">
         <div className="overflow-hidden rounded-md border border-border bg-background">
-          {/* TODO(superadmin): permitir configurar esta URL desde ajustes del centro cuando exista modulo de configuracion. */}
-          <iframe
-            title="Calendario de fechas de interes del Colegio Penafort"
-            src={calendarEmbedUrl}
-            className="h-[680px] w-full border-0"
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-          />
+          {calendarEmbedUrl ? (
+            <iframe
+              title={`Calendario de fechas de interes de ${centerName}`}
+              src={calendarEmbedUrl}
+              className="h-[680px] w-full border-0"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+          ) : (
+            <div className="flex min-h-[320px] items-center justify-center p-8 text-center text-sm text-muted-foreground">
+              Este centro no tiene un calendario publico configurado.
+            </div>
+          )}
         </div>
         <p className="mt-3 text-sm text-muted-foreground">
           Si el calendario no carga, abre el calendario en una nueva pestana desde Google Calendar o revisa la conexion.

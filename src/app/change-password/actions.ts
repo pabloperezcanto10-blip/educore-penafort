@@ -1,9 +1,9 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { getDashboardPathForRole } from "@/lib/auth/roles";
 import { logAuditAction } from "@/lib/audit";
 import { getCurrentUserProfile } from "@/lib/auth/session";
+import { getAuthenticatedEntryPath } from "@/lib/schools/context";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { withToast } from "@/lib/toast";
@@ -94,5 +94,11 @@ export async function changePassword(
     }
   });
 
-  redirect(withToast(getDashboardPathForRole(profile.role), "success", "Contrasena actualizada correctamente."));
+  redirect(
+    withToast(
+      await getAuthenticatedEntryPath({ ...profile, must_change_password: false }),
+      "success",
+      "Contrasena actualizada correctamente."
+    )
+  );
 }

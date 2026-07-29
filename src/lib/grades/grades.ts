@@ -1,6 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, hasSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getActiveAcademicYear } from "@/lib/academic-years";
+import {
+  requireOperationalSchoolContext,
+  requireSchoolRole
+} from "@/lib/schools/context";
 
 type GradeLabelClient = ReturnType<typeof createAdminClient>;
 
@@ -207,6 +211,7 @@ export async function getAssignedSubjectsForTeacherCourse(
     return { subjects: [], errorMessage: null };
   }
 
+  const { schoolId } = await requireOperationalSchoolContext();
   const supabase = await createGradeLabelClient();
   const { academicYear } = await getActiveAcademicYear();
   if (!academicYear) {
@@ -215,6 +220,7 @@ export async function getAssignedSubjectsForTeacherCourse(
   const { data: assignments, error } = await supabase
     .from("teacher_assignments")
     .select("subject_id")
+    .eq("school_id", schoolId)
     .eq("teacher_id", teacherId)
     .eq("course_id", courseId)
     .eq("academic_year_id", academicYear.id)
@@ -235,6 +241,7 @@ export async function getAssignedSubjectsForTeacherCourse(
   const { data: subjects, error: subjectsError } = await supabase
     .from("subjects")
     .select("id,name")
+    .eq("school_id", schoolId)
     .in("id", subjectIds)
     .order("name", { ascending: true })
     .returns<Subject[]>();
@@ -703,7 +710,18 @@ export async function getGradesForStudent(studentId: string): Promise<{
   grades: GradeWithLabels[];
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireOperationalSchoolContext();
   const supabase = await createClient();
+  const { data: student } = await supabase
+    .from("students")
+    .select("id")
+    .eq("id", studentId)
+    .eq("school_id", schoolContext.schoolId)
+    .maybeSingle();
+  if (!student) {
+    return { grades: [], errorMessage: "El alumno no pertenece al centro activo." };
+  }
+
   const { data, error } = await supabase
     .from("partial_grades")
     .select(gradeSelect)
@@ -724,6 +742,18 @@ export async function getTermSubjectGradesForStudent(studentId: string): Promise
   termGrades: TermSubjectGradeWithLabels[];
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireOperationalSchoolContext();
+  const validationClient = await createClient();
+  const { data: student } = await validationClient
+    .from("students")
+    .select("id")
+    .eq("id", studentId)
+    .eq("school_id", schoolContext.schoolId)
+    .maybeSingle();
+  if (!student) {
+    return { termGrades: [], errorMessage: "El alumno no pertenece al centro activo." };
+  }
+
   const supabase = await createGradeLabelClient();
   const { data, error } = await supabase
     .from("term_subject_grades")
@@ -744,10 +774,16 @@ export async function getFamilyGrades(familyId: string): Promise<{
   grades: GradeWithLabels[];
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireSchoolRole(["family"]);
+  if (!schoolContext.schoolId) {
+    return { grades: [], errorMessage: "No hay un centro activo seleccionado." };
+  }
+
   const supabase = await createClient();
   const { data: relations, error: relationsError } = await supabase
     .from("parent_students")
     .select("student_id")
+    .eq("school_id", schoolContext.schoolId)
     .eq("parent_id", familyId)
     .returns<{ student_id: string }[]>();
 
@@ -781,10 +817,16 @@ export async function getFamilyTermSubjectGrades(familyId: string): Promise<{
   termGrades: TermSubjectGradeWithLabels[];
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireSchoolRole(["family"]);
+  if (!schoolContext.schoolId) {
+    return { termGrades: [], errorMessage: "No hay un centro activo seleccionado." };
+  }
+
   const supabase = await createClient();
   const { data: relations, error: relationsError } = await supabase
     .from("parent_students")
     .select("student_id")
+    .eq("school_id", schoolContext.schoolId)
     .eq("parent_id", familyId)
     .returns<{ student_id: string }[]>();
 
@@ -817,10 +859,29 @@ export async function getAllGradesForSupervision(): Promise<{
   grades: GradeWithLabels[];
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireSchoolRole(["director", "superadmin"]);
+  if (!schoolContext.schoolId) {
+    return { grades: [], errorMessage: "Selecciona un centro para supervisar calificaciones." };
+  }
+
   const supabase = await createGradeLabelClient();
+  const { data: students, error: studentsError } = await supabase
+    .from("students")
+    .select("id")
+    .eq("school_id", schoolContext.schoolId)
+    .returns<Array<{ id: string }>>();
+  if (studentsError) {
+    return { grades: [], errorMessage: studentsError.message };
+  }
+  const studentIds = (students ?? []).map(({ id }) => id);
+  if (studentIds.length === 0) {
+    return { grades: [], errorMessage: null };
+  }
+
   const { data, error } = await supabase
     .from("partial_grades")
     .select(gradeSelect)
+    .in("student_id", studentIds)
     .order("created_at", { ascending: false })
     .returns<PartialGrade[]>();
 
@@ -835,10 +896,29 @@ export async function getAllEvaluationCriteriaForSupervision(): Promise<{
   criteria: EvaluationCriterionWithLabels[];
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireSchoolRole(["director", "superadmin"]);
+  if (!schoolContext.schoolId) {
+    return { criteria: [], errorMessage: "Selecciona un centro para supervisar criterios." };
+  }
+
   const supabase = await createGradeLabelClient();
+  const { data: courses, error: coursesError } = await supabase
+    .from("courses")
+    .select("id")
+    .eq("school_id", schoolContext.schoolId)
+    .returns<Array<{ id: string }>>();
+  if (coursesError) {
+    return { criteria: [], errorMessage: coursesError.message };
+  }
+  const courseIds = (courses ?? []).map(({ id }) => id);
+  if (courseIds.length === 0) {
+    return { criteria: [], errorMessage: null };
+  }
+
   const { data, error } = await supabase
     .from("evaluation_criteria")
     .select(criteriaSelect)
+    .in("course_id", courseIds)
     .order("created_at", { ascending: false })
     .returns<EvaluationCriterion[]>();
 
@@ -853,10 +933,29 @@ export async function getAllQuarterFinalGradesForSupervision(): Promise<{
   finalGrades: QuarterFinalGradeWithLabels[];
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireSchoolRole(["director", "superadmin"]);
+  if (!schoolContext.schoolId) {
+    return { finalGrades: [], errorMessage: "Selecciona un centro para supervisar cierres." };
+  }
+
   const supabase = await createGradeLabelClient();
+  const { data: students, error: studentsError } = await supabase
+    .from("students")
+    .select("id")
+    .eq("school_id", schoolContext.schoolId)
+    .returns<Array<{ id: string }>>();
+  if (studentsError) {
+    return { finalGrades: [], errorMessage: studentsError.message };
+  }
+  const studentIds = (students ?? []).map(({ id }) => id);
+  if (studentIds.length === 0) {
+    return { finalGrades: [], errorMessage: null };
+  }
+
   const { data, error } = await supabase
     .from("quarter_final_grades")
     .select(finalGradeSelect)
+    .in("student_id", studentIds)
     .order("created_at", { ascending: false })
     .returns<QuarterFinalGrade[]>();
 
@@ -871,7 +970,25 @@ export async function getTermSubjectReportsForSupervision(term: GradeTerm): Prom
   reports: TermSubjectReportRow[];
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireSchoolRole(["director", "superadmin"]);
+  if (!schoolContext.schoolId) {
+    return { reports: [], errorMessage: "Selecciona un centro para supervisar boletines." };
+  }
+
   const supabase = await createGradeLabelClient();
+  const { data: scopedStudents, error: scopedStudentsError } = await supabase
+    .from("students")
+    .select("id")
+    .eq("school_id", schoolContext.schoolId)
+    .returns<Array<{ id: string }>>();
+  const studentIds = (scopedStudents ?? []).map(({ id }) => id);
+  if (scopedStudentsError) {
+    return { reports: [], errorMessage: scopedStudentsError.message };
+  }
+  if (studentIds.length === 0) {
+    return { reports: [], errorMessage: null };
+  }
+
   const [
     { data: students, error: studentsError },
     { data: assignments, error: assignmentsError },
@@ -880,12 +997,12 @@ export async function getTermSubjectReportsForSupervision(term: GradeTerm): Prom
     { data: profiles, error: profilesError },
     { data: termGrades, error: termGradesError }
   ] = await Promise.all([
-    supabase.from("students").select("id,name,last_name,course_id").eq("active", true).returns<ReportStudentLabel[]>(),
-    supabase.from("teacher_assignments").select("teacher_id,course_id,subject_id").returns<AssignmentLabel[]>(),
-    supabase.from("subjects").select("id,name").returns<Subject[]>(),
-    supabase.from("courses").select("id,name").returns<CourseLabel[]>(),
+    supabase.from("students").select("id,name,last_name,course_id").eq("school_id", schoolContext.schoolId).eq("active", true).returns<ReportStudentLabel[]>(),
+    supabase.from("teacher_assignments").select("teacher_id,course_id,subject_id").eq("school_id", schoolContext.schoolId).returns<AssignmentLabel[]>(),
+    supabase.from("subjects").select("id,name").eq("school_id", schoolContext.schoolId).returns<Subject[]>(),
+    supabase.from("courses").select("id,name").eq("school_id", schoolContext.schoolId).returns<CourseLabel[]>(),
     supabase.from("profiles").select("id,email,full_name").returns<ProfileLabel[]>(),
-    supabase.from("term_subject_grades").select(termSubjectGradeSelect).eq("term", term).returns<TermSubjectGrade[]>()
+    supabase.from("term_subject_grades").select(termSubjectGradeSelect).in("student_id", studentIds).eq("term", term).returns<TermSubjectGrade[]>()
   ]);
   const errorMessage =
     studentsError?.message ??
@@ -963,6 +1080,7 @@ async function attachGradeLabels(grades: PartialGrade[]): Promise<{
     return { grades: [], errorMessage: null };
   }
 
+  const { schoolId } = await requireOperationalSchoolContext();
   const supabase = await createGradeLabelClient();
   const studentIds = Array.from(new Set(grades.map((grade) => grade.student_id)));
   const subjectIds = Array.from(new Set(grades.map((grade) => grade.subject_id)));
@@ -973,8 +1091,8 @@ async function attachGradeLabels(grades: PartialGrade[]): Promise<{
     { data: subjects, error: subjectsError },
     { data: profiles, error: profilesError }
   ] = await Promise.all([
-    supabase.from("students").select("id,name,last_name").in("id", studentIds).returns<StudentLabel[]>(),
-    supabase.from("subjects").select("id,name").in("id", subjectIds).returns<Subject[]>(),
+    supabase.from("students").select("id,name,last_name").eq("school_id", schoolId).in("id", studentIds).returns<StudentLabel[]>(),
+    supabase.from("subjects").select("id,name").eq("school_id", schoolId).in("id", subjectIds).returns<Subject[]>(),
     supabase.from("profiles").select("id,email,full_name").in("id", teacherIds).returns<ProfileLabel[]>()
   ]);
 
@@ -1013,6 +1131,7 @@ async function attachCriteriaLabels(criteria: EvaluationCriterion[]): Promise<{
     return { criteria: [], errorMessage: null };
   }
 
+  const { schoolId } = await requireOperationalSchoolContext();
   const supabase = await createGradeLabelClient();
   const subjectIds = Array.from(new Set(criteria.map((criterion) => criterion.subject_id)));
   const courseIds = Array.from(new Set(criteria.map((criterion) => criterion.course_id)));
@@ -1022,8 +1141,8 @@ async function attachCriteriaLabels(criteria: EvaluationCriterion[]): Promise<{
     { data: courses, error: coursesError },
     { data: profiles, error: profilesError }
   ] = await Promise.all([
-    supabase.from("subjects").select("id,name").in("id", subjectIds).returns<Subject[]>(),
-    supabase.from("courses").select("id,name").in("id", courseIds).returns<CourseLabel[]>(),
+    supabase.from("subjects").select("id,name").eq("school_id", schoolId).in("id", subjectIds).returns<Subject[]>(),
+    supabase.from("courses").select("id,name").eq("school_id", schoolId).in("id", courseIds).returns<CourseLabel[]>(),
     supabase.from("profiles").select("id,email,full_name").in("id", teacherIds).returns<ProfileLabel[]>()
   ]);
   const errorMessage = subjectsError?.message ?? coursesError?.message ?? profilesError?.message ?? null;
@@ -1059,6 +1178,7 @@ async function attachFinalGradeLabels(finalGrades: QuarterFinalGrade[]): Promise
     return { finalGrades: [], errorMessage: null };
   }
 
+  const { schoolId } = await requireOperationalSchoolContext();
   const supabase = await createGradeLabelClient();
   const studentIds = Array.from(new Set(finalGrades.map((grade) => grade.student_id)));
   const subjectIds = Array.from(new Set(finalGrades.map((grade) => grade.subject_id)));
@@ -1070,9 +1190,9 @@ async function attachFinalGradeLabels(finalGrades: QuarterFinalGrade[]): Promise
     { data: courses, error: coursesError },
     { data: profiles, error: profilesError }
   ] = await Promise.all([
-    supabase.from("students").select("id,name,last_name").in("id", studentIds).returns<StudentLabel[]>(),
-    supabase.from("subjects").select("id,name").in("id", subjectIds).returns<Subject[]>(),
-    supabase.from("courses").select("id,name").in("id", courseIds).returns<CourseLabel[]>(),
+    supabase.from("students").select("id,name,last_name").eq("school_id", schoolId).in("id", studentIds).returns<StudentLabel[]>(),
+    supabase.from("subjects").select("id,name").eq("school_id", schoolId).in("id", subjectIds).returns<Subject[]>(),
+    supabase.from("courses").select("id,name").eq("school_id", schoolId).in("id", courseIds).returns<CourseLabel[]>(),
     supabase.from("profiles").select("id,email,full_name").in("id", teacherIds).returns<ProfileLabel[]>()
   ]);
   const errorMessage = studentsError?.message ?? subjectsError?.message ?? coursesError?.message ?? profilesError?.message ?? null;
@@ -1111,6 +1231,7 @@ async function attachTermSubjectGradeLabels(termGrades: TermSubjectGrade[]): Pro
     return { termGrades: [], errorMessage: null };
   }
 
+  const { schoolId } = await requireOperationalSchoolContext();
   const supabase = await createGradeLabelClient();
   const studentIds = Array.from(new Set(termGrades.map((grade) => grade.student_id)));
   const subjectIds = Array.from(new Set(termGrades.map((grade) => grade.subject_id)));
@@ -1122,9 +1243,9 @@ async function attachTermSubjectGradeLabels(termGrades: TermSubjectGrade[]): Pro
     { data: courses, error: coursesError },
     { data: profiles, error: profilesError }
   ] = await Promise.all([
-    supabase.from("students").select("id,name,last_name").in("id", studentIds).returns<StudentLabel[]>(),
-    supabase.from("subjects").select("id,name").in("id", subjectIds).returns<Subject[]>(),
-    supabase.from("courses").select("id,name").in("id", courseIds).returns<CourseLabel[]>(),
+    supabase.from("students").select("id,name,last_name").eq("school_id", schoolId).in("id", studentIds).returns<StudentLabel[]>(),
+    supabase.from("subjects").select("id,name").eq("school_id", schoolId).in("id", subjectIds).returns<Subject[]>(),
+    supabase.from("courses").select("id,name").eq("school_id", schoolId).in("id", courseIds).returns<CourseLabel[]>(),
     supabase.from("profiles").select("id,email,full_name").in("id", teacherIds).returns<ProfileLabel[]>()
   ]);
   const errorMessage = studentsError?.message ?? subjectsError?.message ?? coursesError?.message ?? profilesError?.message ?? null;

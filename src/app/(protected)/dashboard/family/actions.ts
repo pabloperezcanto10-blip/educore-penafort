@@ -4,7 +4,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth/session";
 import { logAuditAction } from "@/lib/audit";
-import { markCommunicationsRead, parseCommunicationIds, setCommunicationsStatus } from "@/lib/communications/actions";
+import {
+  getAllowedCommunicationIds,
+  markCommunicationsRead,
+  parseCommunicationIds,
+  setCommunicationsStatus
+} from "@/lib/communications/actions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { withToast } from "@/lib/toast";
@@ -50,7 +55,13 @@ export async function sendFamilyCommunication(formData: FormData) {
   }
 
   const supabase = await createClient();
-  await assertFamilyCanMessageReceiver(supabase, profile.id, studentId, receiverId);
+  await assertFamilyCanMessageReceiver(
+    supabase,
+    profile.schoolContext.schoolId,
+    profile.id,
+    studentId,
+    receiverId
+  );
   const supabaseAdmin = createAdminClient();
   const { error } = await supabaseAdmin.from("notifications").insert({
     sender_id: profile.id,
@@ -97,6 +108,15 @@ export async function replyToFamilyCommunication(formData: FormData) {
   }
 
   const supabase = await createClient();
+  const allowedIds = await getAllowedCommunicationIds({
+    actor: profile,
+    ids: [communicationId],
+    ownOnly: true
+  });
+  if (allowedIds.length !== 1) {
+    throw new Error("No tienes acceso a esta comunicacion en el centro activo.");
+  }
+
   const { data: original, error: originalError } = await supabase
     .from("notifications")
     .select("id,sender_id,receiver_id,student_id,title,category,status")
@@ -125,7 +145,13 @@ export async function replyToFamilyCommunication(formData: FormData) {
   }
 
   const receiverId = original.sender_id === profile.id ? original.receiver_id : original.sender_id;
-  await assertFamilyCanMessageReceiver(supabase, profile.id, original.student_id, receiverId);
+  await assertFamilyCanMessageReceiver(
+    supabase,
+    profile.schoolContext.schoolId,
+    profile.id,
+    original.student_id,
+    receiverId
+  );
   const supabaseAdmin = createAdminClient();
   const { error } = await supabaseAdmin.from("notifications").insert({
     sender_id: profile.id,
@@ -210,7 +236,12 @@ export async function justifyAttendanceFromCommunication(formData: FormData) {
     throw new Error("No se encontro el registro de asistencia.");
   }
 
-  await assertFamilyStudent(supabase, profile.id, attendance.student_id);
+  await assertFamilyStudent(
+    supabase,
+    profile.schoolContext.schoolId,
+    profile.id,
+    attendance.student_id
+  );
   const update: Database["public"]["Tables"]["student_attendance"]["Update"] = {
     justified: true,
     justification_text: justificationText
@@ -235,12 +266,18 @@ export async function justifyAttendanceFromCommunication(formData: FormData) {
 
 async function assertFamilyStudent(
   supabase: Awaited<ReturnType<typeof createClient>>,
+  schoolId: string | null,
   familyId: string,
   studentId: string
 ) {
+  if (!schoolId) {
+    throw new Error("No hay un centro activo seleccionado.");
+  }
+
   const { data, error } = await supabase
     .from("parent_students")
     .select("student_id")
+    .eq("school_id", schoolId)
     .eq("parent_id", familyId)
     .eq("student_id", studentId)
     .maybeSingle<{ student_id: string }>();
@@ -256,20 +293,28 @@ async function assertFamilyStudent(
 
 async function assertFamilyCanMessageReceiver(
   supabase: Awaited<ReturnType<typeof createClient>>,
+  schoolId: string | null,
   familyId: string,
   studentId: string | null,
   receiverId: string
 ) {
+  if (!schoolId) {
+    throw new Error("No hay un centro activo seleccionado.");
+  }
+
   if (studentId) {
-    await assertFamilyStudent(supabase, familyId, studentId);
+    await assertFamilyStudent(supabase, schoolId, familyId, studentId);
   }
 
   const supabaseAdmin = createAdminClient();
   const { data: receiver, error: receiverError } = await supabaseAdmin
-    .from("profiles")
-    .select("id,role,active")
-    .eq("id", receiverId)
-    .maybeSingle<{ id: string; role: string; active: boolean }>();
+    .from("school_memberships")
+    .select("user_id,role,active")
+    .eq("school_id", schoolId)
+    .eq("user_id", receiverId)
+    .eq("active", true)
+    .in("role", ["director", "tutor"])
+    .maybeSingle<{ user_id: string; role: string; active: boolean }>();
 
   if (receiverError) {
     throw new Error(receiverError.message);

@@ -8,7 +8,7 @@ import { logAuditAction } from "@/lib/audit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAcademicYear } from "@/lib/academic-years";
-import { DEFAULT_OPERATIONAL_SCHOOL_ID } from "@/lib/schools/constants";
+import { requireOperationalSchoolContext } from "@/lib/schools/context";
 import { withToast } from "@/lib/toast";
 import type { Database } from "@/lib/database.types";
 
@@ -17,13 +17,13 @@ type StudentUpdate = Database["public"]["Tables"]["students"]["Update"];
 type CourseInsert = Database["public"]["Tables"]["courses"]["Insert"];
 type CourseUpdate = Database["public"]["Tables"]["courses"]["Update"];
 type ProfileInsert = Database["public"]["Tables"]["profiles"]["Insert"];
-type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
 type ParentStudentInsert = Database["public"]["Tables"]["parent_students"]["Insert"];
 type SubjectInsert = Database["public"]["Tables"]["subjects"]["Insert"];
 type SubjectUpdate = Database["public"]["Tables"]["subjects"]["Update"];
 type CourseSubjectInsert = Database["public"]["Tables"]["course_subjects"]["Insert"];
 type TeacherAssignmentInsert = Database["public"]["Tables"]["teacher_assignments"]["Insert"];
 type AcademicYearInsert = Database["public"]["Tables"]["academic_years"]["Insert"];
+type SchoolMembershipInsert = Database["public"]["Tables"]["school_memberships"]["Insert"];
 
 const defaultTemporaryPassword = "Penafort2026!";
 
@@ -51,7 +51,9 @@ export async function createAdminStudent(formData: FormData) {
 
   const supabase = await createClient();
   const academicYearId = await requireActiveAcademicYearId();
+  const schoolId = await requireAdminSchoolId();
   const payload: StudentInsert = {
+    school_id: schoolId,
     name,
     last_name: lastName,
     birth_date: birthDate,
@@ -93,7 +95,8 @@ export async function updateAdminStudent(formData: FormData) {
   await supabase
     .from("students")
     .update(payload as never)
-    .eq("id", id);
+    .eq("id", id)
+    .eq("school_id", await requireAdminSchoolId());
 
   revalidatePath("/dashboard/admin/students");
   redirect(withToast("/dashboard/admin/students", "success", "Alumno actualizado correctamente."));
@@ -111,7 +114,11 @@ export async function toggleAdminStudentActive(formData: FormData) {
 
   const supabase = await createClient();
   const payload: StudentUpdate = { active: !active };
-  await supabase.from("students").update(payload as never).eq("id", id);
+  await supabase
+    .from("students")
+    .update(payload as never)
+    .eq("id", id)
+    .eq("school_id", await requireAdminSchoolId());
 
   revalidatePath("/dashboard/admin/students");
   redirect(withToast("/dashboard/admin/students", "success", active ? "Alumno desactivado correctamente." : "Alumno reactivado correctamente."));
@@ -119,6 +126,7 @@ export async function toggleAdminStudentActive(formData: FormData) {
 
 export async function updateAdminUserRole(formData: FormData) {
   const currentProfile = await requireRole("superadmin");
+  const schoolId = await requireAdminSchoolId();
 
   const id = requiredString(formData, "id");
   const requestedRole = requiredString(formData, "role");
@@ -133,8 +141,11 @@ export async function updateAdminUserRole(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const payload: ProfileUpdate = { role };
-  await supabase.from("profiles").update(payload as never).eq("id", id);
+  await supabase
+    .from("school_memberships")
+    .update({ role } as never)
+    .eq("school_id", schoolId)
+    .eq("user_id", id);
 
   revalidatePath("/dashboard/admin/users");
   redirect(withToast("/dashboard/admin/users", "success", "Rol actualizado correctamente."));
@@ -142,6 +153,7 @@ export async function updateAdminUserRole(formData: FormData) {
 
 export async function toggleAdminUserActive(formData: FormData) {
   const currentProfile = await requireRole("superadmin");
+  const schoolId = await requireAdminSchoolId();
 
   const id = requiredString(formData, "id");
   const active = requiredString(formData, "active") === "true";
@@ -156,19 +168,17 @@ export async function toggleAdminUserActive(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const { data: beforeProfile } = await supabase
-    .from("profiles")
-    .select("id,email,full_name,role,active")
-    .eq("id", id)
-    .maybeSingle<{
-      id: string;
-      email: string | null;
-      full_name: string | null;
-      role: Role;
-      active: boolean;
-    }>();
-  const payload: ProfileUpdate = { active: !active };
-  await supabase.from("profiles").update(payload as never).eq("id", id);
+  const { data: beforeMembership } = await supabase
+    .from("school_memberships")
+    .select("id,user_id,school_id,role,active")
+    .eq("school_id", schoolId)
+    .eq("user_id", id)
+    .maybeSingle();
+  await supabase
+    .from("school_memberships")
+    .update({ active: !active } as never)
+    .eq("school_id", schoolId)
+    .eq("user_id", id);
   await logAuditAction({
     actorUserId: currentProfile.id,
     actorRole: currentProfile.role,
@@ -176,9 +186,10 @@ export async function toggleAdminUserActive(formData: FormData) {
     module: "admin_users",
     entityType: "profile",
     entityId: id,
-    beforeData: beforeProfile ?? null,
+    beforeData: beforeMembership ?? null,
     afterData: {
-      active: !active
+      active: !active,
+      school_id: schoolId
     }
   });
 
@@ -190,6 +201,7 @@ export async function toggleAdminUserActive(formData: FormData) {
 
 export async function deleteAdminUser(formData: FormData) {
   const currentProfile = await requireRole("superadmin");
+  const schoolId = await requireAdminSchoolId();
 
   const id = requiredString(formData, "id");
   const role = requiredString(formData, "role");
@@ -203,6 +215,36 @@ export async function deleteAdminUser(formData: FormData) {
   }
 
   const supabaseAdmin = createAdminClient();
+  const { data: memberships, error: membershipsError } = await supabaseAdmin
+    .from("school_memberships")
+    .select("id,school_id,user_id,role,active")
+    .eq("user_id", id)
+    .returns<Array<{ id: string; school_id: string; user_id: string; role: Role; active: boolean }>>();
+
+  const selectedMembership = (memberships ?? []).find(
+    (membership) => membership.school_id === schoolId
+  );
+  if (membershipsError || !selectedMembership) {
+    redirect(withToast("/dashboard/admin/users", "error", "El usuario no pertenece al centro activo."));
+  }
+
+  if (
+    selectedMembership.role !== "family" &&
+    selectedMembership.role !== "tutor"
+  ) {
+    redirect(withToast("/dashboard/admin/users", "warning", "Solo se pueden eliminar familias y profesores desde este panel."));
+  }
+
+  if ((memberships ?? []).some((membership) => membership.school_id !== schoolId)) {
+    redirect(
+      withToast(
+        "/dashboard/admin/users",
+        "warning",
+        "El usuario pertenece a otros centros y no puede eliminarse desde este contexto."
+      )
+    );
+  }
+
   const { data: beforeProfile, error: profileReadError } = await supabaseAdmin
     .from("profiles")
     .select("id,email,full_name,role,active")
@@ -219,20 +261,28 @@ export async function deleteAdminUser(formData: FormData) {
     redirect(withToast("/dashboard/admin/users", "error", "No se pudo localizar el usuario."));
   }
 
-  if (!beforeProfile || (beforeProfile.role !== "family" && beforeProfile.role !== "tutor")) {
-    redirect(withToast("/dashboard/admin/users", "warning", "Solo se pueden eliminar familias y profesores desde este panel."));
+  if (!beforeProfile) {
+    redirect(withToast("/dashboard/admin/users", "error", "No se pudo localizar el usuario."));
   }
 
-  if (beforeProfile.role === "family") {
-    const { error } = await supabaseAdmin.from("parent_students").delete().eq("parent_id", id);
+  if (selectedMembership.role === "family") {
+    const { error } = await supabaseAdmin
+      .from("parent_students")
+      .delete()
+      .eq("school_id", schoolId)
+      .eq("parent_id", id);
 
     if (error) {
       redirect(withToast("/dashboard/admin/users", "error", "No se pudieron eliminar las relaciones familiares."));
     }
   }
 
-  if (beforeProfile.role === "tutor") {
-    const { error } = await supabaseAdmin.from("teacher_assignments").delete().eq("teacher_id", id);
+  if (selectedMembership.role === "tutor") {
+    const { error } = await supabaseAdmin
+      .from("teacher_assignments")
+      .delete()
+      .eq("school_id", schoolId)
+      .eq("teacher_id", id);
 
     if (error) {
       redirect(withToast("/dashboard/admin/users", "error", "No se pudieron eliminar las asignaciones docentes."));
@@ -285,7 +335,7 @@ export async function createAdminCourse(formData: FormData) {
   const supabase = await createClient();
   const academicYearId = await requireActiveAcademicYearId();
   const payload: CourseInsert = {
-    school_id: DEFAULT_OPERATIONAL_SCHOOL_ID,
+    school_id: await requireAdminSchoolId(),
     name,
     academic_year_id: academicYearId
   };
@@ -311,7 +361,7 @@ export async function updateAdminCourse(formData: FormData) {
     .from("courses")
     .update(payload as never)
     .eq("id", id)
-    .eq("school_id", DEFAULT_OPERATIONAL_SCHOOL_ID);
+    .eq("school_id", await requireAdminSchoolId());
 
   revalidatePath("/dashboard/admin/courses");
   redirect(withToast("/dashboard/admin/courses", "success", "Curso actualizado correctamente."));
@@ -333,10 +383,12 @@ export async function linkAdminFamilyStudent(formData: FormData) {
     .select("parent_id,student_id")
     .eq("parent_id", parentId)
     .eq("student_id", studentId)
+    .eq("school_id", await requireAdminSchoolId())
     .maybeSingle();
 
   if (!existingRelation) {
     const payload: ParentStudentInsert = {
+      school_id: await requireAdminSchoolId(),
       parent_id: parentId,
       student_id: studentId
     };
@@ -359,7 +411,12 @@ export async function unlinkAdminFamilyStudent(formData: FormData) {
   }
 
   const supabase = await createClient();
-  await supabase.from("parent_students").delete().eq("parent_id", parentId).eq("student_id", studentId);
+  await supabase
+    .from("parent_students")
+    .delete()
+    .eq("school_id", await requireAdminSchoolId())
+    .eq("parent_id", parentId)
+    .eq("student_id", studentId);
 
   revalidatePath("/dashboard/admin/families");
   redirect(withToast("/dashboard/admin/families", "success", "Familia desvinculada correctamente."));
@@ -376,7 +433,7 @@ export async function createAdminSubject(formData: FormData) {
 
   const supabase = await createClient();
   const payload: SubjectInsert = {
-    school_id: DEFAULT_OPERATIONAL_SCHOOL_ID,
+    school_id: await requireAdminSchoolId(),
     name
   };
   await supabase.from("subjects").insert(payload as never);
@@ -401,7 +458,7 @@ export async function updateAdminSubject(formData: FormData) {
     .from("subjects")
     .update(payload as never)
     .eq("id", id)
-    .eq("school_id", DEFAULT_OPERATIONAL_SCHOOL_ID);
+    .eq("school_id", await requireAdminSchoolId());
 
   revalidatePath("/dashboard/admin/subjects");
   redirect(withToast("/dashboard/admin/subjects", "success", "Materia actualizada correctamente."));
@@ -420,9 +477,11 @@ export async function createAdminTeacherAssignment(formData: FormData) {
 
   const supabase = await createClient();
   const academicYearId = await requireActiveAcademicYearId();
+  const schoolId = await requireAdminSchoolId();
   const { data: existingAssignment } = await supabase
     .from("teacher_assignments")
     .select("id")
+    .eq("school_id", schoolId)
     .eq("teacher_id", teacherId)
     .eq("course_id", courseId)
     .eq("subject_id", subjectId)
@@ -431,6 +490,7 @@ export async function createAdminTeacherAssignment(formData: FormData) {
 
   if (!existingAssignment) {
     const payload: TeacherAssignmentInsert = {
+      school_id: schoolId,
       teacher_id: teacherId,
       course_id: courseId,
       subject_id: subjectId,
@@ -491,7 +551,11 @@ export async function deleteAdminTeacherAssignment(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.from("teacher_assignments").delete().eq("id", id);
+  const { error } = await supabase
+    .from("teacher_assignments")
+    .delete()
+    .eq("school_id", await requireAdminSchoolId())
+    .eq("id", id);
 
   if (error) {
     redirect(withToast("/dashboard/admin/subjects", "error", "No se pudo eliminar la asignacion."));
@@ -516,6 +580,7 @@ export async function deleteAdminTeacherAssignmentGroup(formData: FormData) {
   const { error } = await supabase
     .from("teacher_assignments")
     .delete()
+    .eq("school_id", await requireAdminSchoolId())
     .eq("teacher_id", teacherId)
     .eq("subject_id", subjectId);
 
@@ -570,10 +635,12 @@ export async function createAdminFamilyQuick(formData: FormData) {
       .select("parent_id,student_id")
       .eq("parent_id", userId)
       .eq("student_id", studentId)
+      .eq("school_id", await requireAdminSchoolId())
       .maybeSingle();
 
     if (!existingRelation) {
       const payload: ParentStudentInsert = {
+        school_id: await requireAdminSchoolId(),
         parent_id: userId,
         student_id: studentId
       };
@@ -663,7 +730,7 @@ export async function createAdminSubjectQuick(formData: FormData) {
 
   const supabase = await createClient();
   const payload: SubjectInsert = {
-    school_id: DEFAULT_OPERATIONAL_SCHOOL_ID,
+    school_id: await requireAdminSchoolId(),
     name
   };
   const { data: subject } = await supabase
@@ -702,8 +769,9 @@ export async function createAdminCourseQuick(formData: FormData) {
 
   const supabase = await createClient();
   const academicYearId = await requireActiveAcademicYearId();
+  const schoolId = await requireAdminSchoolId();
   const payload: CourseInsert = {
-    school_id: DEFAULT_OPERATIONAL_SCHOOL_ID,
+    school_id: await requireAdminSchoolId(),
     name,
     academic_year_id: academicYearId
   };
@@ -743,6 +811,7 @@ async function createAdminAuthUser({
   }
 
   const userId = data.user.id;
+  const schoolId = await requireAdminSchoolId();
   const profile: ProfileInsert = {
     id: userId,
     email,
@@ -752,6 +821,20 @@ async function createAdminAuthUser({
   };
 
   await supabaseAdmin.from("profiles").upsert(profile as never);
+  const membership: SchoolMembershipInsert = {
+    school_id: schoolId,
+    user_id: userId,
+    role,
+    active: true
+  };
+  const { error: membershipError } = await supabaseAdmin
+    .from("school_memberships")
+    .insert(membership as never);
+
+  if (membershipError) {
+    await supabaseAdmin.auth.admin.deleteUser(userId);
+    throw new Error("No se pudo asignar el usuario al centro activo.");
+  }
 
   return { userId };
 }
@@ -767,9 +850,11 @@ async function ensureTeacherAssignment({
 }) {
   const supabase = await createClient();
   const academicYearId = await requireActiveAcademicYearId();
+  const schoolId = await requireAdminSchoolId();
   const { data: existingAssignment } = await supabase
     .from("teacher_assignments")
     .select("id")
+    .eq("school_id", schoolId)
     .eq("teacher_id", teacherId)
     .eq("course_id", courseId)
     .eq("subject_id", subjectId)
@@ -778,6 +863,7 @@ async function ensureTeacherAssignment({
 
   if (!existingAssignment) {
     const payload: TeacherAssignmentInsert = {
+      school_id: schoolId,
       teacher_id: teacherId,
       course_id: courseId,
       subject_id: subjectId,
@@ -801,9 +887,11 @@ async function ensureTeacherAssignmentWithResult({
 }) {
   const supabase = await createClient();
   const academicYearId = await requireActiveAcademicYearId();
+  const schoolId = await requireAdminSchoolId();
   const { data: existingAssignment } = await supabase
     .from("teacher_assignments")
     .select("id")
+    .eq("school_id", schoolId)
     .eq("teacher_id", teacherId)
     .eq("course_id", courseId)
     .eq("subject_id", subjectId)
@@ -816,6 +904,7 @@ async function ensureTeacherAssignmentWithResult({
   }
 
   const payload: TeacherAssignmentInsert = {
+    school_id: schoolId,
     teacher_id: teacherId,
     course_id: courseId,
     subject_id: subjectId,
@@ -839,7 +928,7 @@ async function ensureCourseSubject({
   const { data: existingCourseSubject } = await supabase
     .from("course_subjects")
     .select("id")
-    .eq("school_id", DEFAULT_OPERATIONAL_SCHOOL_ID)
+    .eq("school_id", await requireAdminSchoolId())
     .eq("course_id", courseId)
     .eq("subject_id", subjectId)
     .eq("academic_year_id", academicYearId)
@@ -847,7 +936,7 @@ async function ensureCourseSubject({
 
   if (!existingCourseSubject) {
     const payload: CourseSubjectInsert = {
-      school_id: DEFAULT_OPERATIONAL_SCHOOL_ID,
+      school_id: await requireAdminSchoolId(),
       course_id: courseId,
       subject_id: subjectId,
       academic_year_id: academicYearId,
@@ -872,7 +961,7 @@ export async function createAcademicYear(formData: FormData) {
 
   const supabase = await createClient();
   const payload: AcademicYearInsert = {
-    school_id: DEFAULT_OPERATIONAL_SCHOOL_ID,
+    school_id: await requireAdminSchoolId(),
     name,
     start_date: startDate,
     end_date: endDate,
@@ -898,12 +987,12 @@ export async function activateAcademicYear(formData: FormData) {
   await supabase
     .from("academic_years")
     .update({ active: false } as never)
-    .eq("school_id", DEFAULT_OPERATIONAL_SCHOOL_ID)
+    .eq("school_id", await requireAdminSchoolId())
     .neq("id", id);
   await supabase
     .from("academic_years")
     .update({ active: true } as never)
-    .eq("school_id", DEFAULT_OPERATIONAL_SCHOOL_ID)
+    .eq("school_id", await requireAdminSchoolId())
     .eq("id", id);
 
   revalidateAcademicYearPaths();
@@ -911,13 +1000,20 @@ export async function activateAcademicYear(formData: FormData) {
 }
 
 async function requireActiveAcademicYearId() {
-  const { academicYear, errorMessage } = await getActiveAcademicYear();
+  const { academicYear, errorMessage } = await getActiveAcademicYear(
+    await requireAdminSchoolId()
+  );
 
   if (!academicYear) {
     throw new Error(errorMessage ?? "No hay curso escolar activo.");
   }
 
   return academicYear.id;
+}
+
+async function requireAdminSchoolId() {
+  const context = await requireOperationalSchoolContext();
+  return context.schoolId;
 }
 
 function revalidateAdminCreatePaths() {

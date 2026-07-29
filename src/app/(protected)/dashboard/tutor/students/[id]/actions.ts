@@ -18,6 +18,7 @@ const validAssessmentTypes = ["parcial", "trimestral"] as const;
 
 export async function createStudentIncident(formData: FormData) {
   const profile = await requireRole("tutor");
+  const schoolId = requireContextSchoolId(profile.schoolContext.schoolId);
   const studentId = String(formData.get("student_id") ?? "");
   const type = String(formData.get("type") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
@@ -45,6 +46,7 @@ export async function createStudentIncident(formData: FormData) {
     .from("students")
     .select("id")
     .eq("id", studentId)
+    .eq("school_id", schoolId)
     .eq("tutor_teacher_id", tutorId)
     .maybeSingle<{ id: string }>();
 
@@ -71,15 +73,16 @@ export async function createStudentIncident(formData: FormData) {
   }
 
   const { data: directors } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("role", "director")
+    .from("school_memberships")
+    .select("user_id")
+    .eq("school_id", schoolId)
     .eq("active", true)
-    .returns<{ id: string }[]>();
+    .eq("role", "director")
+    .returns<{ user_id: string }[]>();
 
   await createInternalNotifications(
     (directors ?? []).map((director) => ({
-      user_id: director.id,
+      user_id: director.user_id,
       role: "director",
       type: "new_incident",
       title: "Nueva incidencia registrada",
@@ -97,6 +100,7 @@ export async function createStudentIncident(formData: FormData) {
 
 export async function createFamilyNotification(formData: FormData) {
   const profile = await requireRole("tutor");
+  const schoolId = requireContextSchoolId(profile.schoolContext.schoolId);
   const studentId = String(formData.get("student_id") ?? "");
   const title = String(formData.get("title") ?? "").trim();
   const message = String(formData.get("message") ?? "").trim();
@@ -124,6 +128,7 @@ export async function createFamilyNotification(formData: FormData) {
     .from("students")
     .select("id")
     .eq("id", studentId)
+    .eq("school_id", schoolId)
     .eq("tutor_teacher_id", tutorId)
     .maybeSingle<{ id: string }>();
 
@@ -138,6 +143,7 @@ export async function createFamilyNotification(formData: FormData) {
   const { data: recipients, error: recipientsError } = await supabase
     .from("parent_students")
     .select("parent_id")
+    .eq("school_id", schoolId)
     .eq("student_id", studentId)
     .returns<{ parent_id: string }[]>();
 
@@ -188,6 +194,7 @@ export async function createFamilyNotification(formData: FormData) {
 
 export async function createStudentObservation(formData: FormData) {
   const profile = await requireRole("tutor");
+  const schoolId = requireContextSchoolId(profile.schoolContext.schoolId);
   const studentId = String(formData.get("student_id") ?? "");
   const type = String(formData.get("type") ?? "").trim();
   const title = String(formData.get("title") ?? "").trim();
@@ -218,6 +225,7 @@ export async function createStudentObservation(formData: FormData) {
     .from("students")
     .select("id")
     .eq("id", studentId)
+    .eq("school_id", schoolId)
     .eq("tutor_teacher_id", tutorId)
     .maybeSingle<{ id: string }>();
 
@@ -250,6 +258,7 @@ export async function createStudentObservation(formData: FormData) {
 
 export async function createStudentGrade(formData: FormData) {
   const profile = await requireRole("tutor");
+  const schoolId = requireContextSchoolId(profile.schoolContext.schoolId);
   const studentId = String(formData.get("student_id") ?? "");
   const subjectId = String(formData.get("subject_id") ?? "");
   const termValue = String(formData.get("term") ?? "1");
@@ -292,6 +301,7 @@ export async function createStudentGrade(formData: FormData) {
     .from("students")
     .select("id,course_id")
     .eq("id", studentId)
+    .eq("school_id", schoolId)
     .maybeSingle<{ id: string; course_id: string }>();
 
   if (studentError) {
@@ -305,6 +315,7 @@ export async function createStudentGrade(formData: FormData) {
   const { data: assignment, error: assignmentError } = await supabase
     .from("teacher_assignments")
     .select("id")
+    .eq("school_id", schoolId)
     .eq("teacher_id", teacherId)
     .eq("course_id", student.course_id)
     .eq("subject_id", subjectId)
@@ -358,7 +369,12 @@ export async function createStudentGrade(formData: FormData) {
   });
 
   if (visibleToFamily) {
-    await notifyFamiliesAboutVisibleGrade(supabase, studentId, assessmentName);
+    await notifyFamiliesAboutVisibleGrade(
+      supabase,
+      schoolId,
+      studentId,
+      assessmentName
+    );
   }
 
   revalidatePath(`/dashboard/tutor/students/${studentId}`);
@@ -368,12 +384,14 @@ export async function createStudentGrade(formData: FormData) {
 
 async function notifyFamiliesAboutVisibleGrade(
   supabase: Awaited<ReturnType<typeof createClient>>,
+  schoolId: string,
   studentId: string,
   assessmentName: string
 ) {
   const { data: families } = await supabase
     .from("parent_students")
     .select("parent_id")
+    .eq("school_id", schoolId)
     .eq("student_id", studentId)
     .returns<{ parent_id: string }[]>();
 
@@ -389,4 +407,12 @@ async function notifyFamiliesAboutVisibleGrade(
   }));
 
   await createInternalNotifications(rows);
+}
+
+function requireContextSchoolId(schoolId: string | null) {
+  if (!schoolId) {
+    throw new Error("No hay un centro activo seleccionado.");
+  }
+
+  return schoolId;
 }

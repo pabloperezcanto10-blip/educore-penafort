@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getDashboardPathForRole, isRole, normalizeRole, type Role } from "@/lib/auth/roles";
+import type { ActiveSchoolContext } from "@/lib/schools/types";
 
 export type Profile = {
   id: string;
@@ -9,6 +10,10 @@ export type Profile = {
   role: Role;
   active: boolean;
   must_change_password: boolean;
+};
+
+export type AuthorizedProfile = Profile & {
+  schoolContext: ActiveSchoolContext;
 };
 
 export async function getCurrentUserProfile(): Promise<Profile | null> {
@@ -20,8 +25,6 @@ export async function getCurrentUserProfile(): Promise<Profile | null> {
   if (!user) {
     return null;
   }
-
-  const metadataRole = normalizeRole(user.user_metadata?.role);
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
@@ -46,14 +49,7 @@ export async function getCurrentUserProfile(): Promise<Profile | null> {
   }
 
   if (!profile || !isRole(profile.role)) {
-    return {
-      id: user.id,
-      email: user.email ?? null,
-      full_name: typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name : null,
-      role: metadataRole,
-      active: true,
-      must_change_password: false
-    };
+    return null;
   }
 
   return {
@@ -63,7 +59,9 @@ export async function getCurrentUserProfile(): Promise<Profile | null> {
   };
 }
 
-export async function requireRole(role: Role): Promise<Profile> {
+export async function requireRole(
+  role: Role | readonly Role[]
+): Promise<AuthorizedProfile> {
   const profile = await getCurrentUserProfile();
 
   if (!profile) {
@@ -78,9 +76,17 @@ export async function requireRole(role: Role): Promise<Profile> {
     redirect("/change-password");
   }
 
-  if (profile.role !== role) {
-    redirect(getDashboardPathForRole(profile.role));
+  const { requireSchoolContext } = await import("@/lib/schools/context");
+  const schoolContext = await requireSchoolContext(undefined, profile);
+
+  const allowedRoles = Array.isArray(role) ? role : [role];
+  if (!allowedRoles.includes(schoolContext.role)) {
+    redirect(getDashboardPathForRole(schoolContext.role));
   }
 
-  return profile;
+  return {
+    ...profile,
+    role: schoolContext.role,
+    schoolContext
+  };
 }

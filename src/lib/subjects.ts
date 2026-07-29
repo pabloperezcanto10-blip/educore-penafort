@@ -1,5 +1,6 @@
 import { getActiveAcademicYear } from "@/lib/academic-years";
 import { createClient } from "@/lib/supabase/server";
+import { requireOperationalSchoolContext } from "@/lib/schools/context";
 
 export type Subject = {
   id: string;
@@ -35,8 +36,11 @@ export async function getActiveCourseSubjects(): Promise<{
   courseSubjects: CourseSubject[];
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireOperationalSchoolContext();
   const supabase = await createClient();
-  const { academicYear, errorMessage: academicYearError } = await getActiveAcademicYear();
+  const { academicYear, errorMessage: academicYearError } = await getActiveAcademicYear(
+    schoolContext.schoolId
+  );
 
   if (!academicYear) {
     return { courseSubjects: [], errorMessage: academicYearError ?? "No hay curso escolar activo." };
@@ -45,6 +49,7 @@ export async function getActiveCourseSubjects(): Promise<{
   const { data: rows, error } = await supabase
     .from("course_subjects")
     .select("id,course_id,subject_id,academic_year_id,optional,track")
+    .eq("school_id", schoolContext.schoolId)
     .eq("academic_year_id", academicYear.id)
     .returns<CourseSubjectRow[]>();
 
@@ -52,7 +57,7 @@ export async function getActiveCourseSubjects(): Promise<{
     return { courseSubjects: [], errorMessage: error.message };
   }
 
-  return hydrateCourseSubjects(rows ?? []);
+  return hydrateCourseSubjects(rows ?? [], schoolContext.schoolId);
 }
 
 export async function getSubjectsForCourse(courseId: string): Promise<{
@@ -64,8 +69,11 @@ export async function getSubjectsForCourse(courseId: string): Promise<{
     return { subjects: [], courseSubjects: [], errorMessage: null };
   }
 
+  const schoolContext = await requireOperationalSchoolContext();
   const supabase = await createClient();
-  const { academicYear, errorMessage: academicYearError } = await getActiveAcademicYear();
+  const { academicYear, errorMessage: academicYearError } = await getActiveAcademicYear(
+    schoolContext.schoolId
+  );
 
   if (!academicYear) {
     return { subjects: [], courseSubjects: [], errorMessage: academicYearError ?? "No hay curso escolar activo." };
@@ -74,6 +82,7 @@ export async function getSubjectsForCourse(courseId: string): Promise<{
   const { data: rows, error } = await supabase
     .from("course_subjects")
     .select("id,course_id,subject_id,academic_year_id,optional,track")
+    .eq("school_id", schoolContext.schoolId)
     .eq("academic_year_id", academicYear.id)
     .eq("course_id", courseId)
     .returns<CourseSubjectRow[]>();
@@ -82,7 +91,7 @@ export async function getSubjectsForCourse(courseId: string): Promise<{
     return { subjects: [], courseSubjects: [], errorMessage: error.message };
   }
 
-  const hydrated = await hydrateCourseSubjects(rows ?? []);
+  const hydrated = await hydrateCourseSubjects(rows ?? [], schoolContext.schoolId);
 
   return {
     subjects: hydrated.courseSubjects.map((item) => ({
@@ -94,7 +103,7 @@ export async function getSubjectsForCourse(courseId: string): Promise<{
   };
 }
 
-async function hydrateCourseSubjects(rows: CourseSubjectRow[]): Promise<{
+async function hydrateCourseSubjects(rows: CourseSubjectRow[], schoolId: string): Promise<{
   courseSubjects: CourseSubject[];
   errorMessage: string | null;
 }> {
@@ -107,8 +116,8 @@ async function hydrateCourseSubjects(rows: CourseSubjectRow[]): Promise<{
   const subjectIds = Array.from(new Set(rows.map((row) => row.subject_id)));
 
   const [{ data: courses, error: coursesError }, { data: subjects, error: subjectsError }] = await Promise.all([
-    supabase.from("courses").select("id,name").in("id", courseIds).returns<CourseRow[]>(),
-    supabase.from("subjects").select("id,name").in("id", subjectIds).returns<Subject[]>()
+    supabase.from("courses").select("id,name").eq("school_id", schoolId).in("id", courseIds).returns<CourseRow[]>(),
+    supabase.from("subjects").select("id,name").eq("school_id", schoolId).in("id", subjectIds).returns<Subject[]>()
   ]);
 
   const errorMessage = coursesError?.message ?? subjectsError?.message ?? null;

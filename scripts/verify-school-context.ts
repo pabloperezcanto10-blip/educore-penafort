@@ -1,16 +1,18 @@
 import type { Profile } from "../src/lib/auth/session";
-import { penafortBrand } from "../src/lib/branding/brand-config";
 import {
   resolveActiveSchoolContext,
   SchoolContextError
 } from "../src/lib/schools/context";
-import { getSchoolBranding } from "../src/lib/schools/branding";
+import {
+  getSchoolBranding,
+  platformBranding
+} from "../src/lib/schools/branding";
 import type {
   School,
   SchoolMembershipWithSchool
 } from "../src/lib/schools/types";
 
-const profile: Profile = {
+const tutorProfile: Profile = {
   id: "20e10000-0000-4000-8000-000000000103",
   email: "qa.tutor@example.test",
   full_name: "QA Tutor",
@@ -19,7 +21,7 @@ const profile: Profile = {
   must_change_password: false
 };
 
-const completeSchool: School = {
+const qaSchool: School = {
   id: "20e10000-0000-4000-8000-000000000001",
   name: "QA School",
   short_name: "QA School",
@@ -36,65 +38,88 @@ const completeSchool: School = {
   updated_at: "2026-07-26T00:00:00.000Z"
 };
 
-const activeMembership: SchoolMembershipWithSchool = {
-  id: "20e10000-0000-4000-8000-000000000203",
-  school_id: completeSchool.id,
-  user_id: profile.id,
-  role: "tutor",
-  active: true,
-  created_at: "2026-07-26T00:00:00.000Z",
-  updated_at: "2026-07-26T00:00:00.000Z",
-  school: completeSchool
-};
-
-const directorMembership: SchoolMembershipWithSchool = {
-  ...activeMembership,
-  id: "20e10000-0000-4000-8000-000000000202",
-  role: "director"
-};
-
-const inactiveMembership: SchoolMembershipWithSchool = {
-  ...activeMembership,
-  id: "20e10000-0000-4000-8000-000000000205",
-  active: false,
-  role: "family"
-};
-
-const penafortSchool: School = {
-  ...completeSchool,
+const secondSchool: School = {
+  ...qaSchool,
   id: "20f20000-0000-4000-8000-000000000001",
-  name: "Colegio Peñafort",
-  short_name: "Peñafort",
-  slug: "colegio-penafort",
-  logo_url: "/branding/penafort-logo.jpg",
-  primary_color: "#075985",
-  secondary_color: "#0F172A",
-  accent_color: "#0EA5E9",
-  family_email_domain: "penafort.com",
-  calendar_id: "fo7mnf4nmdge5cib93bfq77414@group.calendar.google.com"
+  name: "Second QA School",
+  short_name: "Second QA",
+  slug: "second-qa-school"
 };
 
-const penafortMembership: SchoolMembershipWithSchool = {
-  ...activeMembership,
-  id: "20f20000-0000-4000-8000-000000000103",
-  school_id: penafortSchool.id,
-  school: penafortSchool
-};
+function membership({
+  id,
+  school,
+  userId = tutorProfile.id,
+  role = "tutor",
+  active = true
+}: {
+  id: string;
+  school: School;
+  userId?: string;
+  role?: SchoolMembershipWithSchool["role"];
+  active?: boolean;
+}): SchoolMembershipWithSchool {
+  return {
+    id,
+    school_id: school.id,
+    user_id: userId,
+    role,
+    active,
+    created_at: "2026-07-26T00:00:00.000Z",
+    updated_at: "2026-07-26T00:00:00.000Z",
+    school
+  };
+}
+
+const qaTutorMembership = membership({
+  id: "20e10000-0000-4000-8000-000000000203",
+  school: qaSchool
+});
+const secondTutorMembership = membership({
+  id: "20f20000-0000-4000-8000-000000000203",
+  school: secondSchool
+});
+const qaDirectorMembership = membership({
+  id: "20e10000-0000-4000-8000-000000000202",
+  school: qaSchool,
+  role: "director"
+});
+const secondDirectorMembership = membership({
+  id: "20f20000-0000-4000-8000-000000000202",
+  school: secondSchool,
+  role: "director"
+});
+const qaFamilyMembership = membership({
+  id: "20e10000-0000-4000-8000-000000000204",
+  school: qaSchool,
+  role: "family"
+});
+const secondFamilyMembership = membership({
+  id: "20f20000-0000-4000-8000-000000000204",
+  school: secondSchool,
+  role: "family"
+});
 
 const superadminProfile: Profile = {
-  ...profile,
+  ...tutorProfile,
   id: "20e10000-0000-4000-8000-000000000101",
   email: "qa.superadmin@example.test",
-  full_name: "QA Superadmin",
   role: "superadmin"
 };
-
-const penafortSuperadminMembership: SchoolMembershipWithSchool = {
-  ...penafortMembership,
-  id: "20f20000-0000-4000-8000-000000000101",
-  user_id: superadminProfile.id,
-  role: "superadmin"
-};
+const superadminMemberships = [
+  membership({
+    id: "20e10000-0000-4000-8000-000000000101",
+    school: qaSchool,
+    userId: superadminProfile.id,
+    role: "superadmin"
+  }),
+  membership({
+    id: "20f20000-0000-4000-8000-000000000101",
+    school: secondSchool,
+    userId: superadminProfile.id,
+    role: "superadmin"
+  })
+];
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) {
@@ -113,162 +138,207 @@ function expectContextError(
     assert(error.code === code, `Expected ${code}, received ${error.code}.`);
     return;
   }
-
   throw new Error(`Expected ${code}, but no error was thrown.`);
 }
 
-function activeMemberships(
-  memberships: SchoolMembershipWithSchool[]
-): SchoolMembershipWithSchool[] {
-  return memberships.filter(
-    (membership) => membership.active && membership.school.active
-  );
-}
-
-const membershipContext = resolveActiveSchoolContext({
-  profile,
-  memberships: activeMemberships([penafortMembership]),
-  allowLegacyFallback: false
+const singleContext = resolveActiveSchoolContext({
+  profile: tutorProfile,
+  memberships: [qaTutorMembership]
 });
-
-assert(membershipContext.source === "membership", "Active membership was not selected.");
-assert(membershipContext.schoolId === penafortSchool.id, "Wrong school selected.");
-assert(membershipContext.role === "tutor", "Wrong membership role selected.");
-assert(
-  membershipContext.branding.primaryColor === penafortSchool.primary_color,
-  "Peñafort branding was not applied."
-);
-
-const matchingRoleContext = resolveActiveSchoolContext({
-  profile,
-  memberships: activeMemberships([directorMembership, activeMembership]),
-  allowLegacyFallback: false
-});
-
-assert(
-  matchingRoleContext.role === "tutor",
-  "The membership matching the profile role was not selected."
-);
+assert(singleContext.schoolId === qaSchool.id, "Single membership did not auto-select.");
+assert(singleContext.membershipRole === "tutor", "Membership role was not authoritative.");
+assert(singleContext.membershipStatus === "active", "Membership status is not active.");
+assert(singleContext.availableSchools.length === 1, "Available schools are incorrect.");
+assert(singleContext.source === "membership", "Membership source was not recorded.");
 
 expectContextError(
   () =>
     resolveActiveSchoolContext({
-      profile: { ...profile, role: "family" },
-      memberships: activeMemberships([
-        directorMembership,
-        activeMembership
-      ]),
-      allowLegacyFallback: false
-    }),
-  "SCHOOL_ROLE_REQUIRED"
-);
-
-expectContextError(
-  () =>
-    resolveActiveSchoolContext({
-      profile,
-      memberships: activeMemberships([inactiveMembership]),
-      allowLegacyFallback: false
-    }),
-  "SCHOOL_MEMBERSHIP_REQUIRED"
-);
-
-expectContextError(
-  () =>
-    resolveActiveSchoolContext({
-      profile,
-      memberships: activeMemberships([
-        activeMembership,
-        penafortMembership
-      ]),
-      allowLegacyFallback: false
+      profile: tutorProfile,
+      memberships: [qaTutorMembership, secondTutorMembership]
     }),
   "SCHOOL_SELECTION_REQUIRED"
 );
 
-const requestedSchoolContext = resolveActiveSchoolContext({
-  profile,
-  memberships: activeMemberships([
-    activeMembership,
-    penafortMembership
-  ]),
-  requestedSchoolId: penafortSchool.id,
-  allowLegacyFallback: false
+const selectedSecondSchool = resolveActiveSchoolContext({
+  profile: tutorProfile,
+  memberships: [qaTutorMembership, secondTutorMembership],
+  requestedSchoolId: secondSchool.id
 });
-
+assert(selectedSecondSchool.schoolId === secondSchool.id, "Explicit school selection failed.");
+assert(selectedSecondSchool.availableSchools.length === 2, "Multischool options are incomplete.");
+const selectedFirstAgain = resolveActiveSchoolContext({
+  profile: tutorProfile,
+  memberships: [qaTutorMembership, secondTutorMembership],
+  requestedSchoolId: qaSchool.id
+});
 assert(
-  requestedSchoolContext.schoolId === penafortSchool.id,
-  "The requested school was not selected from multiple memberships."
+  selectedFirstAgain.schoolId === qaSchool.id,
+  "Changing school A -> B -> A did not restore the requested context."
 );
 
-const requestedQaSchoolContext = resolveActiveSchoolContext({
-  profile,
-  memberships: activeMemberships([
-    activeMembership,
-    penafortMembership
-  ]),
-  requestedSchoolId: completeSchool.id,
-  allowLegacyFallback: false
-});
+for (const scenario of [
+  {
+    role: "director" as const,
+    memberships: [qaDirectorMembership, secondDirectorMembership]
+  },
+  {
+    role: "tutor" as const,
+    memberships: [qaTutorMembership, secondTutorMembership]
+  },
+  {
+    role: "family" as const,
+    memberships: [qaFamilyMembership, secondFamilyMembership]
+  }
+]) {
+  const profile = {
+    ...tutorProfile,
+    role: scenario.role
+  };
+  expectContextError(
+    () =>
+      resolveActiveSchoolContext({
+        profile,
+        memberships: scenario.memberships
+      }),
+    "SCHOOL_SELECTION_REQUIRED"
+  );
+  for (const school of [qaSchool, secondSchool]) {
+    const context = resolveActiveSchoolContext({
+      profile,
+      memberships: scenario.memberships,
+      requestedSchoolId: school.id
+    });
+    assert(
+      context.schoolId === school.id,
+      `${scenario.role} did not resolve the requested school.`
+    );
+    assert(
+      context.role === scenario.role,
+      `${scenario.role} did not retain the membership role.`
+    );
+  }
+}
 
+const roleMatched = resolveActiveSchoolContext({
+  profile: tutorProfile,
+  memberships: [qaDirectorMembership, qaTutorMembership],
+  requestedSchoolId: qaSchool.id
+});
+assert(roleMatched.role === "tutor", "The authorized profile role was not selected.");
+
+const membershipOverridesLegacyProfileRole = resolveActiveSchoolContext({
+  profile: { ...tutorProfile, role: "director" },
+  memberships: [qaTutorMembership]
+});
 assert(
-  requestedQaSchoolContext.schoolId === completeSchool.id,
-  "QA School was not selected explicitly."
+  membershipOverridesLegacyProfileRole.role === "tutor",
+  "A legacy profile role overrode the only active membership."
 );
 
-const superadminContext = resolveActiveSchoolContext({
+expectContextError(
+  () =>
+    resolveActiveSchoolContext({
+      profile: { ...tutorProfile, role: "family" },
+      memberships: [qaDirectorMembership, qaTutorMembership],
+      requestedSchoolId: qaSchool.id
+    }),
+  "SCHOOL_ROLE_REQUIRED"
+);
+
+const activeMembershipIgnoresInactiveSecondSchool = resolveActiveSchoolContext({
+  profile: tutorProfile,
+  memberships: [
+    qaTutorMembership,
+    { ...secondTutorMembership, active: false }
+  ]
+});
+assert(
+  activeMembershipIgnoresInactiveSecondSchool.schoolId === qaSchool.id,
+  "An inactive membership affected automatic school selection."
+);
+assert(
+  activeMembershipIgnoresInactiveSecondSchool.availableSchools.length === 1,
+  "An inactive membership was exposed as an available school."
+);
+
+const activeMembershipIgnoresInactiveSchool = resolveActiveSchoolContext({
+  profile: tutorProfile,
+  memberships: [
+    qaTutorMembership,
+    {
+      ...secondTutorMembership,
+      school: { ...secondSchool, active: false }
+    }
+  ]
+});
+assert(
+  activeMembershipIgnoresInactiveSchool.schoolId === qaSchool.id,
+  "An inactive school affected automatic school selection."
+);
+
+expectContextError(
+  () =>
+    resolveActiveSchoolContext({
+      profile: tutorProfile,
+      memberships: [{ ...qaTutorMembership, active: false }]
+    }),
+  "SCHOOL_MEMBERSHIP_REQUIRED"
+);
+
+expectContextError(
+  () =>
+    resolveActiveSchoolContext({
+      profile: tutorProfile,
+      memberships: [
+        { ...qaTutorMembership, school: { ...qaSchool, active: false } }
+      ]
+    }),
+  "SCHOOL_MEMBERSHIP_REQUIRED"
+);
+
+expectContextError(
+  () =>
+    resolveActiveSchoolContext({
+      profile: tutorProfile,
+      memberships: []
+    }),
+  "SCHOOL_MEMBERSHIP_REQUIRED"
+);
+
+expectContextError(
+  () =>
+    resolveActiveSchoolContext({
+      profile: tutorProfile,
+      memberships: [qaTutorMembership],
+      requestedSchoolId: secondSchool.id
+    }),
+  "SCHOOL_MEMBERSHIP_REQUIRED"
+);
+
+const globalSuperadmin = resolveActiveSchoolContext({
   profile: superadminProfile,
-  memberships: activeMemberships([penafortSuperadminMembership]),
-  requestedSchoolId: penafortSchool.id,
-  allowLegacyFallback: false
+  memberships: superadminMemberships
 });
-
+assert(globalSuperadmin.schoolId === null, "Global superadmin unexpectedly selected a school.");
+assert(globalSuperadmin.isGlobalSuperadmin, "Global superadmin flag is missing.");
+assert(globalSuperadmin.availableSchools.length === 2, "Global school options are incomplete.");
+assert(globalSuperadmin.source === "global-superadmin", "Global source is incorrect.");
 assert(
-  superadminContext.role === "superadmin",
-  "Global superadmin did not retain its Peñafort membership role."
-);
-assert(
-  superadminProfile.role === "superadmin",
-  "Global superadmin profile role changed."
+  globalSuperadmin.branding.logoUrl === platformBranding.logoUrl,
+  "Global superadmin inherited a school brand."
 );
 
-expectContextError(
-  () =>
-    resolveActiveSchoolContext({
-      profile,
-      memberships: activeMemberships([activeMembership, penafortMembership]),
-      requestedSchoolId: "20e10000-0000-4000-8000-000000000999",
-      allowLegacyFallback: false
-    }),
-  "SCHOOL_MEMBERSHIP_REQUIRED"
-);
-
-expectContextError(
-  () =>
-    resolveActiveSchoolContext({
-      profile,
-      memberships: activeMemberships([]),
-      requestedSchoolId: penafortSchool.id,
-      allowLegacyFallback: true
-    }),
-  "SCHOOL_MEMBERSHIP_REQUIRED"
-);
-
-const legacyContext = resolveActiveSchoolContext({
-  profile,
-  memberships: activeMemberships([]),
-  allowLegacyFallback: true
+const contextualSuperadmin = resolveActiveSchoolContext({
+  profile: superadminProfile,
+  memberships: superadminMemberships,
+  requestedSchoolId: secondSchool.id
 });
-
-assert(legacyContext.source === "legacy-profile", "Legacy fallback was not selected.");
-assert(legacyContext.schoolId === null, "Legacy fallback unexpectedly grants a school.");
-assert(
-  legacyContext.branding.logoUrl === penafortBrand.assets.logo,
-  "Legacy Peñafort branding fallback changed."
-);
+assert(contextualSuperadmin.schoolId === secondSchool.id, "Superadmin context selection failed.");
+assert(contextualSuperadmin.isGlobalSuperadmin, "Context selection removed global capability.");
 
 const incompleteBranding = getSchoolBranding({
-  ...completeSchool,
+  ...qaSchool,
   logo_url: null,
   primary_color: null,
   secondary_color: null,
@@ -276,14 +346,13 @@ const incompleteBranding = getSchoolBranding({
   family_email_domain: null,
   calendar_id: null
 });
-
 assert(
-  incompleteBranding.logoUrl === penafortBrand.assets.logo,
-  "Incomplete branding does not use the approved logo fallback."
+  incompleteBranding.logoUrl === platformBranding.logoUrl,
+  "Visual fallback changed unexpectedly."
 );
 assert(
-  incompleteBranding.primaryColor === penafortBrand.colors.primary,
-  "Incomplete branding does not use the approved color fallback."
+  incompleteBranding.primaryColor === platformBranding.primaryColor,
+  "Visual color fallback changed unexpectedly."
 );
 
-console.log("School context and branding checks passed.");
+console.log("ActiveSchoolContext deterministic checks passed.");

@@ -1,5 +1,6 @@
 import { createAdminClient, hasSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { requireSchoolRole } from "@/lib/schools/context";
 
 type FamilyLabelClient = ReturnType<typeof createAdminClient>;
 
@@ -19,11 +20,17 @@ export async function getFamilyVisibleIncidents(
   incidents: FamilyVisibleIncident[];
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireSchoolRole(["family"]);
+  if (!schoolContext.schoolId) {
+    return { incidents: [], errorMessage: "No hay un centro activo seleccionado." };
+  }
+
   const supabase = await createClient();
   const { data: relations, error: relationsError } = await supabase
     .from("parent_students")
     .select("student_id")
     .eq("parent_id", familyId)
+    .eq("school_id", schoolContext.schoolId)
     .returns<{ student_id: string }[]>();
 
   if (relationsError) {

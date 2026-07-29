@@ -2,14 +2,14 @@ import { redirect } from "next/navigation";
 import { LockKeyhole } from "lucide-react";
 import { RegisterForm } from "./register-form";
 import { getCurrentUserProfile } from "@/lib/auth/session";
-import { getDashboardPathForRole } from "@/lib/auth/roles";
+import { getAuthenticatedEntryPath } from "@/lib/schools/context";
 import { platformSettings, schoolSettings } from "@/lib/settings";
 
 export default async function RegisterPage() {
   const profile = await getCurrentUserProfile();
 
   if (profile) {
-    redirect(getDashboardPathForRole(profile.role));
+    redirect(await getAuthenticatedEntryPath(profile));
   }
 
   return (

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAcademicYear } from "@/lib/academic-years";
+import { requireOperationalSchoolContext } from "@/lib/schools/context";
 
 export type TutorStudent = {
   id: string;
@@ -56,6 +57,7 @@ export async function getStudentsForTutor(tutorId: string): Promise<{
   errorMessage: string | null;
   authUserId: string | null;
 }> {
+  const schoolContext = await requireOperationalSchoolContext();
   const supabase = await createClient();
   const {
     data: { user },
@@ -71,13 +73,14 @@ export async function getStudentsForTutor(tutorId: string): Promise<{
   }
 
   const effectiveTutorId = user?.id ?? tutorId;
-  const { academicYear } = await getActiveAcademicYear();
+  const { academicYear } = await getActiveAcademicYear(schoolContext.schoolId);
   if (!academicYear) {
     return { students: [], errorMessage: "No hay curso escolar activo.", authUserId: user?.id ?? null };
   }
   const { data, error } = await supabase
     .from("students")
     .select("id,name,last_name")
+    .eq("school_id", schoolContext.schoolId)
     .eq("tutor_teacher_id", effectiveTutorId)
     .eq("academic_year_id", academicYear.id)
     .order("last_name", { ascending: true })
@@ -103,8 +106,9 @@ export async function getStudentsForCourseName(courseName: string): Promise<{
   students: TutorStudent[];
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireOperationalSchoolContext();
   const supabase = await createClient();
-  const { academicYear } = await getActiveAcademicYear();
+  const { academicYear } = await getActiveAcademicYear(schoolContext.schoolId);
 
   if (!academicYear) {
     return { students: [], errorMessage: "No hay curso escolar activo." };
@@ -113,6 +117,7 @@ export async function getStudentsForCourseName(courseName: string): Promise<{
   const { data: course, error: courseError } = await supabase
     .from("courses")
     .select("id,name")
+    .eq("school_id", schoolContext.schoolId)
     .eq("name", courseName)
     .eq("academic_year_id", academicYear.id)
     .maybeSingle<{ id: string; name: string }>();
@@ -128,6 +133,7 @@ export async function getStudentsForCourseName(courseName: string): Promise<{
   const { data, error } = await supabase
     .from("students")
     .select("id,name,last_name")
+    .eq("school_id", schoolContext.schoolId)
     .eq("course_id", course.id)
     .eq("academic_year_id", academicYear.id)
     .eq("active", true)
@@ -147,6 +153,7 @@ export async function getStudentsWithCourseForTutor(tutorId: string): Promise<{
   errorMessage: string | null;
   authUserId: string | null;
 }> {
+  const schoolContext = await requireOperationalSchoolContext();
   const supabase = await createClient();
   const {
     data: { user },
@@ -162,13 +169,14 @@ export async function getStudentsWithCourseForTutor(tutorId: string): Promise<{
   }
 
   const effectiveTutorId = user?.id ?? tutorId;
-  const { academicYear } = await getActiveAcademicYear();
+  const { academicYear } = await getActiveAcademicYear(schoolContext.schoolId);
   if (!academicYear) {
     return { students: [], errorMessage: "No hay curso escolar activo.", authUserId: user?.id ?? null };
   }
   const { data, error } = await supabase
     .from("students")
     .select("id,name,last_name,course_id,courses(name)")
+    .eq("school_id", schoolContext.schoolId)
     .eq("tutor_teacher_id", effectiveTutorId)
     .eq("academic_year_id", academicYear.id)
     .order("last_name", { ascending: true })
@@ -198,6 +206,7 @@ export async function getStudentForTutor(
   errorMessage: string | null;
   authUserId: string | null;
 }> {
+  const schoolContext = await requireOperationalSchoolContext();
   const supabase = await createClient();
   const {
     data: { user },
@@ -213,13 +222,14 @@ export async function getStudentForTutor(
   }
 
   const effectiveTutorId = user?.id ?? tutorId;
-  const { academicYear } = await getActiveAcademicYear();
+  const { academicYear } = await getActiveAcademicYear(schoolContext.schoolId);
   if (!academicYear) {
     return { student: null, errorMessage: "No hay curso escolar activo.", authUserId: user?.id ?? null };
   }
   const { data, error } = await supabase
     .from("students")
     .select("id,name,last_name,birth_date,course_id,active,courses(name)")
+    .eq("school_id", schoolContext.schoolId)
     .eq("id", studentId)
     .eq("tutor_teacher_id", effectiveTutorId)
     .eq("academic_year_id", academicYear.id)
@@ -247,6 +257,7 @@ export async function getIncidentsForTutorStudent(
   incidents: StudentIncident[];
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireOperationalSchoolContext();
   const supabase = await createClient();
   const {
     data: { user },
@@ -261,6 +272,22 @@ export async function getIncidentsForTutorStudent(
   }
 
   const effectiveTutorId = user?.id ?? tutorId;
+  const { data: student, error: studentError } = await supabase
+    .from("students")
+    .select("id")
+    .eq("id", studentId)
+    .eq("school_id", schoolContext.schoolId)
+    .eq("tutor_teacher_id", effectiveTutorId)
+    .maybeSingle<{ id: string }>();
+
+  if (studentError || !student) {
+    return {
+      incidents: [],
+      errorMessage:
+        studentError?.message ?? "El alumno no pertenece al centro activo."
+    };
+  }
+
   const { data, error } = await supabase
     .from("student_incidents")
     .select("id,type,description,severity,created_at")
@@ -286,7 +313,23 @@ export async function getObservationsForStudent(studentId: string): Promise<{
   observations: StudentObservation[];
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireOperationalSchoolContext();
   const supabase = await createClient();
+  const { data: student, error: studentError } = await supabase
+    .from("students")
+    .select("id")
+    .eq("id", studentId)
+    .eq("school_id", schoolContext.schoolId)
+    .maybeSingle<{ id: string }>();
+
+  if (studentError || !student) {
+    return {
+      observations: [],
+      errorMessage:
+        studentError?.message ?? "El alumno no pertenece al centro activo."
+    };
+  }
+
   const { data, error } = await supabase
     .from("student_observations")
     .select("id,student_id,tutor_id,type,title,content,priority,created_at")
@@ -311,8 +354,9 @@ export async function getStudentById(studentId: string): Promise<{
   student: TutorStudentDetail | null;
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireOperationalSchoolContext();
   const supabase = await createClient();
-  const { academicYear } = await getActiveAcademicYear();
+  const { academicYear } = await getActiveAcademicYear(schoolContext.schoolId);
   if (!academicYear) {
     return { student: null, errorMessage: "No hay curso escolar activo." };
   }
@@ -320,6 +364,7 @@ export async function getStudentById(studentId: string): Promise<{
     .from("students")
     .select("id,name,last_name,birth_date,course_id,active,courses(name)")
     .eq("id", studentId)
+    .eq("school_id", schoolContext.schoolId)
     .eq("academic_year_id", academicYear.id)
     .maybeSingle<TutorStudentDetail>();
 

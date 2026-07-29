@@ -1,25 +1,25 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getCurrentUserProfile, type Profile } from "@/lib/auth/session";
-import type { Role } from "@/lib/auth/roles";
+import { getDashboardPathForRole, type Role } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
-import { getSchoolBranding } from "@/lib/schools/branding";
+import { getSchoolBranding, platformBranding } from "@/lib/schools/branding";
 import type {
   ActiveSchoolContext,
+  AvailableSchool,
   School,
   SchoolMembership,
   SchoolMembershipWithSchool,
   SchoolRole
 } from "@/lib/schools/types";
 
+export const ACTIVE_SCHOOL_COOKIE_NAME = "educacora_active_school_id";
+export const ACTIVE_SCHOOL_COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
+
 type MembershipQueryResult = {
   memberships: SchoolMembershipWithSchool[];
   schemaAvailable: boolean;
-  membershipRowsFound: boolean;
 };
-
-// Temporary compatibility bridge. Remove after the Peñafort membership
-// backfill is verified and every protected route requires a membership.
-const LEGACY_PROFILE_FALLBACK_ENABLED = true;
 
 export class SchoolContextError extends Error {
   constructor(
@@ -39,18 +39,55 @@ function isMissingMultitenantSchemaError(code: string | undefined) {
   return code === "42P01" || code === "PGRST205";
 }
 
-function chooseMembershipRole(
-  memberships: SchoolMembershipWithSchool[],
-  legacyRole: Role
-): SchoolMembershipWithSchool {
-  const matchingLegacyRole = memberships.find((membership) => membership.role === legacyRole);
+function activeMemberships(
+  memberships: SchoolMembershipWithSchool[]
+): SchoolMembershipWithSchool[] {
+  return memberships.filter(
+    (membership) => membership.active && membership.school.active
+  );
+}
 
-  if (matchingLegacyRole) {
-    return matchingLegacyRole;
+function buildAvailableSchools(
+  memberships: SchoolMembershipWithSchool[]
+): AvailableSchool[] {
+  const schools = new Map<string, AvailableSchool>();
+
+  for (const membership of memberships) {
+    const existing = schools.get(membership.school_id);
+    if (existing) {
+      if (!existing.roles.includes(membership.role)) {
+        existing.roles.push(membership.role);
+      }
+      continue;
+    }
+
+    schools.set(membership.school_id, {
+      id: membership.school_id,
+      name: membership.school.name,
+      shortName: membership.school.short_name,
+      logoUrl: membership.school.logo_url,
+      roles: [membership.role]
+    });
   }
 
-  if (memberships.length === 1) {
-    return memberships[0];
+  return [...schools.values()].sort((a, b) => a.name.localeCompare(b.name, "es"));
+}
+
+function chooseMembershipRole(
+  memberships: SchoolMembershipWithSchool[],
+  profileRole: Role
+): SchoolMembershipWithSchool {
+  const matchingProfileRole = memberships.find(
+    (membership) => membership.role === profileRole
+  );
+
+  if (matchingProfileRole) {
+    return matchingProfileRole;
+  }
+
+  const onlyMembership = memberships.length === 1 ? memberships.at(0) : undefined;
+  if (onlyMembership) {
+    return onlyMembership;
   }
 
   throw new SchoolContextError(
@@ -59,52 +96,67 @@ function chooseMembershipRole(
   );
 }
 
+function globalSuperadminContext({
+  profile,
+  memberships
+}: {
+  profile: Profile;
+  memberships: SchoolMembershipWithSchool[];
+}): ActiveSchoolContext {
+  return {
+    userId: profile.id,
+    schoolId: null,
+    membershipId: null,
+    membershipRole: "superadmin",
+    membershipStatus: null,
+    role: "superadmin",
+    school: null,
+    isGlobalSuperadmin: true,
+    availableSchools: buildAvailableSchools(memberships),
+    availableMemberships: memberships,
+    requiresSchoolSelection: false,
+    branding: platformBranding,
+    activeAcademicYearId: null,
+    source: "global-superadmin"
+  };
+}
+
 export function resolveActiveSchoolContext({
   profile,
   memberships,
-  requestedSchoolId,
-  allowLegacyFallback
+  requestedSchoolId
 }: {
   profile: Profile;
   memberships: SchoolMembershipWithSchool[];
   requestedSchoolId?: string;
-  allowLegacyFallback: boolean;
 }): ActiveSchoolContext {
-  if (memberships.length === 0) {
-    if (!allowLegacyFallback || requestedSchoolId) {
-      throw new SchoolContextError(
-        "El usuario no tiene una membresía activa para el centro solicitado.",
-        "SCHOOL_MEMBERSHIP_REQUIRED"
-      );
-    }
+  const validMemberships = activeMemberships(memberships);
+  const availableSchools = buildAvailableSchools(validMemberships);
 
-    return {
-      userId: profile.id,
-      schoolId: null,
-      membershipId: null,
-      role: profile.role,
-      school: null,
-      branding: getSchoolBranding(null),
-      source: "legacy-profile"
-    };
+  if (profile.role === "superadmin" && !requestedSchoolId) {
+    return globalSuperadminContext({ profile, memberships: validMemberships });
+  }
+
+  if (validMemberships.length === 0) {
+    throw new SchoolContextError(
+      "El usuario no tiene ninguna membresia activa.",
+      "SCHOOL_MEMBERSHIP_REQUIRED"
+    );
   }
 
   const membershipsBySchool = new Map<string, SchoolMembershipWithSchool[]>();
-
-  for (const membership of memberships) {
-    const existing = membershipsBySchool.get(membership.school_id) ?? [];
-    existing.push(membership);
-    membershipsBySchool.set(membership.school_id, existing);
+  for (const membership of validMemberships) {
+    const schoolMemberships = membershipsBySchool.get(membership.school_id) ?? [];
+    schoolMemberships.push(membership);
+    membershipsBySchool.set(membership.school_id, schoolMemberships);
   }
 
   let selectedMemberships: SchoolMembershipWithSchool[] | undefined;
-
   if (requestedSchoolId) {
     selectedMemberships = membershipsBySchool.get(requestedSchoolId);
-
     if (!selectedMemberships) {
       throw new SchoolContextError(
-        "El usuario no tiene una membresía activa para el centro solicitado.",
+        "El usuario no tiene una membresia activa para el centro solicitado.",
         "SCHOOL_MEMBERSHIP_REQUIRED"
       );
     }
@@ -117,7 +169,7 @@ export function resolveActiveSchoolContext({
     );
   }
 
-  if (!selectedMemberships || selectedMemberships.length === 0) {
+  if (!selectedMemberships?.length) {
     throw new SchoolContextError(
       "No se pudo resolver el contexto activo del centro.",
       "SCHOOL_CONTEXT_UNAVAILABLE"
@@ -130,9 +182,16 @@ export function resolveActiveSchoolContext({
     userId: profile.id,
     schoolId: membership.school_id,
     membershipId: membership.id,
+    membershipRole: membership.role,
+    membershipStatus: "active",
     role: membership.role,
     school: membership.school,
+    isGlobalSuperadmin: profile.role === "superadmin",
+    availableSchools,
+    availableMemberships: validMemberships,
+    requiresSchoolSelection: false,
     branding: getSchoolBranding(membership.school),
+    activeAcademicYearId: null,
     source: "membership"
   };
 }
@@ -150,27 +209,18 @@ export async function getUserSchoolMemberships(
 
   if (membershipsError) {
     if (isMissingMultitenantSchemaError(membershipsError.code)) {
-      return {
-        memberships: [],
-        schemaAvailable: false,
-        membershipRowsFound: false
-      };
+      return { memberships: [], schemaAvailable: false };
     }
 
     throw new SchoolContextError(
-      "No se pudieron consultar las membresías del usuario.",
+      "No se pudieron consultar las membresias del usuario.",
       "SCHOOL_CONTEXT_UNAVAILABLE"
     );
   }
 
-  const schoolIds = [...new Set((memberships ?? []).map((membership) => membership.school_id))];
-
+  const schoolIds = [...new Set((memberships ?? []).map(({ school_id }) => school_id))];
   if (schoolIds.length === 0) {
-    return {
-      memberships: [],
-      schemaAvailable: true,
-      membershipRowsFound: false
-    };
+    return { memberships: [], schemaAvailable: true };
   }
 
   const { data: schools, error: schoolsError } = await supabase
@@ -179,6 +229,7 @@ export async function getUserSchoolMemberships(
       "id,name,short_name,slug,status,active,logo_url,primary_color,secondary_color,accent_color,family_email_domain,calendar_id,created_at,updated_at"
     )
     .in("id", schoolIds)
+    .eq("active", true)
     .returns<School[]>();
 
   if (schoolsError) {
@@ -191,47 +242,140 @@ export async function getUserSchoolMemberships(
   const schoolsById = new Map((schools ?? []).map((school) => [school.id, school]));
   const resolvedMemberships = (memberships ?? []).flatMap((membership) => {
     const school = schoolsById.get(membership.school_id);
-    return school && school.active ? [{ ...membership, school }] : [];
+    return school ? [{ ...membership, school }] : [];
   });
 
-  return {
-    memberships: resolvedMemberships,
-    schemaAvailable: true,
-    membershipRowsFound: true
-  };
+  return { memberships: resolvedMemberships, schemaAvailable: true };
+}
+
+async function addActiveAcademicYear(
+  context: ActiveSchoolContext
+): Promise<ActiveSchoolContext> {
+  if (!context.schoolId) {
+    return context;
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("academic_years")
+    .select("id")
+    .eq("school_id", context.schoolId)
+    .eq("active", true)
+    .maybeSingle<{ id: string }>();
+
+  if (error) {
+    throw new SchoolContextError(
+      "No se pudo resolver el curso academico del centro activo.",
+      "SCHOOL_CONTEXT_UNAVAILABLE"
+    );
+  }
+
+  return { ...context, activeAcademicYearId: data?.id ?? null };
 }
 
 export async function getActiveSchoolContext(
-  requestedSchoolId?: string
+  requestedSchoolId?: string,
+  suppliedProfile?: Profile
 ): Promise<ActiveSchoolContext | null> {
-  const profile = await getCurrentUserProfile();
-
+  const profile = suppliedProfile ?? (await getCurrentUserProfile());
   if (!profile) {
     return null;
   }
 
-  const { memberships, schemaAvailable, membershipRowsFound } =
-    await getUserSchoolMemberships(profile.id);
+  const { memberships, schemaAvailable } = await getUserSchoolMemberships(profile.id);
+  if (!schemaAvailable) {
+    throw new SchoolContextError(
+      "La infraestructura multitenant no esta disponible.",
+      "SCHOOL_CONTEXT_UNAVAILABLE"
+    );
+  }
 
-  return resolveActiveSchoolContext({
-    profile,
-    memberships,
-    requestedSchoolId,
-    allowLegacyFallback:
-      LEGACY_PROFILE_FALLBACK_ENABLED && (!schemaAvailable || !membershipRowsFound)
-  });
+  const persistedSchoolId = requestedSchoolId
+    ? undefined
+    : cookies().get(ACTIVE_SCHOOL_COOKIE_NAME)?.value;
+  const selectedSchoolId = requestedSchoolId ?? persistedSchoolId;
+
+  try {
+    return await addActiveAcademicYear(
+      resolveActiveSchoolContext({
+        profile,
+        memberships,
+        requestedSchoolId: selectedSchoolId
+      })
+    );
+  } catch (error) {
+    if (
+      !requestedSchoolId &&
+      persistedSchoolId &&
+      error instanceof SchoolContextError &&
+      error.code === "SCHOOL_MEMBERSHIP_REQUIRED"
+    ) {
+      return addActiveAcademicYear(
+        resolveActiveSchoolContext({ profile, memberships })
+      );
+    }
+
+    throw error;
+  }
+}
+
+export function getSchoolContextRedirectPath(error: unknown): string | null {
+  if (!(error instanceof SchoolContextError)) {
+    return null;
+  }
+
+  if (error.code === "SCHOOL_MEMBERSHIP_REQUIRED") {
+    return "/no-school";
+  }
+
+  if (
+    error.code === "SCHOOL_SELECTION_REQUIRED" ||
+    error.code === "SCHOOL_ROLE_REQUIRED"
+  ) {
+    return "/select-school";
+  }
+
+  return null;
+}
+
+export async function getAuthenticatedEntryPath(profile: Profile): Promise<string> {
+  try {
+    const context = await getActiveSchoolContext(undefined, profile);
+    return context
+      ? getDashboardPathForRole(context.role)
+      : "/login";
+  } catch (error) {
+    return getSchoolContextRedirectPath(error) ?? "/no-school";
+  }
 }
 
 export async function requireSchoolContext(
-  requestedSchoolId?: string
+  requestedSchoolId?: string,
+  suppliedProfile?: Profile
 ): Promise<ActiveSchoolContext> {
-  const context = await getActiveSchoolContext(requestedSchoolId);
-
-  if (!context) {
-    redirect("/login");
+  try {
+    const context = await getActiveSchoolContext(requestedSchoolId, suppliedProfile);
+    if (!context) {
+      redirect("/login");
+    }
+    return context;
+  } catch (error) {
+    const redirectPath = getSchoolContextRedirectPath(error);
+    if (redirectPath) {
+      redirect(redirectPath);
+    }
+    throw error;
   }
+}
 
-  return context;
+export async function requireOperationalSchoolContext(
+  suppliedProfile?: Profile
+): Promise<ActiveSchoolContext & { schoolId: string }> {
+  const context = await requireSchoolContext(undefined, suppliedProfile);
+  if (!context.schoolId) {
+    redirect("/select-school");
+  }
+  return context as ActiveSchoolContext & { schoolId: string };
 }
 
 export async function requireSchoolRole(
@@ -239,13 +383,11 @@ export async function requireSchoolRole(
   requestedSchoolId?: string
 ): Promise<ActiveSchoolContext> {
   const context = await requireSchoolContext(requestedSchoolId);
-
   if (!allowedRoles.includes(context.role)) {
     throw new SchoolContextError(
       "El usuario no tiene un rol autorizado en el centro activo.",
       "SCHOOL_ROLE_REQUIRED"
     );
   }
-
   return context;
 }

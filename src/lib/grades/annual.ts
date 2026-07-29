@@ -1,6 +1,10 @@
 import { createAdminClient, hasSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAcademicYear } from "@/lib/academic-years";
+import {
+  requireOperationalSchoolContext,
+  requireSchoolRole
+} from "@/lib/schools/context";
 
 type AnnualClient = ReturnType<typeof createAdminClient>;
 
@@ -168,7 +172,8 @@ export async function getFinalRowsForTeacher(params: {
   const labels = await getLabels({
     courseIds: [params.courseId],
     subjectIds: [params.subjectId],
-    teacherIds: [params.teacherId]
+    teacherIds: [params.teacherId],
+    studentIds: (students ?? []).map(({ id }) => id)
   });
   const termMap = new Map<string, number | null>();
   (termGrades ?? []).forEach((grade) => termMap.set(`${grade.student_id}:${grade.term}`, grade.final_grade));
@@ -223,8 +228,13 @@ export async function getFinalRowsForSupervision(courseId?: string): Promise<{
   rows: FinalCourseRow[];
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireSchoolRole(["director", "superadmin"]);
+  if (!schoolContext.schoolId) {
+    return { rows: [], errorMessage: "No hay un centro activo seleccionado." };
+  }
+
   const supabase = await createAnnualClient();
-  const { academicYear } = await getActiveAcademicYear();
+  const { academicYear } = await getActiveAcademicYear(schoolContext.schoolId);
   if (!academicYear) {
     return { rows: [], errorMessage: "No hay curso escolar activo." };
   }
@@ -275,14 +285,20 @@ export async function getFamilyFinalRows(familyId: string): Promise<{
   rows: FinalCourseRow[];
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireSchoolRole(["family"]);
+  if (!schoolContext.schoolId) {
+    return { rows: [], errorMessage: "No hay un centro activo seleccionado." };
+  }
+
   const supabase = await createAnnualClient();
-  const { academicYear } = await getActiveAcademicYear();
+  const { academicYear } = await getActiveAcademicYear(schoolContext.schoolId);
   if (!academicYear) {
     return { rows: [], errorMessage: "No hay curso escolar activo." };
   }
   const { data: relations, error: relationsError } = await supabase
     .from("parent_students")
     .select("student_id")
+    .eq("school_id", schoolContext.schoolId)
     .eq("parent_id", familyId)
     .returns<{ student_id: string }[]>();
 
@@ -329,7 +345,8 @@ async function attachFinalLabels(rows: FinalCourseGrade[]): Promise<{ rows: Fina
   const labels = await getLabels({
     courseIds: rows.map((row) => row.course_id),
     subjectIds: rows.map((row) => row.subject_id),
-    teacherIds: rows.map((row) => row.teacher_id)
+    teacherIds: rows.map((row) => row.teacher_id),
+    studentIds: rows.map((row) => row.student_id)
   });
 
   return {
@@ -362,29 +379,35 @@ async function attachFinalLabels(rows: FinalCourseGrade[]): Promise<{ rows: Fina
 async function getLabels({
   courseIds,
   subjectIds,
-  teacherIds
+  teacherIds,
+  studentIds
 }: {
   courseIds: string[];
   subjectIds: string[];
   teacherIds: string[];
+  studentIds: string[];
 }) {
+  const schoolContext = await requireOperationalSchoolContext();
   const supabase = await createAnnualClient();
   const uniqueCourseIds = Array.from(new Set(courseIds.filter(Boolean)));
   const uniqueSubjectIds = Array.from(new Set(subjectIds.filter(Boolean)));
   const uniqueTeacherIds = Array.from(new Set(teacherIds.filter(Boolean)));
+  const uniqueStudentIds = Array.from(new Set(studentIds.filter(Boolean)));
 
   const [{ data: courses, error: coursesError }, { data: subjects, error: subjectsError }, { data: teachers, error: teachersError }, { data: students, error: studentsError }] =
     await Promise.all([
       uniqueCourseIds.length > 0
-        ? supabase.from("courses").select("id,name").in("id", uniqueCourseIds).returns<{ id: string; name: string }[]>()
+        ? supabase.from("courses").select("id,name").eq("school_id", schoolContext.schoolId).in("id", uniqueCourseIds).returns<{ id: string; name: string }[]>()
         : Promise.resolve({ data: [], error: null }),
       uniqueSubjectIds.length > 0
-        ? supabase.from("subjects").select("id,name").in("id", uniqueSubjectIds).returns<{ id: string; name: string }[]>()
+        ? supabase.from("subjects").select("id,name").eq("school_id", schoolContext.schoolId).in("id", uniqueSubjectIds).returns<{ id: string; name: string }[]>()
         : Promise.resolve({ data: [], error: null }),
       uniqueTeacherIds.length > 0
         ? supabase.from("profiles").select("id,email,full_name").in("id", uniqueTeacherIds).returns<{ id: string; email: string | null; full_name: string | null }[]>()
         : Promise.resolve({ data: [], error: null }),
-      supabase.from("students").select("id,name,last_name").returns<{ id: string; name: string; last_name: string }[]>()
+      uniqueStudentIds.length > 0
+        ? supabase.from("students").select("id,name,last_name").eq("school_id", schoolContext.schoolId).in("id", uniqueStudentIds).returns<{ id: string; name: string; last_name: string }[]>()
+        : Promise.resolve({ data: [], error: null })
     ]);
 
   return {

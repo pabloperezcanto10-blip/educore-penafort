@@ -14,6 +14,8 @@ const statuses = ["present", "absent", "late"] as const;
 
 export async function saveDailyAttendance(formData: FormData) {
   const profile = await requireRole("tutor");
+  const schoolId = profile.schoolContext.schoolId;
+  if (!schoolId) throw new Error("No hay un centro activo seleccionado.");
   const supabase = await createClient();
   const {
     data: { user },
@@ -64,7 +66,7 @@ export async function saveDailyAttendance(formData: FormData) {
     throw new Error(error.message);
   }
 
-  await notifyFamiliesAboutPendingAttendance(supabase, records);
+  await notifyFamiliesAboutPendingAttendance(supabase, schoolId, records);
 
   revalidatePath("/dashboard/tutor/attendance");
   revalidatePath("/dashboard/family");
@@ -73,6 +75,7 @@ export async function saveDailyAttendance(formData: FormData) {
 
 async function notifyFamiliesAboutPendingAttendance(
   supabase: Awaited<ReturnType<typeof createClient>>,
+  schoolId: string,
   records: Database["public"]["Tables"]["student_attendance"]["Insert"][]
 ) {
   const relevantRecords = records.filter((record) => record.status === "absent" || record.status === "late");
@@ -83,6 +86,7 @@ async function notifyFamiliesAboutPendingAttendance(
   const { data: families } = await supabase
     .from("parent_students")
     .select("parent_id,student_id")
+    .eq("school_id", schoolId)
     .in("student_id", studentIds)
     .returns<{ parent_id: string; student_id: string }[]>();
 

@@ -11,17 +11,25 @@ import {
 } from "lucide-react";
 import type { Profile } from "@/lib/auth/session";
 import { getDashboardPathForRole } from "@/lib/auth/roles";
-import { platformSettings, schoolSettings } from "@/lib/settings";
+import { platformSettings } from "@/lib/settings";
+import type { ActiveSchoolContext } from "@/lib/schools/types";
 import { SchoolLogo } from "@/components/branding/school-logo";
 import { EduCoreAssistantButton } from "@/components/ai/educore-assistant-button";
+import { SchoolSwitcher } from "@/components/layout/school-switcher";
 
 type AppShellProps = {
   profile: Profile;
+  schoolContext: ActiveSchoolContext;
   academicYearName?: string | null;
   children: React.ReactNode;
 };
 
-export function AppShell({ profile, academicYearName, children }: AppShellProps) {
+export function AppShell({
+  profile,
+  schoolContext,
+  academicYearName,
+  children
+}: AppShellProps) {
   const assistantEnabled = process.env.AI_ASSISTANT_ENABLED === "true";
   const showAssistant = assistantEnabled && (profile.role === "tutor" || profile.role === "director" || profile.role === "superadmin");
   const navigationItems = getNavigationItems(profile.role);
@@ -31,16 +39,24 @@ export function AppShell({ profile, academicYearName, children }: AppShellProps)
       <header className="border-b border-primary/25 bg-white shadow-sm">
         <div className="mx-auto flex min-h-[76px] max-w-6xl items-center justify-between gap-4 px-6 py-3">
           <Link href={getDashboardPathForRole(profile.role)} className="flex min-w-0 items-center gap-3">
-            <SchoolLogo size="md" />
+            <SchoolLogo
+              size="md"
+              src={schoolContext.branding.logoUrl}
+              name={schoolContext.branding.name}
+              initials={initialsFor(schoolContext.branding.shortName)}
+            />
             <span className="min-w-0">
               <span className="block truncate text-base font-semibold leading-tight text-foreground">
-                {schoolSettings.name}
+                {schoolContext.school
+                  ? schoolContext.branding.name
+                  : "Administracion global"}
               </span>
               <span className="block truncate text-xs text-muted-foreground">Powered by {platformSettings.name}</span>
             </span>
           </Link>
 
           <div className="flex shrink-0 items-center gap-3">
+            <SchoolSwitcher context={schoolContext} />
             {academicYearName ? (
               <span className="hidden rounded-md border border-border bg-background px-3 py-2 text-xs font-semibold text-muted-foreground sm:inline-flex">
                 Curso {academicYearName}
@@ -90,6 +106,15 @@ export function AppShell({ profile, academicYearName, children }: AppShellProps)
       {showAssistant ? <EduCoreAssistantButton userName={profile.full_name ?? profile.email} role={profile.role} /> : null}
     </div>
   );
+}
+
+function initialsFor(name: string) {
+  return name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part.charAt(0))
+    .join("")
+    .toUpperCase();
 }
 
 function getNavigationItems(role: Profile["role"]) {

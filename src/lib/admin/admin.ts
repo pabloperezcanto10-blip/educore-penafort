@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Role } from "@/lib/auth/roles";
 import { getActiveAcademicYear } from "@/lib/academic-years";
 import { getActiveCourses } from "@/lib/courses";
-import { DEFAULT_OPERATIONAL_SCHOOL_ID } from "@/lib/schools/constants";
+import { requireOperationalSchoolContext } from "@/lib/schools/context";
 
 export type AdminProfile = {
   id: string;
@@ -10,6 +10,7 @@ export type AdminProfile = {
   full_name: string | null;
   role: Role;
   active: boolean;
+  must_change_password: boolean;
 };
 
 export type AdminCourse = {
@@ -25,6 +26,7 @@ export type AdminSubject = {
 
 export type AdminTeacherAssignment = {
   id: string;
+  school_id: string;
   teacher_id: string;
   course_id: string;
   subject_id: string | null;
@@ -34,6 +36,7 @@ export type AdminTeacherAssignment = {
 
 export type AdminStudent = {
   id: string;
+  school_id: string;
   name: string;
   last_name: string;
   birth_date: string | null;
@@ -45,6 +48,7 @@ export type AdminStudent = {
 };
 
 export type AdminParentStudent = {
+  school_id: string;
   parent_id: string;
   student_id: string;
 };
@@ -53,28 +57,63 @@ export async function getAdminProfiles(): Promise<{
   profiles: AdminProfile[];
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireOperationalSchoolContext();
   const supabase = await createClient();
+  const { data: memberships, error: membershipsError } = await supabase
+    .from("school_memberships")
+    .select("user_id,role,active")
+    .eq("school_id", schoolContext.schoolId)
+    .returns<Array<{ user_id: string; role: Role; active: boolean }>>();
+
+  if (membershipsError) {
+    return { profiles: [], errorMessage: membershipsError.message };
+  }
+
+  const userIds = [...new Set((memberships ?? []).map(({ user_id }) => user_id))];
+  if (userIds.length === 0) {
+    return { profiles: [], errorMessage: null };
+  }
+
   const { data, error } = await supabase
     .from("profiles")
-    .select("id,email,full_name,role,active")
+    .select("id,email,full_name,role,active,must_change_password")
+    .in("id", userIds)
     .order("role", { ascending: true })
     .order("full_name", { ascending: true })
     .returns<AdminProfile[]>();
 
-  if (error && error.message.includes("active")) {
+  if (
+    error &&
+    (error.message.includes("active") ||
+      error.message.includes("must_change_password"))
+  ) {
     const { data: fallbackData, error: fallbackError } = await supabase
       .from("profiles")
       .select("id,email,full_name,role")
+      .in("id", userIds)
       .order("role", { ascending: true })
       .order("full_name", { ascending: true })
-      .returns<Omit<AdminProfile, "active">[]>();
+      .returns<Omit<AdminProfile, "active" | "must_change_password">[]>();
 
     if (fallbackError) {
       return { profiles: [], errorMessage: fallbackError.message };
     }
 
+    const fallbackById = new Map(
+      (fallbackData ?? []).map((profile) => [profile.id, profile])
+    );
     return {
-      profiles: (fallbackData ?? []).map((profile) => ({ ...profile, active: true })),
+      profiles: (memberships ?? []).flatMap((membership) => {
+        const profile = fallbackById.get(membership.user_id);
+        return profile
+          ? [{
+              ...profile,
+              role: membership.role,
+              active: membership.active,
+              must_change_password: false
+            }]
+          : [];
+      }),
       errorMessage: null
     };
   }
@@ -83,7 +122,22 @@ export async function getAdminProfiles(): Promise<{
     return { profiles: [], errorMessage: error.message };
   }
 
-  return { profiles: data ?? [], errorMessage: null };
+  const profilesById = new Map((data ?? []).map((profile) => [profile.id, profile]));
+  return {
+    profiles: (memberships ?? []).flatMap((membership) => {
+      const profile = profilesById.get(membership.user_id);
+      return profile
+        ? [
+            {
+              ...profile,
+              role: membership.role,
+              active: profile.active && membership.active
+            }
+          ]
+        : [];
+    }),
+    errorMessage: null
+  };
 }
 
 export async function getAdminCourses(): Promise<{
@@ -97,11 +151,12 @@ export async function getAdminSubjects(): Promise<{
   subjects: AdminSubject[];
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireOperationalSchoolContext();
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("subjects")
     .select("id,name")
-    .eq("school_id", DEFAULT_OPERATIONAL_SCHOOL_ID)
+    .eq("school_id", schoolContext.schoolId)
     .order("name", { ascending: true })
     .returns<AdminSubject[]>();
 
@@ -116,11 +171,13 @@ export async function getAdminTeacherAssignments(): Promise<{
   assignments: AdminTeacherAssignment[];
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireOperationalSchoolContext();
   const supabase = await createClient();
-  const { academicYear } = await getActiveAcademicYear();
+  const { academicYear } = await getActiveAcademicYear(schoolContext.schoolId);
   let query = supabase
     .from("teacher_assignments")
-    .select("id,teacher_id,course_id,subject_id,academic_year_id,created_at")
+    .select("id,school_id,teacher_id,course_id,subject_id,academic_year_id,created_at")
+    .eq("school_id", schoolContext.schoolId)
     .order("created_at", { ascending: false });
 
   if (academicYear) {
@@ -140,11 +197,13 @@ export async function getAdminStudents(): Promise<{
   students: AdminStudent[];
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireOperationalSchoolContext();
   const supabase = await createClient();
-  const { academicYear } = await getActiveAcademicYear();
+  const { academicYear } = await getActiveAcademicYear(schoolContext.schoolId);
   let query = supabase
     .from("students")
-    .select("id,name,last_name,birth_date,course_id,tutor_teacher_id,active,academic_year_id,created_at")
+    .select("id,school_id,name,last_name,birth_date,course_id,tutor_teacher_id,active,academic_year_id,created_at")
+    .eq("school_id", schoolContext.schoolId)
     .order("last_name", { ascending: true })
     .order("name", { ascending: true });
 
@@ -165,10 +224,12 @@ export async function getAdminFamilyRelations(): Promise<{
   relations: AdminParentStudent[];
   errorMessage: string | null;
 }> {
+  const schoolContext = await requireOperationalSchoolContext();
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("parent_students")
-    .select("parent_id,student_id")
+    .select("school_id,parent_id,student_id")
+    .eq("school_id", schoolContext.schoolId)
     .returns<AdminParentStudent[]>();
 
   if (error) {

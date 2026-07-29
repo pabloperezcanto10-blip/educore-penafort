@@ -614,3 +614,34 @@ Colegio Peñafort QA, QA School y los fixtures de sprints anteriores. 037 puede
 prepararse como candidata, pero no aplicarse en producción. 038 puede revisarse
 en diseño, pero no implementarse ni ejecutarse hasta cerrar el contexto de
 tenant en la aplicación.
+
+## Actualización Sprint 20.2G
+
+El bloqueo aplicativo identificado en 20.2F queda resuelto en código:
+
+- `ActiveSchoolContext` se propaga por los layouts protegidos;
+- Director, Tutor, Family y Admin validan una membership activa del centro;
+- desaparece el fallback `legacy-profile` como autorización del shell;
+- desaparece `DEFAULT_OPERATIONAL_SCHOOL_ID` de la aplicación protegida;
+- usuarios multischool requieren selección explícita y no se usa la primera
+  membership;
+- las consultas académicas, comunicaciones, informes y acciones derivan el
+  tenant del contexto validado.
+
+No se ha ejecutado backfill, SQL remoto ni migración nueva en este sprint. La
+baseline de staging permanece en `001-037`.
+
+Antes de promover 037 a producción todavía deben cumplirse:
+
+1. repetir una regresión autenticada con usuarios representativos y sin datos
+   reales;
+2. verificar el inventario de Peñafort previo al cambio;
+3. confirmar el plan de reversión y la ventana operativa;
+4. diseñar 038 para añadir ownership directo a notificaciones, horarios y
+   auditoría;
+5. mantener bloqueada cualquier fila ambigua en vez de asignarle un centro por
+   defecto.
+
+La estrategia de 038 debe preservar el criterio determinista usado en 036 y
+037: una fila sin evidencia única de tenant aborta o queda explícitamente fuera
+de alcance hasta su revisión.

@@ -5,7 +5,7 @@ import { getDashboardCalendarEvents } from "@/lib/calendar/ical";
 import { getFamilyNotifications } from "@/lib/communications/notifications";
 import { getFamilyGrades } from "@/lib/grades/grades";
 import { getDashboardNotifications } from "@/lib/internal-notifications";
-import { penafortBrand } from "@/lib/branding/brand-config";
+import { toBrandConfig } from "@/lib/schools/branding";
 
 export default async function FamilyDashboardPage() {
   const profile = await requireRole("family");
@@ -31,7 +31,10 @@ export default async function FamilyDashboardPage() {
 
   return (
     <FamilyDashboardView
-      brand={penafortBrand}
+      brand={toBrandConfig(
+        profile.schoolContext.branding,
+        profile.schoolContext.schoolId ?? "global"
+      )}
       mode="production"
       routes={productionFamilyDashboardRoutes}
       data={{

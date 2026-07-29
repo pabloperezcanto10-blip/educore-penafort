@@ -767,3 +767,48 @@ La decisión es `GO CON BLOQUEOS`: 037 puede mantenerse como candidata, pero no
 debe promoverse a producción ni debe aplicarse 038 hasta integrar el contexto
 de centro en la aplicación y retirar el fallback legacy de las rutas
 protegidas.
+
+## Sprint 20.2G - propagación de ActiveSchoolContext
+
+La aplicación protegida deja de depender de
+`DEFAULT_OPERATIONAL_SCHOOL_ID`, de la primera membership disponible y del rol
+legacy de `profiles` como fuente de autorización. El acceso operativo se
+resuelve mediante `ActiveSchoolContext`, construido exclusivamente a partir de
+memberships activas y centros activos.
+
+Reglas vigentes:
+
+- un único centro autorizado se selecciona automáticamente;
+- varios centros requieren una selección explícita o una cookie HTTP-only
+  previamente validada;
+- una selección manipulada o caducada nunca concede acceso;
+- un usuario sin membership activa no puede cargar un dashboard de centro;
+- `profiles.role` solo puede desambiguar entre roles que ya estén autorizados
+  por memberships activas del mismo centro;
+- el superadmin global conserva una vista global controlada y puede entrar en
+  contexto de centro mediante una selección explícita;
+- curso académico, branding, navegación y consultas operativas derivan del
+  centro activo.
+
+Los layouts protegidos y de rol resuelven el contexto antes de ejecutar las
+consultas del dashboard. Las Server Actions y handlers sensibles vuelven a
+validarlo en servidor. El inventario y las decisiones completas están en
+`docs/SPRINT_20_2G_ACTIVE_SCHOOL_CONTEXT.md`.
+
+### Límites previos a 038
+
+`notifications`, `internal_notifications`, `teacher_schedule` y `audit_logs`
+todavía no disponen de ownership directo por `school_id`. Hasta que 038 lo
+incorpore:
+
+- una notificación solo se muestra si una entidad relacionada demuestra el
+  tenant seleccionado;
+- un horario ambiguo para un docente multischool se oculta;
+- la auditoría administrativa y directiva se limita a la vista global de
+  superadmin;
+- no se infiere ownership mediante nombres, orden de filas o centros por
+  defecto.
+
+Estas restricciones reducen temporalmente cobertura funcional, pero evitan
+lecturas cruzadas. La promoción de 037 a producción sigue requiriendo una
+regresión autenticada representativa y los controles del plan de backfill.

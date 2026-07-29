@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { LoginForm } from "./login-form";
 import { getCurrentUserProfile } from "@/lib/auth/session";
-import { getDashboardPathForRole } from "@/lib/auth/roles";
+import { getAuthenticatedEntryPath } from "@/lib/schools/context";
 import { platformSettings, schoolSettings } from "@/lib/settings";
 import { SchoolLogo } from "@/components/branding/school-logo";
 
@@ -13,7 +13,7 @@ export default async function LoginPage() {
       redirect("/change-password");
     }
 
-    redirect(getDashboardPathForRole(profile.role));
+    redirect(await getAuthenticatedEntryPath(profile));
   }
 
   return (

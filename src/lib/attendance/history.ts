@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getActiveAcademicYear } from "@/lib/academic-years";
 import { getTodayDate } from "@/lib/attendance/attendance";
 import type { SessionAttendanceStatus } from "@/lib/attendance/session-attendance";
+import { requireOperationalSchoolContext } from "@/lib/schools/context";
 
 export type AttendanceHistoryRow = {
   id: string;
@@ -55,8 +56,9 @@ export async function getTutorAttendanceHistory({
     return emptyHistory("Selecciona curso y materia.");
   }
 
+  const schoolContext = await requireOperationalSchoolContext();
   const supabase = await createClient();
-  const { academicYear } = await getActiveAcademicYear();
+  const { academicYear } = await getActiveAcademicYear(schoolContext.schoolId);
 
   if (!academicYear) {
     return emptyHistory("No hay curso escolar activo.");
@@ -65,6 +67,7 @@ export async function getTutorAttendanceHistory({
   const { data: assignment, error: assignmentError } = await supabase
     .from("teacher_assignments")
     .select("course_id,subject_id")
+    .eq("school_id", schoolContext.schoolId)
     .eq("teacher_id", teacherId)
     .eq("course_id", courseId)
     .eq("subject_id", subjectId)
@@ -80,11 +83,12 @@ export async function getTutorAttendanceHistory({
   }
 
   const [{ data: course }, { data: subject }, { data: students, error: studentsError }] = await Promise.all([
-    supabase.from("courses").select("id,name").eq("id", courseId).maybeSingle<{ id: string; name: string }>(),
-    supabase.from("subjects").select("id,name").eq("id", subjectId).maybeSingle<{ id: string; name: string }>(),
+    supabase.from("courses").select("id,name").eq("school_id", schoolContext.schoolId).eq("id", courseId).maybeSingle<{ id: string; name: string }>(),
+    supabase.from("subjects").select("id,name").eq("school_id", schoolContext.schoolId).eq("id", subjectId).maybeSingle<{ id: string; name: string }>(),
     supabase
       .from("students")
       .select("id,name,last_name")
+      .eq("school_id", schoolContext.schoolId)
       .eq("course_id", courseId)
       .eq("academic_year_id", academicYear.id)
       .eq("active", true)

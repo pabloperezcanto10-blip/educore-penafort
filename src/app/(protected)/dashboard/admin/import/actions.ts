@@ -7,12 +7,14 @@ import { logAuditAction } from "@/lib/audit";
 import { getActiveAcademicYear } from "@/lib/academic-years";
 import { buildImportPreview, importTemporaryPassword, normalizeForEmail } from "@/lib/admin/import-preview";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireOperationalSchoolContext } from "@/lib/schools/context";
 import { withToast } from "@/lib/toast";
 import type { Database } from "@/lib/database.types";
 
 type StudentInsert = Database["public"]["Tables"]["students"]["Insert"];
 type ProfileInsert = Database["public"]["Tables"]["profiles"]["Insert"];
 type ParentStudentInsert = Database["public"]["Tables"]["parent_students"]["Insert"];
+type SchoolMembershipInsert = Database["public"]["Tables"]["school_memberships"]["Insert"];
 
 type ImportResult = {
   importedStudents: number;
@@ -43,6 +45,7 @@ export async function previewAdminImport(formData: FormData) {
 
 export async function confirmAdminImport(formData: FormData) {
   const actor = await requireRole("superadmin");
+  const schoolContext = await requireOperationalSchoolContext(actor);
   const courseId = String(formData.get("course_id") ?? "").trim();
   const rawList = String(formData.get("raw_list") ?? "").trim();
 
@@ -56,6 +59,7 @@ export async function confirmAdminImport(formData: FormData) {
     result = await runImport({
       actorId: actor.id,
       actorRole: actor.role,
+      schoolId: schoolContext.schoolId,
       courseId,
       rawList
     });
@@ -87,15 +91,17 @@ export async function confirmAdminImport(formData: FormData) {
 async function runImport({
   actorId,
   actorRole,
+  schoolId,
   courseId,
   rawList
 }: {
   actorId: string;
   actorRole: string;
+  schoolId: string;
   courseId: string;
   rawList: string;
 }): Promise<ImportResult> {
-  const { academicYear } = await getActiveAcademicYear();
+  const { academicYear } = await getActiveAcademicYear(schoolId);
 
   if (!academicYear) {
     throw new Error("No hay curso escolar activo.");
@@ -114,7 +120,18 @@ async function runImport({
   }
 
   const supabaseAdmin = createAdminClient();
-  const tutorTeacherId = await resolveTutorTeacherIdForCourse({ courseId, fallbackUserId: actorId });
+  const { data: course } = await supabaseAdmin
+    .from("courses")
+    .select("id")
+    .eq("id", courseId)
+    .eq("school_id", schoolId)
+    .eq("academic_year_id", academicYear.id)
+    .maybeSingle();
+  if (!course) {
+    throw new Error("El curso no pertenece al centro activo.");
+  }
+
+  const tutorTeacherId = await resolveTutorTeacherIdForCourse({ courseId, schoolId });
   let importedStudents = 0;
   let createdFamilies = 0;
   let linkedRelations = 0;
@@ -122,6 +139,7 @@ async function runImport({
 
   for (const row of validRows) {
     const studentPayload: StudentInsert = {
+      school_id: schoolId,
       name: row.firstName,
       last_name: `${row.lastName1} ${row.lastName2}`.trim(),
       course_id: courseId,
@@ -154,7 +172,8 @@ async function runImport({
     const familyName = `Familia ${row.lastName1} ${row.lastName2}`.trim();
     const { familyId, familyEmail } = await createFamilyUserWithAvailableEmail({
       baseEmail: row.familyEmail,
-      familyName
+      familyName,
+      schoolId
     });
 
     createdFamilies += 1;
@@ -174,6 +193,7 @@ async function runImport({
     });
 
     const relationPayload: ParentStudentInsert = {
+      school_id: schoolId,
       parent_id: familyId,
       student_id: student.id
     };
@@ -248,13 +268,18 @@ function buildImportHref({
 
 async function createFamilyUserWithAvailableEmail({
   baseEmail,
-  familyName
+  familyName,
+  schoolId
 }: {
   baseEmail: string;
   familyName: string;
+  schoolId: string;
 }) {
   const supabaseAdmin = createAdminClient();
-  const [localPart, domain = "penafort.com"] = baseEmail.split("@");
+  const [localPart, domain] = baseEmail.split("@");
+  if (!localPart || !domain) {
+    throw new Error("No se pudo resolver el dominio familiar del centro activo.");
+  }
 
   for (let index = 1; index <= 50; index += 1) {
     const familyEmail = index === 1 ? baseEmail : `${localPart}${index}@${domain}`;
@@ -297,6 +322,20 @@ async function createFamilyUserWithAvailableEmail({
       throw new Error(profileError.message);
     }
 
+    const membershipPayload: SchoolMembershipInsert = {
+      school_id: schoolId,
+      user_id: familyId,
+      role: "family",
+      active: true
+    };
+    const { error: membershipError } = await supabaseAdmin
+      .from("school_memberships")
+      .insert(membershipPayload as never);
+    if (membershipError) {
+      await supabaseAdmin.auth.admin.deleteUser(familyId);
+      throw new Error("No se pudo vincular la familia con el centro activo.");
+    }
+
     return { familyId, familyEmail };
   }
 
@@ -306,20 +345,25 @@ async function createFamilyUserWithAvailableEmail({
 
 async function resolveTutorTeacherIdForCourse({
   courseId,
-  fallbackUserId
+  schoolId
 }: {
   courseId: string;
-  fallbackUserId: string;
+  schoolId: string;
 }) {
   const supabaseAdmin = createAdminClient();
   const { data } = await supabaseAdmin
     .from("teacher_assignments")
     .select("teacher_id")
+    .eq("school_id", schoolId)
     .eq("course_id", courseId)
     .limit(1)
     .maybeSingle<{ teacher_id: string }>();
 
-  return data?.teacher_id ?? fallbackUserId;
+  if (!data?.teacher_id) {
+    throw new Error("El curso no tiene un tutor asignado en el centro activo.");
+  }
+
+  return data.teacher_id;
 }
 
 type DeleteImportResult = {
@@ -342,6 +386,7 @@ export async function loadAdminImportCleanup(formData: FormData) {
 
 export async function deleteImportedStudent(formData: FormData) {
   const actor = await requireRole("superadmin");
+  const schoolContext = await requireOperationalSchoolContext(actor);
   const studentId = String(formData.get("student_id") ?? "").trim();
   const courseId = String(formData.get("cleanup_course_id") ?? "").trim();
 
@@ -350,7 +395,12 @@ export async function deleteImportedStudent(formData: FormData) {
   }
 
   try {
-    const result = await deleteStudentWithFamilies({ actorId: actor.id, actorRole: actor.role, studentId });
+    const result = await deleteStudentWithFamilies({
+      actorId: actor.id,
+      actorRole: actor.role,
+      schoolId: schoolContext.schoolId,
+      studentId
+    });
     revalidateImportCleanup();
     redirect(withToast(buildCleanupHref({ courseId, result }), result.preservedFamilies > 0 ? "warning" : "success", result.preservedFamilies > 0 ? "Datos eliminados. Se mantuvieron familias con otros hijos vinculados." : "Datos eliminados correctamente."));
   } catch (error) {
@@ -361,6 +411,7 @@ export async function deleteImportedStudent(formData: FormData) {
 
 export async function deleteImportedCourse(formData: FormData) {
   const actor = await requireRole("superadmin");
+  const schoolContext = await requireOperationalSchoolContext(actor);
   const courseId = String(formData.get("cleanup_course_id") ?? "").trim();
 
   if (!courseId) {
@@ -372,6 +423,7 @@ export async function deleteImportedCourse(formData: FormData) {
     const { data: students, error } = await supabaseAdmin
       .from("students")
       .select("id")
+      .eq("school_id", schoolContext.schoolId)
       .eq("course_id", courseId)
       .returns<{ id: string }[]>();
 
@@ -382,7 +434,12 @@ export async function deleteImportedCourse(formData: FormData) {
     const total: DeleteImportResult = { deletedStudents: 0, deletedFamilies: 0, deletedRelations: 0, preservedFamilies: 0 };
 
     for (const student of students ?? []) {
-      const result = await deleteStudentWithFamilies({ actorId: actor.id, actorRole: actor.role, studentId: student.id });
+      const result = await deleteStudentWithFamilies({
+        actorId: actor.id,
+        actorRole: actor.role,
+        schoolId: schoolContext.schoolId,
+        studentId: student.id
+      });
       total.deletedStudents += result.deletedStudents;
       total.deletedFamilies += result.deletedFamilies;
       total.deletedRelations += result.deletedRelations;
@@ -410,10 +467,12 @@ export async function deleteImportedCourse(formData: FormData) {
 async function deleteStudentWithFamilies({
   actorId,
   actorRole,
+  schoolId,
   studentId
 }: {
   actorId: string;
   actorRole: string;
+  schoolId: string;
   studentId: string;
 }): Promise<DeleteImportResult> {
   const supabaseAdmin = createAdminClient();
@@ -421,6 +480,7 @@ async function deleteStudentWithFamilies({
     .from("students")
     .select("id,name,last_name,course_id")
     .eq("id", studentId)
+    .eq("school_id", schoolId)
     .maybeSingle<{ id: string; name: string; last_name: string; course_id: string }>();
 
   if (studentError) {
@@ -434,6 +494,7 @@ async function deleteStudentWithFamilies({
   const { data: relations, error: relationsError } = await supabaseAdmin
     .from("parent_students")
     .select("parent_id,student_id")
+    .eq("school_id", schoolId)
     .eq("student_id", studentId)
     .returns<{ parent_id: string; student_id: string }[]>();
 
@@ -445,7 +506,11 @@ async function deleteStudentWithFamilies({
   const parentIds = Array.from(new Set((relations ?? []).map((relation) => relation.parent_id)));
 
   if (parentIds.length > 0) {
-    const { error: relationDeleteError } = await supabaseAdmin.from("parent_students").delete().eq("student_id", studentId);
+    const { error: relationDeleteError } = await supabaseAdmin
+      .from("parent_students")
+      .delete()
+      .eq("school_id", schoolId)
+      .eq("student_id", studentId);
 
     if (relationDeleteError) {
       throw new Error(relationDeleteError.message);
@@ -475,6 +540,19 @@ async function deleteStudentWithFamilies({
     }
 
     if ((count ?? 0) > 0) {
+      result.preservedFamilies += 1;
+      continue;
+    }
+
+    const { count: otherMemberships, error: membershipCountError } = await supabaseAdmin
+      .from("school_memberships")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", parentId)
+      .neq("school_id", schoolId);
+    if (membershipCountError) {
+      throw new Error(membershipCountError.message);
+    }
+    if ((otherMemberships ?? 0) > 0) {
       result.preservedFamilies += 1;
       continue;
     }
@@ -510,7 +588,11 @@ async function deleteStudentWithFamilies({
     });
   }
 
-  const { error: studentDeleteError } = await supabaseAdmin.from("students").delete().eq("id", studentId);
+  const { error: studentDeleteError } = await supabaseAdmin
+    .from("students")
+    .delete()
+    .eq("school_id", schoolId)
+    .eq("id", studentId);
 
   if (studentDeleteError) {
     throw new Error(studentDeleteError.message);
@@ -567,13 +649,19 @@ export type DeleteImportActionResponse = {
 
 export async function deleteImportedStudentWithResult({ studentId }: { studentId: string }): Promise<DeleteImportActionResponse> {
   const actor = await requireRole("superadmin");
+  const schoolContext = await requireOperationalSchoolContext(actor);
 
   if (!studentId) {
     return { success: false, message: "Faltan datos para borrar el alumno." };
   }
 
   try {
-    const result = await deleteStudentWithFamilies({ actorId: actor.id, actorRole: actor.role, studentId });
+    const result = await deleteStudentWithFamilies({
+      actorId: actor.id,
+      actorRole: actor.role,
+      schoolId: schoolContext.schoolId,
+      studentId
+    });
     revalidateImportCleanup();
     return {
       success: true,
@@ -587,6 +675,7 @@ export async function deleteImportedStudentWithResult({ studentId }: { studentId
 
 export async function deleteImportedCourseWithResult({ courseId }: { courseId: string }): Promise<DeleteImportActionResponse> {
   const actor = await requireRole("superadmin");
+  const schoolContext = await requireOperationalSchoolContext(actor);
 
   if (!courseId) {
     return { success: false, message: "Selecciona un curso para borrar datos." };
@@ -597,6 +686,7 @@ export async function deleteImportedCourseWithResult({ courseId }: { courseId: s
     const { data: students, error } = await supabaseAdmin
       .from("students")
       .select("id")
+      .eq("school_id", schoolContext.schoolId)
       .eq("course_id", courseId)
       .returns<{ id: string }[]>();
 
@@ -607,7 +697,12 @@ export async function deleteImportedCourseWithResult({ courseId }: { courseId: s
     const total: DeleteImportResult = { deletedStudents: 0, deletedFamilies: 0, deletedRelations: 0, preservedFamilies: 0 };
 
     for (const student of students ?? []) {
-      const result = await deleteStudentWithFamilies({ actorId: actor.id, actorRole: actor.role, studentId: student.id });
+      const result = await deleteStudentWithFamilies({
+        actorId: actor.id,
+        actorRole: actor.role,
+        schoolId: schoolContext.schoolId,
+        studentId: student.id
+      });
       total.deletedStudents += result.deletedStudents;
       total.deletedFamilies += result.deletedFamilies;
       total.deletedRelations += result.deletedRelations;

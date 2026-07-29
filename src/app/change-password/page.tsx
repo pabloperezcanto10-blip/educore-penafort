@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { GraduationCap } from "lucide-react";
-import { getDashboardPathForRole } from "@/lib/auth/roles";
 import { getCurrentUserProfile } from "@/lib/auth/session";
+import { getAuthenticatedEntryPath } from "@/lib/schools/context";
 import { ChangePasswordForm } from "./change-password-form";
 
 export default async function ChangePasswordPage() {
@@ -11,7 +11,7 @@ export default async function ChangePasswordPage() {
     redirect("/login");
   }
 
-  const dashboardHref = getDashboardPathForRole(profile.role);
+  const dashboardHref = await getAuthenticatedEntryPath(profile);
 
   return (
     <main className="flex min-h-screen items-center justify-center px-6 py-10">

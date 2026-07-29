@@ -4,7 +4,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth/session";
 import { logAuditAction } from "@/lib/audit";
-import { markCommunicationsRead, parseCommunicationIds, setCommunicationsStatus } from "@/lib/communications/actions";
+import {
+  getAllowedCommunicationIds,
+  markCommunicationsRead,
+  parseCommunicationIds,
+  setCommunicationsStatus
+} from "@/lib/communications/actions";
 import { createAdminClient, hasSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { withToast } from "@/lib/toast";
@@ -20,6 +25,15 @@ export async function replyToAdminCommunication(formData: FormData) {
 
   if (!communicationId || !message) {
     throw new Error("Falta la comunicacion o el mensaje de respuesta.");
+  }
+
+  const allowedIds = await getAllowedCommunicationIds({
+    actor: profile,
+    ids: [communicationId],
+    ownOnly: false
+  });
+  if (allowedIds.length !== 1) {
+    throw new Error("No tienes acceso a esta comunicacion en el contexto activo.");
   }
 
   const original = hasSupabaseAdminClient()
@@ -115,6 +129,28 @@ export async function forwardAdminCommunication(formData: FormData) {
   }
 
   const client: CommunicationWriteClient = (hasSupabaseAdminClient() ? createAdminClient() : await createClient()) as CommunicationWriteClient;
+  const allowedIds = await getAllowedCommunicationIds({
+    actor: profile,
+    ids: [communicationId],
+    ownOnly: false
+  });
+  if (allowedIds.length !== 1) {
+    throw new Error("No tienes acceso a esta comunicacion en el contexto activo.");
+  }
+  if (profile.schoolContext.schoolId) {
+    const { data: receiver, error: receiverError } = await client
+      .from("school_memberships")
+      .select("user_id")
+      .eq("school_id", profile.schoolContext.schoolId)
+      .eq("user_id", receiverId)
+      .eq("active", true)
+      .maybeSingle();
+
+    if (receiverError || !receiver) {
+      throw new Error(receiverError?.message ?? "El destinatario no pertenece al centro activo.");
+    }
+  }
+
   const { data: original, error: originalError } = await client
     .from("notifications")
     .select("id,student_id,title,message,category,status")
@@ -206,7 +242,7 @@ export async function reopenAdminConversation(formData: FormData) {
 }
 
 export async function markAdminConversationImportant(formData: FormData) {
-  await requireRole("superadmin");
+  const profile = await requireRole("superadmin");
   const ids = String(formData.get("communication_ids") ?? "")
     .split(",")
     .map((id) => id.trim())
@@ -216,11 +252,18 @@ export async function markAdminConversationImportant(formData: FormData) {
     return;
   }
 
+  const allowedIds = await getAllowedCommunicationIds({
+    actor: profile,
+    ids,
+    ownOnly: false
+  });
+  if (allowedIds.length === 0) return;
+
   const client: CommunicationWriteClient = (hasSupabaseAdminClient() ? createAdminClient() : await createClient()) as CommunicationWriteClient;
   const { data, error: readError } = await client
     .from("notifications")
     .select("id,title")
-    .in("id", ids);
+    .in("id", allowedIds);
 
   if (readError) {
     throw new Error(readError.message);
