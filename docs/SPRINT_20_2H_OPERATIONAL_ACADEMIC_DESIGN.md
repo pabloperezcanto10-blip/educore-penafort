@@ -604,3 +604,17 @@ and 039C must migrate callers before the compatibility objects are retired.
 
 Detailed execution and verification evidence belongs to
 `docs/SPRINT_20_2I_039A_ACADEMIC_BACKFILL.md`.
+
+## 22. Sprint 20.2J authorization status
+
+The executable 039B counterpart is
+`supabase/migrations/040_academic_operations_rls.sql`. It replaces the legacy
+global academic policies with school-scoped authorization, validates
+publication actors, preserves the current Family visibility contract and
+removes anonymous grants from the eight academic tables.
+
+039B is applied only to staging. Its transactional matrix verifies
+Superadmin, Director, direct tutor, assigned teacher, multischool tutor,
+Family, inactive membership, missing membership and cross-tenant negative
+cases. Detailed evidence and the remaining 039C blockers are documented in
+`docs/SPRINT_20_2J_039B_ACADEMIC_RLS.md`.

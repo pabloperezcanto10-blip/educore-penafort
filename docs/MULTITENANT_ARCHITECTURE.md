@@ -899,3 +899,25 @@ roles, no autoriza publicaciones y no sustituye la RLS pendiente de 039B.
 Las políticas y grants existentes no cambian en 039A. Las consultas,
 Server Actions, tipos y conflict targets tenant-aware siguen siendo trabajo
 de 039C.
+
+## Autorizacion academica 039B
+
+El Sprint 20.2J aplica en staging la migracion
+`040_academic_operations_rls.sql`. Las ocho tablas academicas quedan
+protegidas por 36 politicas tenant-aware y 16 helpers con `search_path` fijo.
+`anon` no conserva grants de tabla ni ejecucion sobre funciones
+`SECURITY DEFINER`.
+
+Direccion supervisa y publica solo dentro de una membership activa; el
+docente escribe exclusivamente mediante una asignacion exacta; la tutoria
+directa concede lectura, no escritura; y Familia solo accede a alumnos
+relacionados respetando `visible_to_family`, cierre y publicacion.
+
+Un usuario multischool puede estar autorizado por RLS en varios centros
+activos. El filtro del `ActiveSchoolContext` sigue siendo obligatorio en cada
+consulta y accion de 039C. No se usa `memberships[0]`, `profiles.role` como
+fallback de centro ni un tenant por defecto.
+
+La baseline remota de staging termina en `001-040`. Produccion y `main`
+permanecen intactos. La evidencia completa esta en
+`docs/SPRINT_20_2J_039B_ACADEMIC_RLS.md`.

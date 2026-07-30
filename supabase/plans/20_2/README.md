@@ -54,3 +54,16 @@ structural compatibility trigger.
 blocked. The staging-only rollback is kept as a fully commented manual plan
 in `039a_rollback_staging.sql`. Execution evidence and stop criteria are in
 `docs/SPRINT_20_2I_039A_ACADEMIC_BACKFILL.md`.
+
+## Sprint 20.2J scope
+
+`040_academic_operations_rls.sql` is the executable 039B migration. It is
+applied only to staging and contains the tenant-aware RLS, scoped helper
+functions, publication actor checks and grants for the eight academic tables.
+
+The corresponding preflight, postflight and transactional role matrix are
+`supabase/verification/020_2j_039b_*`. A manual staging rollback is preserved
+as `040_039b_rollback_staging.sql`.
+
+039C application changes remain blocked. Attendance and communications are
+still separate future waves; this migration does not implement them.

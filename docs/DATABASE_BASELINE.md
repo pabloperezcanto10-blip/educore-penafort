@@ -686,3 +686,19 @@ PostgREST. Conserva temporalmente las uniques legacy que usan los
 No se alteran RLS, grants, notas, criterios, pesos, publicaciones,
 `visible_to_family` ni timestamps funcionales. 039B y 039C continúan
 pendientes; 040-041 no se ejecutan.
+
+## Baseline de autorizacion tras Sprint 20.2J
+
+Staging queda alineado en `001-040`. La migracion
+`040_academic_operations_rls.sql` reemplaza 38 politicas legacy por 36
+politicas tenant-aware en las ocho tablas academicas de 039, reduce grants y
+restringe la ejecucion de helpers `SECURITY DEFINER`.
+
+Las pruebas RLS se ejecutaron en `BEGIN`/`ROLLBACK`; no persistieron filas
+academicas. La regresion protegida de Director, Tutor y Familia uso tres
+identidades temporales que fueron eliminadas, con recuento final cero en
+Auth, profiles y memberships.
+
+No cambia la baseline de produccion. Las consultas y Server Actions
+tenant-aware, los conflict targets y el default de curso academico pertenecen
+a 039C.

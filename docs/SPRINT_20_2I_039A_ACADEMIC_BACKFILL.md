@@ -179,3 +179,15 @@ staging sequence and an approved production rehearsal/rollback window.
 The public landing still describes Corium AI as product content. The
 authenticated assistant remains controlled by `AI_ASSISTANT_ENABLED`; the
 ignored staging QA environment keeps that flag disabled.
+
+## 039B completion
+
+Sprint 20.2J applied migration
+`040_academic_operations_rls.sql` only to staging. The authorization layer now
+contains 36 tenant-aware policies, scoped helper functions, publication actor
+validation, Family publication/visibility checks and reduced grants.
+
+The RLS matrix and protected-route regression passed and left no synthetic
+rows or QA identities. 039C application scoping, tenant-aware conflict
+targets and academic-year defaults remain required before production
+promotion. See `docs/SPRINT_20_2J_039B_ACADEMIC_RLS.md`.

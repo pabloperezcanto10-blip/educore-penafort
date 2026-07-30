@@ -732,3 +732,18 @@ primera respuesta.
 La promoción de 037-039A a producción continúa bloqueada hasta completar
 039B-039C, repetir la regresión autenticada y aprobar una ventana operativa
 con restore verificable.
+
+## Ejecucion 039B en staging
+
+La migracion `040_academic_operations_rls.sql` sustituye las politicas
+academicas globales por autorizacion tenant-aware sin modificar ninguna fila
+funcional. Se verificaron roles, relaciones docentes y familiares,
+publicaciones y rechazos cross-tenant en una transaccion con rollback.
+
+Los usuarios temporales de regresion protegida se eliminaron y el inventario
+final devolvio cero usuarios Auth, profiles y memberships del conjunto
+20.2J. No se utilizaron datos reales de Colegio Penafort.
+
+La decision sigue siendo **GO CON BLOQUEOS**: 039B queda aceptada solo en
+staging, mientras que 039C, el ensayo combinado, el backup restaurable y la
+ventana de produccion siguen pendientes.
