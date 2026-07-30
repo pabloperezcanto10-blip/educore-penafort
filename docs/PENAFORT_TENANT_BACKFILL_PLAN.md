@@ -694,3 +694,24 @@ La promoción futura debe tratar `037-038` como una unidad ensayada:
 
 La decisión actual es **GO CON BLOQUEOS**: puede comenzar el diseño de `039`,
 pero no aplicar `039-041` ni promover `037-038` a producción todavía.
+
+## Diseño del backfill académico 039
+
+Los diagnósticos agregados del Sprint 20.2H contabilizaron 33 filas
+operativas académicas en producción: 17 notas parciales, 14 criterios y 2
+resultados trimestrales. No se detectaron huérfanos, contradicciones entre
+alumno/curso/año, assignments ausentes ni duplicados incompatibles.
+
+El futuro backfill usará
+`20f20000-0000-4000-8000-000000000001` únicamente como aserción final de
+Peñafort. Cada fila deberá obtener el mismo tenant desde todas sus raíces
+reales. Cualquier fuente contradictoria, fila irresoluble, publicación sin
+publicador autorizado o unique conflict abortará el proceso.
+
+El orden obligatorio será: columnas nullable, cálculo de candidatos,
+diagnóstico cero, backfill, comparación de conteos/checksums, constraints
+compuestas, validación, NOT NULL, RLS y regresión autenticada. No se
+modificarán notas, textos, visibilidad, estados ni timestamps funcionales.
+
+La promoción de 037-038 permanece bloqueada hasta ensayar 039A-039C en staging
+con restore verificable y dataset sintético de dos centros.

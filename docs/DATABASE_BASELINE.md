@@ -648,3 +648,24 @@ y logs QA. `.env.local` no se modificó ni se utilizó para la regresión.
 
 La baseline de producción y el historial de `main` no cambiaron. `037` no fue
 modificada y `038` queda validada únicamente en staging.
+
+## Baseline de diseño tras Sprint 20.2H
+
+La baseline ejecutable no cambia: staging continúa en `001-038` y producción
+permanece en su esquema monotenant actual. No se añadió ni modificó ningún
+archivo en `supabase/migrations`.
+
+El borrador académico renumerado se encuentra en
+`supabase/plans/20_2/039_operational_academic_multitenancy.sql`. Está
+íntegramente comentado, marcado `DO NOT APPLY / DESIGN ONLY / NOT A MIGRATION`
+y dividido conceptualmente en 039A, 039B y 039C.
+
+Los verificadores `020_2h_operational_academic_*` son de solo lectura y
+contienen exclusivamente consultas `SELECT`. El alcance posterior queda:
+
+- 039: ocho tablas de evaluación y calificaciones;
+- 040: cinco tablas de asistencia, convivencia y horario;
+- 041: notificaciones, comunicaciones y auditoría.
+
+Decisión: **GO CON BLOQUEOS** para implementar 039 en un sprint posterior; no
+promover 037-038 ni crear un segundo centro real todavía.

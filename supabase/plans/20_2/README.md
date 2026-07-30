@@ -29,3 +29,16 @@ Stable Peñafort tenant id: `20f20000-0000-4000-8000-000000000001`.
 
 The source of truth for the people wave is
 `docs/MULTITENANT_PEOPLE_MIGRATION_037.md`.
+
+## Sprint 20.2H scope
+
+`039_operational_academic_multitenancy.sql` supersedes the previous broad 039
+draft. It is fully commented and cannot act as a migration.
+
+- 039: eight grading, criteria, result, weight and publication tables.
+- 040: attendance, student tracking and teacher schedule.
+- 041: communications, internal notifications and audit.
+
+The 039 implementation must be split into ownership/backfill, database
+authorization, and application rollout phases. See
+`docs/SPRINT_20_2H_OPERATIONAL_ACADEMIC_DESIGN.md`.

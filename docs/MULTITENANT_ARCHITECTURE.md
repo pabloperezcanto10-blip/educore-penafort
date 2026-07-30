@@ -859,3 +859,26 @@ Los cinco usuarios QA históricos y los dos centros QA permanecen intactos. La
 secuencia remota de staging termina en `001-038`; `039-041` siguen siendo
 borradores de diseño fuera de `supabase/migrations`. Producción y `main` no
 cambiaron.
+
+## Diseño de la oleada académica 039
+
+El Sprint 20.2H cierra el alcance de la primera oleada operativa en ocho
+tablas: `partial_grades`, `evaluation_criteria`, `quarter_final_grades`,
+`term_subject_grades`, `evaluation_publications`,
+`annual_evaluation_weights`, `final_course_grades` y
+`final_evaluation_publications`.
+
+Todas almacenarán `school_id` directamente. El ownership se resolverá
+comparando alumno, curso, materia, año académico y assignment, nunca desde
+`profile_id`, la primera membership o un centro por defecto. Las publicaciones
+se validarán además contra una membership activa del publicador.
+
+La implementación debe dividirse en:
+
+1. `039A`: columnas, backfill determinista, FKs compuestas y unicidades;
+2. `039B`: triggers tenant-aware, RLS y grants;
+3. `039C`: consultas, Server Actions, service role y tipos.
+
+Las tablas de asistencia/seguimiento quedan en 040 y las de comunicación,
+notificaciones y auditoría en 041. La fuente de verdad del diseño es
+`docs/SPRINT_20_2H_OPERATIONAL_ACADEMIC_DESIGN.md`.
