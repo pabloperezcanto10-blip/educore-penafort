@@ -837,3 +837,25 @@ La decisión arquitectónica es:
 La verificación transaccional y la regresión autenticada A -> B -> A
 confirmaron cero filas cruzadas, cero errores PostgREST y bloqueo de
 memberships inactivas, roles incompatibles y usuarios sin membership.
+
+## Cierre de ActiveSchoolContext
+
+El Sprint 20.2G-R3 repitió la matriz autenticada completa y retiró el dataset
+sintético `20_2G_QA` por su manifiesto cerrado. Dos inventarios posteriores
+confirmaron cero residuos en Auth, personas, relaciones, configuración
+académica y operativa.
+
+La arquitectura validada queda así:
+
+- `ActiveSchoolContext` es la única autoridad de centro en la aplicación;
+- la cookie HTTP-only solo contiene una selección previamente autorizada;
+- `/select-school` es obligatorio ante varias memberships activas;
+- `/no-school` bloquea identidades sin contexto autorizado;
+- la RLS `038` permite alumnos por tutoría directa o assignment coincidente;
+- un cambio A -> B -> A no conserva datos del tenant anterior;
+- la ausencia o inactividad de una membership nunca monta el shell.
+
+Los cinco usuarios QA históricos y los dos centros QA permanecen intactos. La
+secuencia remota de staging termina en `001-038`; `039-041` siguen siendo
+borradores de diseño fuera de `supabase/migrations`. Producción y `main` no
+cambiaron.

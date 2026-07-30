@@ -554,3 +554,66 @@ de producción siguen siendo obligatorios el ensayo de promoción de `037-038`
 sobre una copia representativa, el plan de reversión y la resolución de la
 oleada operativa `039-041`. Producción, `main` y el Colegio Peñafort real
 permanecen intactos.
+
+## 19. Cierre R3: regresión, cleanup y publicación
+
+Fecha de ejecución: 30 de julio de 2026.
+
+La regresión autenticada final repitió Superadmin global y contextual,
+Director A/B, Tutor A/B, Tutor multischool, Family A/B, usuario sin membership
+y membership inactiva. El cambio A -> B -> A conservó branding, curso,
+assignments y alumnos del centro activo sin mezcla. Una URL del alumno B
+forzada mientras A estaba activo fue rechazada.
+
+Resultados:
+
+- errores HTTP `500`: `0`;
+- errores PostgREST no controlados: `0`;
+- errores de consola: `0`;
+- loops: `0`;
+- datos cruzados: `0`.
+
+El warning conocido del calendario ICS externo, cuyo payload supera el límite
+de caché de Next.js, no produjo una respuesta `500` ni alteró datos o permisos.
+
+El cleanup se ejecutó únicamente contra staging y por IDs exactos del
+manifiesto cerrado. Se eliminaron:
+
+| Recurso | Filas |
+| --- | ---: |
+| `auth.users` | 7 |
+| `profiles` | 7 |
+| `school_memberships` | 7 |
+| `courses` | 2 |
+| `subjects` | 2 |
+| `course_subjects` | 2 |
+| `students` | 2 |
+| `families` | 2 |
+| `student_families` | 2 |
+| `parent_students` | 2 |
+| `teacher_assignments` | 4 |
+
+`academic_years`, `teachers`, `teacher_schedule`, notificaciones y toda la
+actividad operativa eliminaron `0`, como exigía el manifiesto. Antes del
+borrado se sustituyeron las siete contraseñas temporales y la eliminación Auth
+revocó sus sesiones. Dos lecturas posteriores confirmaron cero residuos y el
+rechazo de las siete credenciales antiguas.
+
+Los cinco usuarios QA anteriores, sus cinco profiles, sus nueve memberships y
+los dos centros QA activos permanecen intactos. Se eliminaron manifiesto,
+credenciales, scripts y logs temporales. `.env.staging.qa.local` continúa
+ignorado como configuración estable de staging.
+
+Estado final del sprint:
+
+- staging: migraciones `001-038`, dry-run vacío;
+- `037`: sin cambios retroactivos;
+- `038`: validada funcionalmente y mediante RLS;
+- `039-041`: no ejecutadas;
+- producción, `main` y Colegio Peñafort real: intactos.
+
+Decisión: **GO CON BLOQUEOS**. ActiveSchoolContext y la lectura por assignments
+están preparados para staging. La promoción a producción requiere todavía un
+ensayo específico de `037-038`, backup recuperable, ventana operativa y plan
+de reversión. La oleada operativa `039-041` puede continuar en diseño, no en
+aplicación remota.

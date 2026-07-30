@@ -624,3 +624,27 @@ Los fixtures `20_2G_QA` se conservan para R3 y no contienen actividad
 operativa. Producción, `main` y Colegio Peñafort real permanecen intactos. Los
 borradores operativos se renumeran a `039-041` y continúan fuera de
 `supabase/migrations`.
+
+## Baseline final tras Sprint 20.2G-R3
+
+La baseline estructural de staging permanece en `001-038`. No se ejecutaron
+`039`, `040` ni `041`, y el dry-run final no propone migraciones.
+
+El dataset temporal `20_2G_QA` fue eliminado por IDs exactos. Dos lecturas
+posteriores confirmaron:
+
+- cero usuarios Auth, profiles y memberships del conjunto;
+- cero cursos, materias, relaciones académicas y assignments del conjunto;
+- cero alumnos, familias y relaciones familiares del conjunto;
+- cero horarios, notificaciones, notas, asistencia, incidencias,
+  observaciones o relaciones residuales;
+- los cinco usuarios QA anteriores, cinco profiles y nueve memberships
+  permanecen intactos;
+- Colegio Peñafort QA y QA School continúan activos.
+
+Las credenciales temporales fueron invalidadas antes de eliminar las
+identidades y posteriormente retiradas del disco junto al manifiesto, scripts
+y logs QA. `.env.local` no se modificó ni se utilizó para la regresión.
+
+La baseline de producción y el historial de `main` no cambiaron. `037` no fue
+modificada y `038` queda validada únicamente en staging.

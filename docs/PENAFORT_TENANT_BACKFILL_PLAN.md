@@ -670,3 +670,27 @@ No se ejecutó backfill, no se modificó `037` y no se tocó producción. Los
 fixtures `20_2G_QA` se conservan para R3. Los borradores operativos quedan
 renumerados como `039-041` y continúan bloqueados hasta completar su diseño,
 ensayo y plan de reversión.
+
+## Cierre Sprint 20.2G-R3
+
+La regresión final autenticada pasó en staging para todos los roles y para el
+tutor multischool. La RLS `038` permitió los alumnos de cursos asignados y
+rechazó cursos sin assignment, alumnos ajenos y una URL cruzada.
+
+El conjunto `20_2G_QA` se eliminó por UUIDs exactos. Se invalidaron siete
+contraseñas, se eliminaron siete usuarios Auth y se revocaron sus sesiones.
+Dos verificaciones independientes devolvieron cero residuos en todas las
+tablas inventariadas y rechazaron las credenciales antiguas. Los fixtures QA
+anteriores permanecieron en `5` usuarios, `5` profiles y `9` memberships; los
+dos centros QA continuaron activos.
+
+La promoción futura debe tratar `037-038` como una unidad ensayada:
+
+1. inventario agregado previo de Peñafort;
+2. backup recuperable de staging representativo;
+3. simulación de backfill y rollback;
+4. ventana operativa y responsables definidos;
+5. regresión autenticada posterior.
+
+La decisión actual es **GO CON BLOQUEOS**: puede comenzar el diseño de `039`,
+pero no aplicar `039-041` ni promover `037-038` a producción todavía.
