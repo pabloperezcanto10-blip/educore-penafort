@@ -42,3 +42,15 @@ draft. It is fully commented and cannot act as a migration.
 The 039 implementation must be split into ownership/backfill, database
 authorization, and application rollout phases. See
 `docs/SPRINT_20_2H_OPERATIONAL_ACADEMIC_DESIGN.md`.
+
+## Sprint 20.2I scope
+
+`039_academic_operations_school_scope.sql` is the executable 039A migration.
+It contains only structural tenant ownership, deterministic backfill,
+composite FKs, tenant-aware indexes/uniqueness, `NOT NULL` and a minimal
+structural compatibility trigger.
+
+039B RLS/publication authorization and 039C application changes remain
+blocked. The staging-only rollback is kept as a fully commented manual plan
+in `039a_rollback_staging.sql`. Execution evidence and stop criteria are in
+`docs/SPRINT_20_2I_039A_ACADEMIC_BACKFILL.md`.

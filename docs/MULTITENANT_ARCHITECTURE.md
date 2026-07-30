@@ -882,3 +882,20 @@ La implementación debe dividirse en:
 Las tablas de asistencia/seguimiento quedan en 040 y las de comunicación,
 notificaciones y auditoría en 041. La fuente de verdad del diseño es
 `docs/SPRINT_20_2H_OPERATIONAL_ACADEMIC_DESIGN.md`.
+
+## Implementación estructural 039A
+
+El Sprint 20.2I incorpora ownership directo a las ocho tablas académicas de
+039 mediante `school_id NOT NULL`, FKs compuestas, unicidades tenant-aware e
+índices de lectura por centro. Las FKs simples de raíces académicas se
+reemplazan en la misma transacción para no crear relaciones ambiguas en
+PostgREST.
+
+Un trigger estrictamente estructural mantiene compatibles las escrituras
+actuales que todavía no envían `school_id`: deriva el centro desde
+alumno/curso/materia/año/asignación y rechaza contradicciones. No consulta
+roles, no autoriza publicaciones y no sustituye la RLS pendiente de 039B.
+
+Las políticas y grants existentes no cambian en 039A. Las consultas,
+Server Actions, tipos y conflict targets tenant-aware siguen siendo trabajo
+de 039C.

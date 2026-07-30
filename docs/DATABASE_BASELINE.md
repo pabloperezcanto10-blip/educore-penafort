@@ -669,3 +669,20 @@ contienen exclusivamente consultas `SELECT`. El alcance posterior queda:
 
 Decisión: **GO CON BLOQUEOS** para implementar 039 en un sprint posterior; no
 promover 037-038 ni crear un segundo centro real todavía.
+
+## Baseline estructural tras Sprint 20.2I
+
+La migración `039_academic_operations_school_scope.sql` añade el alcance
+estructural por centro a las ocho tablas académicas auditadas. La baseline
+resultante de staging es `001-039`; producción y `main` permanecen en su
+estado anterior.
+
+039A añade ocho columnas `school_id NOT NULL`, cuarenta FKs tenant-aware,
+veintiséis índices y ocho triggers estructurales. Sustituye veintiséis FKs
+simples de raíces por relaciones compuestas para evitar ambigüedad
+PostgREST. Conserva temporalmente las uniques legacy que usan los
+`ON CONFLICT` actuales, junto a sus reemplazos tenant-aware.
+
+No se alteran RLS, grants, notas, criterios, pesos, publicaciones,
+`visible_to_family` ni timestamps funcionales. 039B y 039C continúan
+pendientes; 040-041 no se ejecutan.

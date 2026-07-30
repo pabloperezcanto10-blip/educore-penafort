@@ -715,3 +715,20 @@ modificarán notas, textos, visibilidad, estados ni timestamps funcionales.
 
 La promoción de 037-038 permanece bloqueada hasta ensayar 039A-039C en staging
 con restore verificable y dataset sintético de dos centros.
+
+## Ejecución 039A en staging
+
+La fase estructural 039A usa el UUID estable de Peñafort solo como aserción.
+Cada fila obtiene `school_id` mediante sus relaciones reales y la migración
+aborta si alumno, curso, materia, año o assignment no convergen en un único
+tenant.
+
+Durante el backfill se preservan los timestamps funcionales y se comparan
+hashes de todas las columnas previas. No se modifican notas, criterios, pesos,
+publicaciones ni visibilidad familiar. El rollback manual conserva tanto las
+filas académicas como los valores de `school_id`; nunca usa `DROP COLUMN` como
+primera respuesta.
+
+La promoción de 037-039A a producción continúa bloqueada hasta completar
+039B-039C, repetir la regresión autenticada y aprobar una ventana operativa
+con restore verificable.

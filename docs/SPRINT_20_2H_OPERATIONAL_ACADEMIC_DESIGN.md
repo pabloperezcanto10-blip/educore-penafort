@@ -583,3 +583,24 @@ Safety statement:
    risks.
 5. Schedule the stable `criterion_id` design after tenant ownership is
    complete; do not couple it to 039.
+
+## 21. Sprint 20.2I implementation status
+
+The executable 039A counterpart is
+`supabase/migrations/039_academic_operations_school_scope.sql`. It implements
+only direct ownership, deterministic backfill, composite integrity,
+tenant-aware uniqueness, lookup indexes, `NOT NULL` and structural write
+compatibility.
+
+039A deliberately does not modify RLS, grants, publication authorization,
+family visibility, application queries or Server Actions. Its structural
+trigger derives only from audited academic roots; 039B must still replace the
+legacy global academic-year behavior and introduce tenant-aware
+authorization.
+
+The legacy business unique objects remain temporarily for current
+`ON CONFLICT` compatibility. The tenant-aware uniques are already canonical,
+and 039C must migrate callers before the compatibility objects are retired.
+
+Detailed execution and verification evidence belongs to
+`docs/SPRINT_20_2I_039A_ACADEMIC_BACKFILL.md`.
