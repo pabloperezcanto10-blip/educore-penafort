@@ -4,13 +4,17 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { logAuditAction } from "@/lib/audit";
 import { requireRole } from "@/lib/auth/session";
+import {
+  academicWriteError,
+  requireAcademicOperationContext
+} from "@/lib/grades/context";
 import { createClient } from "@/lib/supabase/server";
 import { withToast } from "@/lib/toast";
 
 export async function publishFinalEvaluation(formData: FormData) {
   const profile = await requireRole(["director", "superadmin"]);
-  const schoolId = profile.schoolContext.schoolId;
-  if (!schoolId) throw new Error("Selecciona un centro antes de publicar el boletin final.");
+  const { schoolId, academicYearId } =
+    await requireAcademicOperationContext(profile);
 
   const courseId = String(formData.get("course_id") ?? "").trim();
 
@@ -33,23 +37,28 @@ export async function publishFinalEvaluation(formData: FormData) {
     .select("id")
     .eq("id", courseId)
     .eq("school_id", schoolId)
+    .eq("academic_year_id", academicYearId)
     .maybeSingle<{ id: string }>();
 
   if (courseError || !course) {
-    throw new Error(courseError?.message ?? "El curso no pertenece al centro activo.");
+    throw new Error("El curso no pertenece al contexto académico activo.");
   }
 
   const { error } = await supabase.from("final_evaluation_publications").upsert(
     {
+      school_id: schoolId,
+      academic_year_id: academicYearId,
       course_id: courseId,
       published: true,
       published_at: new Date().toISOString(),
       published_by: user.id
     } as never,
-    { onConflict: "academic_year_id,course_id" }
+    { onConflict: "school_id,academic_year_id,course_id" }
   );
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    throw academicWriteError(error, "No se pudo publicar el boletín final.");
+  }
 
   await logAuditAction({
     actorUserId: user.id,

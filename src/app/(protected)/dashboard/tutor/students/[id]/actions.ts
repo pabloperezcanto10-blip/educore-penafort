@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth/session";
 import { logAuditAction } from "@/lib/audit";
+import {
+  academicWriteError,
+  requireAcademicOperationContext
+} from "@/lib/grades/context";
 import { createClient } from "@/lib/supabase/server";
 import { createInternalNotifications, type InternalNotificationInsert } from "@/lib/internal-notifications";
 import { withToast } from "@/lib/toast";
@@ -258,7 +262,8 @@ export async function createStudentObservation(formData: FormData) {
 
 export async function createStudentGrade(formData: FormData) {
   const profile = await requireRole("tutor");
-  const schoolId = requireContextSchoolId(profile.schoolContext.schoolId);
+  const { schoolId, academicYearId } =
+    await requireAcademicOperationContext(profile);
   const studentId = String(formData.get("student_id") ?? "");
   const subjectId = String(formData.get("subject_id") ?? "");
   const termValue = String(formData.get("term") ?? "1");
@@ -302,6 +307,7 @@ export async function createStudentGrade(formData: FormData) {
     .select("id,course_id")
     .eq("id", studentId)
     .eq("school_id", schoolId)
+    .eq("academic_year_id", academicYearId)
     .maybeSingle<{ id: string; course_id: string }>();
 
   if (studentError) {
@@ -316,6 +322,7 @@ export async function createStudentGrade(formData: FormData) {
     .from("teacher_assignments")
     .select("id")
     .eq("school_id", schoolId)
+    .eq("academic_year_id", academicYearId)
     .eq("teacher_id", teacherId)
     .eq("course_id", student.course_id)
     .eq("subject_id", subjectId)
@@ -330,6 +337,8 @@ export async function createStudentGrade(formData: FormData) {
   }
 
   const partialGrade: Database["public"]["Tables"]["partial_grades"]["Insert"] = {
+    school_id: schoolId,
+    academic_year_id: academicYearId,
     student_id: studentId,
     teacher_id: teacherId,
     subject_id: subjectId,
@@ -347,7 +356,7 @@ export async function createStudentGrade(formData: FormData) {
   const { error } = await supabase.from("partial_grades").insert(partialGrade as never);
 
   if (error) {
-    throw new Error(error.message);
+    throw academicWriteError(error, "No se pudo guardar la calificación.");
   }
 
   await logAuditAction({

@@ -1,12 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, hasSupabaseAdminClient } from "@/lib/supabase/admin";
-import { getActiveAcademicYear } from "@/lib/academic-years";
 import { getActiveCourses } from "@/lib/courses";
 import type { AttendanceRecord } from "@/lib/attendance/attendance";
 import type { DirectorCommunication } from "@/lib/communications/notifications";
 import type { PartialGrade } from "@/lib/grades/grades";
+import {
+  academicReadError,
+  requireAcademicOperationContext
+} from "@/lib/grades/context";
 import type { StudentIncident, StudentObservation, TutorStudentDetail } from "@/lib/tutors/students";
-import { requireOperationalSchoolContext } from "@/lib/schools/context";
 
 type SupervisionClient = ReturnType<typeof createAdminClient>;
 
@@ -38,23 +40,23 @@ export async function getDirectorStudents(): Promise<{
   students: DirectorStudentListItem[];
   errorMessage: string | null;
 }> {
-  const schoolContext = await requireOperationalSchoolContext();
+  const { schoolId, academicYearId } =
+    await requireAcademicOperationContext();
   const supabase = await createClient();
-  const { academicYear } = await getActiveAcademicYear(schoolContext.schoolId);
-  if (!academicYear) {
-    return { students: [], errorMessage: "No hay curso escolar activo." };
-  }
   const { data, error } = await supabase
     .from("students")
     .select("id,name,last_name,birth_date,course_id,active,courses(name)")
-    .eq("school_id", schoolContext.schoolId)
-    .eq("academic_year_id", academicYear.id)
+    .eq("school_id", schoolId)
+    .eq("academic_year_id", academicYearId)
     .order("last_name", { ascending: true })
     .order("name", { ascending: true })
     .returns<DirectorStudentListItem[]>();
 
   if (error) {
-    return { students: [], errorMessage: error.message };
+    return {
+      students: [],
+      errorMessage: "No se pudo consultar el alumnado del centro."
+    };
   }
 
   return { students: data ?? [], errorMessage: null };
@@ -69,18 +71,15 @@ export async function getDirectorStudentDetail(studentId: string): Promise<{
   communications: DirectorCommunication[];
   errorMessage: string | null;
 }> {
-  const schoolContext = await requireOperationalSchoolContext();
+  const { schoolId, academicYearId } =
+    await requireAcademicOperationContext();
   const supabase = await createSupervisionClient();
-  const { academicYear } = await getActiveAcademicYear(schoolContext.schoolId);
-  if (!academicYear) {
-    return emptyDirectorStudentDetail("No hay curso escolar activo.");
-  }
   const { data: student, error: studentError } = await supabase
     .from("students")
     .select("id,name,last_name,birth_date,course_id,active,courses(name)")
     .eq("id", studentId)
-    .eq("school_id", schoolContext.schoolId)
-    .eq("academic_year_id", academicYear.id)
+    .eq("school_id", schoolId)
+    .eq("academic_year_id", academicYearId)
     .maybeSingle<TutorStudentDetail>();
 
   if (studentError) {
@@ -127,8 +126,10 @@ export async function getDirectorStudentDetail(studentId: string): Promise<{
     supabase
       .from("partial_grades")
       .select(
-        "id,student_id,teacher_id,subject_id,course_id,term,assessment_type,assessment_name,grade,assessment_date,comment,recommendation,visible_to_family,created_at"
+        "id,school_id,academic_year_id,student_id,teacher_id,subject_id,course_id,term,assessment_type,assessment_name,grade,assessment_date,comment,recommendation,visible_to_family,created_at"
       )
+      .eq("school_id", schoolId)
+      .eq("academic_year_id", academicYearId)
       .eq("student_id", studentId)
       .order("term", { ascending: true })
       .order("assessment_date", { ascending: false })
@@ -145,7 +146,9 @@ export async function getDirectorStudentDetail(studentId: string): Promise<{
     attendanceError?.message ??
     incidentsError?.message ??
     observationsError?.message ??
-    gradesError?.message ??
+    (gradesError
+      ? academicReadError(gradesError, "No se pudieron consultar las calificaciones.")
+      : null) ??
     communicationsError?.message ??
     null;
 

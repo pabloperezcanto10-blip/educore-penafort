@@ -702,3 +702,20 @@ Auth, profiles y memberships.
 No cambia la baseline de produccion. Las consultas y Server Actions
 tenant-aware, los conflict targets y el default de curso academico pertenecen
 a 039C.
+
+## Baseline aplicativa tras Sprint 20.2K
+
+Staging continúa con migraciones `001-040`; no se añadió ni aplicó una
+migración 041. La aplicación ya consume la estructura 039A y la autorización
+039B con contexto explícito de centro/curso académico en las ocho tablas
+académicas.
+
+El verificador AST registra 35 lecturas y 12 escrituras objetivo y rechaza
+consultas sin ámbito o conflictos sin tenant. La matriz SQL transaccional y
+las sesiones reales A/B pasaron. Los fixtures `20_2K_QA` se eliminaron y dos
+auditorías independientes confirmaron cero residuos.
+
+La baseline de producción, `main`, Auth de producción y los datos reales de
+Colegio Peñafort no cambian. La promoción de `037-040` continúa bloqueada por
+el ensayo restaurable, la ventana operativa y la retirada futura de
+compatibilidad legacy.

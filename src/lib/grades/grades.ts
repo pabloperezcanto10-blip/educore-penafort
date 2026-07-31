@@ -1,6 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, hasSupabaseAdminClient } from "@/lib/supabase/admin";
-import { getActiveAcademicYear } from "@/lib/academic-years";
+import {
+  academicReadError,
+  requireAcademicOperationContext
+} from "@/lib/grades/context";
 import {
   requireOperationalSchoolContext,
   requireSchoolRole
@@ -27,6 +30,8 @@ export type Subject = {
 
 export type PartialGrade = {
   id: string;
+  school_id?: string;
+  academic_year_id?: string;
   student_id: string;
   teacher_id: string;
   subject_id: string;
@@ -44,6 +49,8 @@ export type PartialGrade = {
 
 export type EvaluationCriterion = {
   id: string;
+  school_id?: string;
+  academic_year_id?: string;
   teacher_id: string;
   course_id: string;
   subject_id: string;
@@ -58,6 +65,8 @@ export type EvaluationCriterion = {
 
 export type QuarterFinalGrade = {
   id: string;
+  school_id?: string;
+  academic_year_id?: string;
   student_id: string;
   subject_id: string;
   teacher_id: string;
@@ -73,6 +82,8 @@ export type TermSubjectGradeStatus = "draft" | "closed";
 
 export type TermSubjectGrade = {
   id: string;
+  school_id?: string;
+  academic_year_id?: string;
   student_id: string;
   subject_id: string;
   teacher_id: string;
@@ -89,6 +100,8 @@ export type TermSubjectGrade = {
 
 export type EvaluationPublication = {
   id: string;
+  school_id?: string;
+  academic_year_id?: string;
   course_id: string;
   term: GradeTerm;
   published: boolean;
@@ -193,15 +206,15 @@ type ReportStudentLabel = StudentLabel & {
 };
 
 const gradeSelect =
-  "id,student_id,teacher_id,subject_id,course_id,term,assessment_type,assessment_name,grade,assessment_date,comment,recommendation,visible_to_family,created_at";
+  "id,school_id,academic_year_id,student_id,teacher_id,subject_id,course_id,term,assessment_type,assessment_name,grade,assessment_date,comment,recommendation,visible_to_family,created_at";
 const criteriaSelect =
-  "id,teacher_id,course_id,subject_id,term,name,weight,criterion_type,visible_to_family,active,created_at";
+  "id,school_id,academic_year_id,teacher_id,course_id,subject_id,term,name,weight,criterion_type,visible_to_family,active,created_at";
 const finalGradeSelect =
-  "id,student_id,subject_id,teacher_id,course_id,term,calculated_grade,final_grade,teacher_observation,created_at";
+  "id,school_id,academic_year_id,student_id,subject_id,teacher_id,course_id,term,calculated_grade,final_grade,teacher_observation,created_at";
 const termSubjectGradeSelect =
-  "id,student_id,subject_id,teacher_id,course_id,term,calculated_grade,final_grade,final_observation,status,closed_at,created_at,updated_at";
+  "id,school_id,academic_year_id,student_id,subject_id,teacher_id,course_id,term,calculated_grade,final_grade,final_observation,status,closed_at,created_at,updated_at";
 const evaluationPublicationSelect =
-  "id,course_id,term,published,published_at,published_by,created_at,updated_at";
+  "id,school_id,academic_year_id,course_id,term,published,published_at,published_by,created_at,updated_at";
 
 export async function getAssignedSubjectsForTeacherCourse(
   teacherId: string,
@@ -211,23 +224,23 @@ export async function getAssignedSubjectsForTeacherCourse(
     return { subjects: [], errorMessage: null };
   }
 
-  const { schoolId } = await requireOperationalSchoolContext();
+  const { schoolId, academicYearId } =
+    await requireAcademicOperationContext();
   const supabase = await createGradeLabelClient();
-  const { academicYear } = await getActiveAcademicYear();
-  if (!academicYear) {
-    return { subjects: [], errorMessage: "No hay curso escolar activo." };
-  }
   const { data: assignments, error } = await supabase
     .from("teacher_assignments")
     .select("subject_id")
     .eq("school_id", schoolId)
     .eq("teacher_id", teacherId)
     .eq("course_id", courseId)
-    .eq("academic_year_id", academicYear.id)
+    .eq("academic_year_id", academicYearId)
     .returns<{ subject_id: string | null }[]>();
 
   if (error) {
-    return { subjects: [], errorMessage: error.message };
+    return {
+      subjects: [],
+      errorMessage: academicReadError(error, "No se pudieron consultar las asignaciones docentes.")
+    };
   }
 
   const subjectIds = Array.from(
@@ -247,7 +260,10 @@ export async function getAssignedSubjectsForTeacherCourse(
     .returns<Subject[]>();
 
   if (subjectsError) {
-    return { subjects: [], errorMessage: subjectsError.message };
+    return {
+      subjects: [],
+      errorMessage: academicReadError(subjectsError, "No se pudieron consultar las materias.")
+    };
   }
 
   return { subjects: subjects ?? [], errorMessage: null };
@@ -257,20 +273,22 @@ export async function getAssignedCoursesForTeacher(teacherId: string): Promise<{
   courses: GradebookCourse[];
   errorMessage: string | null;
 }> {
+  const { schoolId, academicYearId } =
+    await requireAcademicOperationContext();
   const supabase = await createGradeLabelClient();
-  const { academicYear } = await getActiveAcademicYear();
-  if (!academicYear) {
-    return { courses: [], errorMessage: "No hay curso escolar activo." };
-  }
   const { data: assignments, error } = await supabase
     .from("teacher_assignments")
     .select("course_id")
+    .eq("school_id", schoolId)
     .eq("teacher_id", teacherId)
-    .eq("academic_year_id", academicYear.id)
+    .eq("academic_year_id", academicYearId)
     .returns<{ course_id: string }[]>();
 
   if (error) {
-    return { courses: [], errorMessage: error.message };
+    return {
+      courses: [],
+      errorMessage: academicReadError(error, "No se pudieron consultar las asignaciones docentes.")
+    };
   }
 
   const courseIds = Array.from(new Set((assignments ?? []).map((assignment) => assignment.course_id)));
@@ -282,12 +300,17 @@ export async function getAssignedCoursesForTeacher(teacherId: string): Promise<{
   const { data: courses, error: coursesError } = await supabase
     .from("courses")
     .select("id,name")
+    .eq("school_id", schoolId)
+    .eq("academic_year_id", academicYearId)
     .in("id", courseIds)
     .order("name", { ascending: true })
     .returns<GradebookCourse[]>();
 
   if (coursesError) {
-    return { courses: [], errorMessage: coursesError.message };
+    return {
+      courses: [],
+      errorMessage: academicReadError(coursesError, "No se pudieron consultar los cursos.")
+    };
   }
 
   return { courses: courses ?? [], errorMessage: null };
@@ -301,23 +324,25 @@ export async function getStudentsForCourse(courseId: string): Promise<{
     return { students: [], errorMessage: null };
   }
 
+  const { schoolId, academicYearId } =
+    await requireAcademicOperationContext();
   const supabase = await createClient();
-  const { academicYear } = await getActiveAcademicYear();
-  if (!academicYear) {
-    return { students: [], errorMessage: "No hay curso escolar activo." };
-  }
   const { data, error } = await supabase
     .from("students")
     .select("id,name,last_name")
+    .eq("school_id", schoolId)
     .eq("course_id", courseId)
     .eq("active", true)
-    .eq("academic_year_id", academicYear.id)
+    .eq("academic_year_id", academicYearId)
     .order("last_name", { ascending: true })
     .order("name", { ascending: true })
     .returns<GradebookStudent[]>();
 
   if (error) {
-    return { students: [], errorMessage: error.message };
+    return {
+      students: [],
+      errorMessage: academicReadError(error, "No se pudieron consultar los alumnos del curso.")
+    };
   }
 
   return { students: data ?? [], errorMessage: null };
@@ -331,20 +356,22 @@ export async function getSubjectCoursesForTeacher(teacherId: string): Promise<{
     return { items: [], errorMessage: null };
   }
 
+  const { schoolId, academicYearId } =
+    await requireAcademicOperationContext();
   const supabase = await createGradeLabelClient();
-  const { academicYear } = await getActiveAcademicYear();
-  if (!academicYear) {
-    return { items: [], errorMessage: "No hay curso escolar activo." };
-  }
   const { data: assignments, error } = await supabase
     .from("teacher_assignments")
     .select("course_id,subject_id")
+    .eq("school_id", schoolId)
     .eq("teacher_id", teacherId)
-    .eq("academic_year_id", academicYear.id)
+    .eq("academic_year_id", academicYearId)
     .returns<{ course_id: string; subject_id: string | null }[]>();
 
   if (error) {
-    return { items: [], errorMessage: error.message };
+    return {
+      items: [],
+      errorMessage: academicReadError(error, "No se pudieron consultar las asignaciones docentes.")
+    };
   }
 
   const validAssignments = (assignments ?? []).filter(
@@ -361,11 +388,14 @@ export async function getSubjectCoursesForTeacher(teacherId: string): Promise<{
     { data: courses, error: coursesError },
     { data: subjects, error: subjectsError }
   ] = await Promise.all([
-    supabase.from("courses").select("id,name").in("id", courseIds).returns<GradebookCourse[]>(),
-    supabase.from("subjects").select("id,name").in("id", subjectIds).returns<Subject[]>()
+    supabase.from("courses").select("id,name").eq("school_id", schoolId).eq("academic_year_id", academicYearId).in("id", courseIds).returns<GradebookCourse[]>(),
+    supabase.from("subjects").select("id,name").eq("school_id", schoolId).in("id", subjectIds).returns<Subject[]>()
   ]);
 
-  const errorMessage = coursesError?.message ?? subjectsError?.message ?? null;
+  const errorMessage =
+    coursesError || subjectsError
+      ? "No se pudieron consultar los cursos y materias asignados."
+      : null;
 
   if (errorMessage) {
     return { items: [], errorMessage };
@@ -418,24 +448,26 @@ export async function getGradebookGrades({
     return { grades: [], errorMessage: null };
   }
 
+  const { schoolId, academicYearId } =
+    await requireAcademicOperationContext();
   const supabase = await createClient();
-  const { academicYear } = await getActiveAcademicYear();
-  if (!academicYear) {
-    return { grades: [], errorMessage: "No hay curso escolar activo." };
-  }
   const { data, error } = await supabase
     .from("partial_grades")
     .select(gradeSelect)
+    .eq("school_id", schoolId)
     .eq("course_id", courseId)
     .eq("subject_id", subjectId)
     .eq("term", term)
     .eq("assessment_type", assessmentType)
     .eq("assessment_name", assessmentName)
-    .eq("academic_year_id", academicYear.id)
+    .eq("academic_year_id", academicYearId)
     .returns<PartialGrade[]>();
 
   if (error) {
-    return { grades: [], errorMessage: error.message };
+    return {
+      grades: [],
+      errorMessage: academicReadError(error, "No se pudieron consultar las calificaciones.")
+    };
   }
 
   return { grades: data ?? [], errorMessage: null };
@@ -456,24 +488,26 @@ export async function getEvaluationCriteria({
     return { criteria: [], errorMessage: null };
   }
 
+  const { schoolId, academicYearId } =
+    await requireAcademicOperationContext();
   const supabase = await createClient();
-  const { academicYear } = await getActiveAcademicYear();
-  if (!academicYear) {
-    return { criteria: [], errorMessage: "No hay curso escolar activo." };
-  }
   const { data, error } = await supabase
     .from("evaluation_criteria")
     .select(criteriaSelect)
+    .eq("school_id", schoolId)
     .eq("teacher_id", teacherId)
     .eq("course_id", courseId)
     .eq("subject_id", subjectId)
     .eq("term", term)
-    .eq("academic_year_id", academicYear.id)
+    .eq("academic_year_id", academicYearId)
     .order("created_at", { ascending: true })
     .returns<EvaluationCriterion[]>();
 
   if (error) {
-    return { criteria: [], errorMessage: error.message };
+    return {
+      criteria: [],
+      errorMessage: academicReadError(error, "No se pudieron consultar los criterios de evaluación.")
+    };
   }
 
   return { criteria: data ?? [], errorMessage: null };
@@ -494,23 +528,25 @@ export async function getGradebookGradesForTerm({
     return { grades: [], errorMessage: null };
   }
 
+  const { schoolId, academicYearId } =
+    await requireAcademicOperationContext();
   const supabase = await createClient();
-  const { academicYear } = await getActiveAcademicYear();
-  if (!academicYear) {
-    return { grades: [], errorMessage: "No hay curso escolar activo." };
-  }
   const { data, error } = await supabase
     .from("partial_grades")
     .select(gradeSelect)
+    .eq("school_id", schoolId)
     .eq("teacher_id", teacherId)
     .eq("course_id", courseId)
     .eq("subject_id", subjectId)
     .eq("term", term)
-    .eq("academic_year_id", academicYear.id)
+    .eq("academic_year_id", academicYearId)
     .returns<PartialGrade[]>();
 
   if (error) {
-    return { grades: [], errorMessage: error.message };
+    return {
+      grades: [],
+      errorMessage: academicReadError(error, "No se pudieron consultar las calificaciones.")
+    };
   }
 
   return { grades: data ?? [], errorMessage: null };
@@ -531,23 +567,25 @@ export async function getQuarterFinalGrades({
     return { finalGrades: [], errorMessage: null };
   }
 
+  const { schoolId, academicYearId } =
+    await requireAcademicOperationContext();
   const supabase = await createClient();
-  const { academicYear } = await getActiveAcademicYear();
-  if (!academicYear) {
-    return { finalGrades: [], errorMessage: "No hay curso escolar activo." };
-  }
   const { data, error } = await supabase
     .from("quarter_final_grades")
     .select(finalGradeSelect)
+    .eq("school_id", schoolId)
     .eq("teacher_id", teacherId)
     .eq("course_id", courseId)
     .eq("subject_id", subjectId)
     .eq("term", term)
-    .eq("academic_year_id", academicYear.id)
+    .eq("academic_year_id", academicYearId)
     .returns<QuarterFinalGrade[]>();
 
   if (error) {
-    return { finalGrades: [], errorMessage: error.message };
+    return {
+      finalGrades: [],
+      errorMessage: academicReadError(error, "No se pudieron consultar las notas finales.")
+    };
   }
 
   return { finalGrades: data ?? [], errorMessage: null };
@@ -568,23 +606,25 @@ export async function getTermSubjectGrades({
     return { termGrades: [], errorMessage: null };
   }
 
+  const { schoolId, academicYearId } =
+    await requireAcademicOperationContext();
   const supabase = await createClient();
-  const { academicYear } = await getActiveAcademicYear();
-  if (!academicYear) {
-    return { termGrades: [], errorMessage: "No hay curso escolar activo." };
-  }
   const { data, error } = await supabase
     .from("term_subject_grades")
     .select(termSubjectGradeSelect)
+    .eq("school_id", schoolId)
     .eq("teacher_id", teacherId)
     .eq("course_id", courseId)
     .eq("subject_id", subjectId)
     .eq("term", term)
-    .eq("academic_year_id", academicYear.id)
+    .eq("academic_year_id", academicYearId)
     .returns<TermSubjectGrade[]>();
 
   if (error) {
-    return { termGrades: [], errorMessage: error.message };
+    return {
+      termGrades: [],
+      errorMessage: academicReadError(error, "No se pudieron consultar las notas trimestrales.")
+    };
   }
 
   return { termGrades: data ?? [], errorMessage: null };
@@ -601,21 +641,23 @@ export async function getEvaluationPublication({
     return { publication: null, errorMessage: null };
   }
 
+  const { schoolId, academicYearId } =
+    await requireAcademicOperationContext();
   const supabase = await createClient();
-  const { academicYear } = await getActiveAcademicYear();
-  if (!academicYear) {
-    return { publication: null, errorMessage: "No hay curso escolar activo." };
-  }
   const { data, error } = await supabase
     .from("evaluation_publications")
     .select(evaluationPublicationSelect)
+    .eq("school_id", schoolId)
     .eq("course_id", courseId)
     .eq("term", term)
-    .eq("academic_year_id", academicYear.id)
+    .eq("academic_year_id", academicYearId)
     .maybeSingle<EvaluationPublication>();
 
   if (error) {
-    return { publication: null, errorMessage: error.message };
+    return {
+      publication: null,
+      errorMessage: academicReadError(error, "No se pudo consultar el estado de publicación.")
+    };
   }
 
   return { publication: data ?? null, errorMessage: null };
@@ -710,13 +752,15 @@ export async function getGradesForStudent(studentId: string): Promise<{
   grades: GradeWithLabels[];
   errorMessage: string | null;
 }> {
-  const schoolContext = await requireOperationalSchoolContext();
+  const { schoolId, academicYearId } =
+    await requireAcademicOperationContext();
   const supabase = await createClient();
   const { data: student } = await supabase
     .from("students")
     .select("id")
     .eq("id", studentId)
-    .eq("school_id", schoolContext.schoolId)
+    .eq("school_id", schoolId)
+    .eq("academic_year_id", academicYearId)
     .maybeSingle();
   if (!student) {
     return { grades: [], errorMessage: "El alumno no pertenece al centro activo." };
@@ -725,6 +769,8 @@ export async function getGradesForStudent(studentId: string): Promise<{
   const { data, error } = await supabase
     .from("partial_grades")
     .select(gradeSelect)
+    .eq("school_id", schoolId)
+    .eq("academic_year_id", academicYearId)
     .eq("student_id", studentId)
     .order("term", { ascending: true })
     .order("assessment_date", { ascending: false })
@@ -732,7 +778,10 @@ export async function getGradesForStudent(studentId: string): Promise<{
     .returns<PartialGrade[]>();
 
   if (error) {
-    return { grades: [], errorMessage: error.message };
+    return {
+      grades: [],
+      errorMessage: academicReadError(error, "No se pudieron consultar las calificaciones.")
+    };
   }
 
   return attachGradeLabels(data ?? []);
@@ -742,13 +791,15 @@ export async function getTermSubjectGradesForStudent(studentId: string): Promise
   termGrades: TermSubjectGradeWithLabels[];
   errorMessage: string | null;
 }> {
-  const schoolContext = await requireOperationalSchoolContext();
+  const { schoolId, academicYearId } =
+    await requireAcademicOperationContext();
   const validationClient = await createClient();
   const { data: student } = await validationClient
     .from("students")
     .select("id")
     .eq("id", studentId)
-    .eq("school_id", schoolContext.schoolId)
+    .eq("school_id", schoolId)
+    .eq("academic_year_id", academicYearId)
     .maybeSingle();
   if (!student) {
     return { termGrades: [], errorMessage: "El alumno no pertenece al centro activo." };
@@ -758,13 +809,18 @@ export async function getTermSubjectGradesForStudent(studentId: string): Promise
   const { data, error } = await supabase
     .from("term_subject_grades")
     .select(termSubjectGradeSelect)
+    .eq("school_id", schoolId)
+    .eq("academic_year_id", academicYearId)
     .eq("student_id", studentId)
     .order("term", { ascending: true })
     .order("updated_at", { ascending: false })
     .returns<TermSubjectGrade[]>();
 
   if (error) {
-    return { termGrades: [], errorMessage: error.message };
+    return {
+      termGrades: [],
+      errorMessage: academicReadError(error, "No se pudieron consultar las notas trimestrales.")
+    };
   }
 
   return attachTermSubjectGradeLabels(data ?? []);
@@ -778,6 +834,7 @@ export async function getFamilyGrades(familyId: string): Promise<{
   if (!schoolContext.schoolId) {
     return { grades: [], errorMessage: "No hay un centro activo seleccionado." };
   }
+  const { academicYearId } = await requireAcademicOperationContext();
 
   const supabase = await createClient();
   const { data: relations, error: relationsError } = await supabase
@@ -788,7 +845,10 @@ export async function getFamilyGrades(familyId: string): Promise<{
     .returns<{ student_id: string }[]>();
 
   if (relationsError) {
-    return { grades: [], errorMessage: relationsError.message };
+    return {
+      grades: [],
+      errorMessage: academicReadError(relationsError, "No se pudo validar la relación familiar.")
+    };
   }
 
   const studentIds = (relations ?? []).map((relation) => relation.student_id);
@@ -800,6 +860,8 @@ export async function getFamilyGrades(familyId: string): Promise<{
   const { data, error } = await supabase
     .from("partial_grades")
     .select(gradeSelect)
+    .eq("school_id", schoolContext.schoolId)
+    .eq("academic_year_id", academicYearId)
     .in("student_id", studentIds)
     .eq("visible_to_family", true)
     .order("term", { ascending: true })
@@ -807,7 +869,10 @@ export async function getFamilyGrades(familyId: string): Promise<{
     .returns<PartialGrade[]>();
 
   if (error) {
-    return { grades: [], errorMessage: error.message };
+    return {
+      grades: [],
+      errorMessage: academicReadError(error, "No se pudieron consultar las calificaciones visibles.")
+    };
   }
 
   return attachGradeLabels(data ?? []);
@@ -821,6 +886,7 @@ export async function getFamilyTermSubjectGrades(familyId: string): Promise<{
   if (!schoolContext.schoolId) {
     return { termGrades: [], errorMessage: "No hay un centro activo seleccionado." };
   }
+  const { academicYearId } = await requireAcademicOperationContext();
 
   const supabase = await createClient();
   const { data: relations, error: relationsError } = await supabase
@@ -831,7 +897,10 @@ export async function getFamilyTermSubjectGrades(familyId: string): Promise<{
     .returns<{ student_id: string }[]>();
 
   if (relationsError) {
-    return { termGrades: [], errorMessage: relationsError.message };
+    return {
+      termGrades: [],
+      errorMessage: academicReadError(relationsError, "No se pudo validar la relación familiar.")
+    };
   }
 
   const studentIds = (relations ?? []).map((relation) => relation.student_id);
@@ -843,13 +912,18 @@ export async function getFamilyTermSubjectGrades(familyId: string): Promise<{
   const { data, error } = await supabase
     .from("term_subject_grades")
     .select(termSubjectGradeSelect)
+    .eq("school_id", schoolContext.schoolId)
+    .eq("academic_year_id", academicYearId)
     .in("student_id", studentIds)
     .eq("status", "closed")
     .order("term", { ascending: true })
     .returns<TermSubjectGrade[]>();
 
   if (error) {
-    return { termGrades: [], errorMessage: error.message };
+    return {
+      termGrades: [],
+      errorMessage: academicReadError(error, "No se pudieron consultar las notas publicadas.")
+    };
   }
 
   return attachTermSubjectGradeLabels(data ?? []);
@@ -863,15 +937,20 @@ export async function getAllGradesForSupervision(): Promise<{
   if (!schoolContext.schoolId) {
     return { grades: [], errorMessage: "Selecciona un centro para supervisar calificaciones." };
   }
+  const { academicYearId } = await requireAcademicOperationContext();
 
   const supabase = await createGradeLabelClient();
   const { data: students, error: studentsError } = await supabase
     .from("students")
     .select("id")
     .eq("school_id", schoolContext.schoolId)
+    .eq("academic_year_id", academicYearId)
     .returns<Array<{ id: string }>>();
   if (studentsError) {
-    return { grades: [], errorMessage: studentsError.message };
+    return {
+      grades: [],
+      errorMessage: academicReadError(studentsError, "No se pudieron resolver los alumnos del centro.")
+    };
   }
   const studentIds = (students ?? []).map(({ id }) => id);
   if (studentIds.length === 0) {
@@ -881,12 +960,17 @@ export async function getAllGradesForSupervision(): Promise<{
   const { data, error } = await supabase
     .from("partial_grades")
     .select(gradeSelect)
+    .eq("school_id", schoolContext.schoolId)
+    .eq("academic_year_id", academicYearId)
     .in("student_id", studentIds)
     .order("created_at", { ascending: false })
     .returns<PartialGrade[]>();
 
   if (error) {
-    return { grades: [], errorMessage: error.message };
+    return {
+      grades: [],
+      errorMessage: academicReadError(error, "No se pudieron supervisar las calificaciones.")
+    };
   }
 
   return attachGradeLabels(data ?? []);
@@ -900,15 +984,20 @@ export async function getAllEvaluationCriteriaForSupervision(): Promise<{
   if (!schoolContext.schoolId) {
     return { criteria: [], errorMessage: "Selecciona un centro para supervisar criterios." };
   }
+  const { academicYearId } = await requireAcademicOperationContext();
 
   const supabase = await createGradeLabelClient();
   const { data: courses, error: coursesError } = await supabase
     .from("courses")
     .select("id")
     .eq("school_id", schoolContext.schoolId)
+    .eq("academic_year_id", academicYearId)
     .returns<Array<{ id: string }>>();
   if (coursesError) {
-    return { criteria: [], errorMessage: coursesError.message };
+    return {
+      criteria: [],
+      errorMessage: academicReadError(coursesError, "No se pudieron resolver los cursos del centro.")
+    };
   }
   const courseIds = (courses ?? []).map(({ id }) => id);
   if (courseIds.length === 0) {
@@ -918,12 +1007,17 @@ export async function getAllEvaluationCriteriaForSupervision(): Promise<{
   const { data, error } = await supabase
     .from("evaluation_criteria")
     .select(criteriaSelect)
+    .eq("school_id", schoolContext.schoolId)
+    .eq("academic_year_id", academicYearId)
     .in("course_id", courseIds)
     .order("created_at", { ascending: false })
     .returns<EvaluationCriterion[]>();
 
   if (error) {
-    return { criteria: [], errorMessage: error.message };
+    return {
+      criteria: [],
+      errorMessage: academicReadError(error, "No se pudieron supervisar los criterios.")
+    };
   }
 
   return attachCriteriaLabels(data ?? []);
@@ -937,15 +1031,20 @@ export async function getAllQuarterFinalGradesForSupervision(): Promise<{
   if (!schoolContext.schoolId) {
     return { finalGrades: [], errorMessage: "Selecciona un centro para supervisar cierres." };
   }
+  const { academicYearId } = await requireAcademicOperationContext();
 
   const supabase = await createGradeLabelClient();
   const { data: students, error: studentsError } = await supabase
     .from("students")
     .select("id")
     .eq("school_id", schoolContext.schoolId)
+    .eq("academic_year_id", academicYearId)
     .returns<Array<{ id: string }>>();
   if (studentsError) {
-    return { finalGrades: [], errorMessage: studentsError.message };
+    return {
+      finalGrades: [],
+      errorMessage: academicReadError(studentsError, "No se pudieron resolver los alumnos del centro.")
+    };
   }
   const studentIds = (students ?? []).map(({ id }) => id);
   if (studentIds.length === 0) {
@@ -955,12 +1054,17 @@ export async function getAllQuarterFinalGradesForSupervision(): Promise<{
   const { data, error } = await supabase
     .from("quarter_final_grades")
     .select(finalGradeSelect)
+    .eq("school_id", schoolContext.schoolId)
+    .eq("academic_year_id", academicYearId)
     .in("student_id", studentIds)
     .order("created_at", { ascending: false })
     .returns<QuarterFinalGrade[]>();
 
   if (error) {
-    return { finalGrades: [], errorMessage: error.message };
+    return {
+      finalGrades: [],
+      errorMessage: academicReadError(error, "No se pudieron supervisar los cierres.")
+    };
   }
 
   return attachFinalGradeLabels(data ?? []);
@@ -974,16 +1078,21 @@ export async function getTermSubjectReportsForSupervision(term: GradeTerm): Prom
   if (!schoolContext.schoolId) {
     return { reports: [], errorMessage: "Selecciona un centro para supervisar boletines." };
   }
+  const { academicYearId } = await requireAcademicOperationContext();
 
   const supabase = await createGradeLabelClient();
   const { data: scopedStudents, error: scopedStudentsError } = await supabase
     .from("students")
     .select("id")
     .eq("school_id", schoolContext.schoolId)
+    .eq("academic_year_id", academicYearId)
     .returns<Array<{ id: string }>>();
   const studentIds = (scopedStudents ?? []).map(({ id }) => id);
   if (scopedStudentsError) {
-    return { reports: [], errorMessage: scopedStudentsError.message };
+    return {
+      reports: [],
+      errorMessage: academicReadError(scopedStudentsError, "No se pudieron resolver los alumnos del centro.")
+    };
   }
   if (studentIds.length === 0) {
     return { reports: [], errorMessage: null };
@@ -997,21 +1106,22 @@ export async function getTermSubjectReportsForSupervision(term: GradeTerm): Prom
     { data: profiles, error: profilesError },
     { data: termGrades, error: termGradesError }
   ] = await Promise.all([
-    supabase.from("students").select("id,name,last_name,course_id").eq("school_id", schoolContext.schoolId).eq("active", true).returns<ReportStudentLabel[]>(),
-    supabase.from("teacher_assignments").select("teacher_id,course_id,subject_id").eq("school_id", schoolContext.schoolId).returns<AssignmentLabel[]>(),
+    supabase.from("students").select("id,name,last_name,course_id").eq("school_id", schoolContext.schoolId).eq("academic_year_id", academicYearId).eq("active", true).returns<ReportStudentLabel[]>(),
+    supabase.from("teacher_assignments").select("teacher_id,course_id,subject_id").eq("school_id", schoolContext.schoolId).eq("academic_year_id", academicYearId).returns<AssignmentLabel[]>(),
     supabase.from("subjects").select("id,name").eq("school_id", schoolContext.schoolId).returns<Subject[]>(),
-    supabase.from("courses").select("id,name").eq("school_id", schoolContext.schoolId).returns<CourseLabel[]>(),
+    supabase.from("courses").select("id,name").eq("school_id", schoolContext.schoolId).eq("academic_year_id", academicYearId).returns<CourseLabel[]>(),
     supabase.from("profiles").select("id,email,full_name").returns<ProfileLabel[]>(),
-    supabase.from("term_subject_grades").select(termSubjectGradeSelect).in("student_id", studentIds).eq("term", term).returns<TermSubjectGrade[]>()
+    supabase.from("term_subject_grades").select(termSubjectGradeSelect).eq("school_id", schoolContext.schoolId).eq("academic_year_id", academicYearId).in("student_id", studentIds).eq("term", term).returns<TermSubjectGrade[]>()
   ]);
   const errorMessage =
-    studentsError?.message ??
-    assignmentsError?.message ??
-    subjectsError?.message ??
-    coursesError?.message ??
-    profilesError?.message ??
-    termGradesError?.message ??
-    null;
+    studentsError ||
+    assignmentsError ||
+    subjectsError ||
+    coursesError ||
+    profilesError ||
+    termGradesError
+      ? "No se pudo construir la supervisión de boletines."
+      : null;
 
   if (errorMessage) {
     return { reports: [], errorMessage };
@@ -1096,7 +1206,10 @@ async function attachGradeLabels(grades: PartialGrade[]): Promise<{
     supabase.from("profiles").select("id,email,full_name").in("id", teacherIds).returns<ProfileLabel[]>()
   ]);
 
-  const errorMessage = studentsError?.message ?? subjectsError?.message ?? profilesError?.message ?? null;
+  const errorMessage =
+    studentsError || subjectsError || profilesError
+      ? "No se pudieron resolver las etiquetas de calificaciones."
+      : null;
 
   if (errorMessage) {
     return { grades: [], errorMessage };
@@ -1145,7 +1258,10 @@ async function attachCriteriaLabels(criteria: EvaluationCriterion[]): Promise<{
     supabase.from("courses").select("id,name").eq("school_id", schoolId).in("id", courseIds).returns<CourseLabel[]>(),
     supabase.from("profiles").select("id,email,full_name").in("id", teacherIds).returns<ProfileLabel[]>()
   ]);
-  const errorMessage = subjectsError?.message ?? coursesError?.message ?? profilesError?.message ?? null;
+  const errorMessage =
+    subjectsError || coursesError || profilesError
+      ? "No se pudieron resolver las etiquetas de criterios."
+      : null;
 
   if (errorMessage) {
     return { criteria: [], errorMessage };
@@ -1195,7 +1311,10 @@ async function attachFinalGradeLabels(finalGrades: QuarterFinalGrade[]): Promise
     supabase.from("courses").select("id,name").eq("school_id", schoolId).in("id", courseIds).returns<CourseLabel[]>(),
     supabase.from("profiles").select("id,email,full_name").in("id", teacherIds).returns<ProfileLabel[]>()
   ]);
-  const errorMessage = studentsError?.message ?? subjectsError?.message ?? coursesError?.message ?? profilesError?.message ?? null;
+  const errorMessage =
+    studentsError || subjectsError || coursesError || profilesError
+      ? "No se pudieron resolver las etiquetas de notas finales."
+      : null;
 
   if (errorMessage) {
     return { finalGrades: [], errorMessage };
@@ -1248,7 +1367,10 @@ async function attachTermSubjectGradeLabels(termGrades: TermSubjectGrade[]): Pro
     supabase.from("courses").select("id,name").eq("school_id", schoolId).in("id", courseIds).returns<CourseLabel[]>(),
     supabase.from("profiles").select("id,email,full_name").in("id", teacherIds).returns<ProfileLabel[]>()
   ]);
-  const errorMessage = studentsError?.message ?? subjectsError?.message ?? coursesError?.message ?? profilesError?.message ?? null;
+  const errorMessage =
+    studentsError || subjectsError || coursesError || profilesError
+      ? "No se pudieron resolver las etiquetas de notas trimestrales."
+      : null;
 
   if (errorMessage) {
     return { termGrades: [], errorMessage };

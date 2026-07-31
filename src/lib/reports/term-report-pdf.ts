@@ -2,6 +2,10 @@ import { createAdminClient, hasSupabaseAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/auth/session";
 import type { GradeTerm } from "@/lib/grades/grades";
+import {
+  academicReadError,
+  requireAcademicOperationContext
+} from "@/lib/grades/context";
 import { requireOperationalSchoolContext } from "@/lib/schools/context";
 
 type ReportClient = Awaited<ReturnType<typeof createClient>>;
@@ -67,6 +71,7 @@ export async function getTermReportForProfile({
   term: GradeTerm;
 }): Promise<{ report: TermReportData | null; errorMessage: string | null; status: number }> {
   const schoolContext = await requireOperationalSchoolContext(profile);
+  const { academicYearId } = await requireAcademicOperationContext(profile);
   const contextualRole = schoolContext.role;
   const supabase = (hasSupabaseAdminClient() ? createAdminClient() : await createClient()) as unknown as ReportClient;
   const { data: student, error: studentError } = await supabase
@@ -74,9 +79,16 @@ export async function getTermReportForProfile({
     .select("id,school_id,name,last_name,course_id,academic_year_id")
     .eq("id", studentId)
     .eq("school_id", schoolContext.schoolId)
+    .eq("academic_year_id", academicYearId)
     .maybeSingle<StudentRow>();
 
-  if (studentError) return { report: null, errorMessage: studentError.message, status: 500 };
+  if (studentError) {
+    return {
+      report: null,
+      errorMessage: academicReadError(studentError, "No se pudo consultar el alumno."),
+      status: 500
+    };
+  }
   if (!student) return { report: null, errorMessage: "Alumno no encontrado.", status: 404 };
 
   if (contextualRole === "family") {
@@ -89,7 +101,13 @@ export async function getTermReportForProfile({
       .eq("school_id", schoolContext.schoolId)
       .maybeSingle<{ student_id: string }>();
 
-    if (relationError) return { report: null, errorMessage: relationError.message, status: 500 };
+    if (relationError) {
+      return {
+        report: null,
+        errorMessage: academicReadError(relationError, "No se pudo validar la relación familiar."),
+        status: 500
+      };
+    }
     if (!relation) return { report: null, errorMessage: "No tienes acceso a este alumno.", status: 403 };
   }
 
@@ -108,6 +126,7 @@ export async function getTermReportForProfile({
     supabase
       .from("evaluation_publications")
       .select("published,published_at")
+      .eq("school_id", schoolContext.schoolId)
       .eq("course_id", student.course_id)
       .eq("academic_year_id", student.academic_year_id)
       .eq("term", term)
@@ -115,6 +134,7 @@ export async function getTermReportForProfile({
     supabase
       .from("term_subject_grades")
       .select("subject_id,final_grade,final_observation,status")
+      .eq("school_id", schoolContext.schoolId)
       .eq("student_id", studentId)
       .eq("course_id", student.course_id)
       .eq("academic_year_id", student.academic_year_id)
@@ -123,7 +143,10 @@ export async function getTermReportForProfile({
       .returns<TermSubjectGradeRow[]>()
   ]);
 
-  const queryError = courseError?.message ?? academicYearError?.message ?? publicationError?.message ?? gradesError?.message ?? null;
+  const queryError =
+    courseError || academicYearError || publicationError || gradesError
+      ? "No se pudo preparar el boletín de evaluación."
+      : null;
   if (queryError) return { report: null, errorMessage: queryError, status: 500 };
 
   if (contextualRole === "family" && !publication?.published) {
@@ -136,7 +159,13 @@ export async function getTermReportForProfile({
     ? await supabase.from("subjects").select("id,name").eq("school_id", schoolContext.schoolId).in("id", subjectIds).returns<SubjectRow[]>()
     : { data: [], error: null };
 
-  if (subjectsError) return { report: null, errorMessage: subjectsError.message, status: 500 };
+  if (subjectsError) {
+    return {
+      report: null,
+      errorMessage: academicReadError(subjectsError, "No se pudieron consultar las materias."),
+      status: 500
+    };
+  }
 
   const subjectsById = new Map((subjects ?? []).map((subject: SubjectRow) => [subject.id, subject.name]));
   const rows = validGrades

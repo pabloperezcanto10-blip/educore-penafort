@@ -67,3 +67,18 @@ as `040_039b_rollback_staging.sql`.
 
 039C application changes remain blocked. Attendance and communications are
 still separate future waves; this migration does not implement them.
+
+## Sprint 20.2K scope
+
+039C adapts the application to the academic structure and RLS already present
+in staging migrations 039-040. It adds a shared academic operation context,
+explicit school/year reads and writes, tenant-aware conflict targets, guarded
+service-role reads, safe errors and reproducible static/SQL verification.
+
+No new migration is introduced. In particular, 041 is not created: legacy
+business uniqueness stays in place until a production-like restore rehearsal
+and a separate removal decision. Attendance and communications remain outside
+this wave.
+
+Execution evidence and promotion blockers are documented in
+`docs/SPRINT_20_2K_039C_ACADEMIC_APPLICATION.md`.

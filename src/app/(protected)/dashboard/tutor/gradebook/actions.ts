@@ -5,7 +5,11 @@ import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth/session";
 import { logAuditAction } from "@/lib/audit";
 import { createClient } from "@/lib/supabase/server";
-import { getActiveAcademicYear } from "@/lib/academic-years";
+import {
+  academicReadError,
+  academicWriteError,
+  requireAcademicOperationContext
+} from "@/lib/grades/context";
 import { createInternalNotifications, type InternalNotificationInsert } from "@/lib/internal-notifications";
 import { withToast } from "@/lib/toast";
 import type { Database } from "@/lib/database.types";
@@ -23,7 +27,8 @@ type TermSubjectGradeInsert = Database["public"]["Tables"]["term_subject_grades"
 
 export async function saveGradebook(formData: FormData) {
   const profile = await requireRole("tutor");
-  const schoolId = requireContextSchoolId(profile.schoolContext.schoolId);
+  const { schoolId, academicYearId } =
+    await requireAcademicOperationContext(profile);
   const courseId = String(formData.get("course_id") ?? "");
   const subjectId = String(formData.get("subject_id") ?? "");
   const termValue = String(formData.get("term") ?? "1");
@@ -61,10 +66,16 @@ export async function saveGradebook(formData: FormData) {
     .eq("teacher_id", teacherId)
     .eq("course_id", courseId)
     .eq("subject_id", subjectId)
+    .eq("academic_year_id", academicYearId)
     .maybeSingle<{ id: string }>();
 
   if (assignmentError) {
-    throw new Error(assignmentError.message);
+    throw new Error(
+      academicReadError(
+        assignmentError,
+        "No se pudo validar la asignación docente."
+      )
+    );
   }
 
   if (!assignment) {
@@ -72,7 +83,13 @@ export async function saveGradebook(formData: FormData) {
   }
 
   const studentIds = formData.getAll("student_id").map((value) => String(value));
-  await assertStudentsBelongToCourse(supabase, schoolId, courseId, studentIds);
+  await assertStudentsBelongToCourse(
+    supabase,
+    schoolId,
+    academicYearId,
+    courseId,
+    studentIds
+  );
   const rows: PartialGradeInsert[] = [];
 
   studentIds.forEach((studentId) => {
@@ -89,6 +106,8 @@ export async function saveGradebook(formData: FormData) {
     }
 
     rows.push({
+      school_id: schoolId,
+      academic_year_id: academicYearId,
       student_id: studentId,
       teacher_id: teacherId,
       subject_id: subjectId,
@@ -108,11 +127,11 @@ export async function saveGradebook(formData: FormData) {
     const { error } = await supabase
       .from("partial_grades")
       .upsert(rows as never, {
-        onConflict: "academic_year_id,student_id,subject_id,term,assessment_type,assessment_name"
+        onConflict: "school_id,academic_year_id,student_id,subject_id,term,assessment_type,assessment_name"
       });
 
     if (error) {
-      throw new Error(error.message);
+      throw academicWriteError(error, "No se pudieron guardar las calificaciones.");
     }
 
     await logAuditAction({
@@ -146,7 +165,8 @@ export async function saveGradebook(formData: FormData) {
 
 export async function saveEvaluationCriterion(formData: FormData) {
   const profile = await requireRole("tutor");
-  const schoolId = requireContextSchoolId(profile.schoolContext.schoolId);
+  const { schoolId, academicYearId } =
+    await requireAcademicOperationContext(profile);
   const criterionId = String(formData.get("criterion_id") ?? "").trim();
   const courseId = String(formData.get("course_id") ?? "");
   const subjectId = String(formData.get("subject_id") ?? "");
@@ -170,29 +190,42 @@ export async function saveEvaluationCriterion(formData: FormData) {
 
   const supabase = await createClient();
   const teacherId = await getAuthenticatedTeacherId(supabase, profile.id);
-  const activeAcademicYearId = await requireActiveAcademicYearId();
-  await assertTeacherAssignment(supabase, schoolId, teacherId, courseId, subjectId);
+  await assertTeacherAssignment(
+    supabase,
+    schoolId,
+    academicYearId,
+    teacherId,
+    courseId,
+    subjectId
+  );
 
   const { data: currentCriteria, error: currentError } = await supabase
     .from("evaluation_criteria")
     .select("id,teacher_id,course_id,subject_id,term,name,weight,criterion_type,visible_to_family,active,created_at")
+    .eq("school_id", schoolId)
     .eq("teacher_id", teacherId)
     .eq("course_id", courseId)
     .eq("subject_id", subjectId)
     .eq("term", term)
-    .eq("academic_year_id", activeAcademicYearId)
+    .eq("academic_year_id", academicYearId)
     .returns<EvaluationCriterion[]>();
 
   if (currentError) {
-    throw new Error(currentError.message);
+    throw new Error(
+      academicReadError(
+        currentError,
+        "No se pudieron consultar los criterios de evaluación."
+      )
+    );
   }
 
   const proposedCriteria = buildProposedCriteria(currentCriteria ?? [], {
     id: criterionId || "new",
+    school_id: schoolId,
     teacher_id: teacherId,
     course_id: courseId,
     subject_id: subjectId,
-    academic_year_id: activeAcademicYearId,
+    academic_year_id: academicYearId,
     term,
     name,
     weight,
@@ -211,6 +244,8 @@ export async function saveEvaluationCriterion(formData: FormData) {
 
   if (criterionId) {
     const update: EvaluationCriterionUpdate = {
+      school_id: schoolId,
+      academic_year_id: academicYearId,
       name,
       weight,
       criterion_type: criterionType,
@@ -221,13 +256,17 @@ export async function saveEvaluationCriterion(formData: FormData) {
       .from("evaluation_criteria")
       .update(update as never)
       .eq("id", criterionId)
+      .eq("school_id", schoolId)
+      .eq("academic_year_id", academicYearId)
       .eq("teacher_id", teacherId);
 
     if (error) {
-      throw new Error(error.message);
+      throw academicWriteError(error, "No se pudo actualizar el criterio.");
     }
   } else {
     const insert: EvaluationCriterionInsert = {
+      school_id: schoolId,
+      academic_year_id: academicYearId,
       teacher_id: teacherId,
       course_id: courseId,
       subject_id: subjectId,
@@ -241,7 +280,7 @@ export async function saveEvaluationCriterion(formData: FormData) {
     const { error } = await supabase.from("evaluation_criteria").insert(insert as never);
 
     if (error) {
-      throw new Error(error.message);
+      throw academicWriteError(error, "No se pudo crear el criterio.");
     }
 
   }
@@ -255,7 +294,8 @@ export async function saveEvaluationCriterion(formData: FormData) {
 
 export async function deleteEvaluationCriterion(formData: FormData) {
   const profile = await requireRole("tutor");
-  const schoolId = requireContextSchoolId(profile.schoolContext.schoolId);
+  const { schoolId, academicYearId } =
+    await requireAcademicOperationContext(profile);
   const criterionId = String(formData.get("criterion_id") ?? "").trim();
 
   if (!criterionId) {
@@ -268,16 +308,19 @@ export async function deleteEvaluationCriterion(formData: FormData) {
     .from("evaluation_criteria")
     .select("course_id,subject_id")
     .eq("id", criterionId)
+    .eq("school_id", schoolId)
+    .eq("academic_year_id", academicYearId)
     .eq("teacher_id", teacherId)
     .maybeSingle<{ course_id: string; subject_id: string }>();
 
   if (criterionError || !criterion) {
-    throw new Error(criterionError?.message ?? "No se encontro el criterio.");
+    throw new Error("No se encontró el criterio en el contexto académico activo.");
   }
 
   await assertTeacherAssignment(
     supabase,
     schoolId,
+    academicYearId,
     teacherId,
     criterion.course_id,
     criterion.subject_id
@@ -286,10 +329,12 @@ export async function deleteEvaluationCriterion(formData: FormData) {
     .from("evaluation_criteria")
     .delete()
     .eq("id", criterionId)
+    .eq("school_id", schoolId)
+    .eq("academic_year_id", academicYearId)
     .eq("teacher_id", teacherId);
 
   if (error) {
-    throw new Error(error.message);
+    throw academicWriteError(error, "No se pudo eliminar el criterio.");
   }
 
   revalidatePath("/dashboard/tutor/evaluation-settings");
@@ -301,7 +346,8 @@ export async function deleteEvaluationCriterion(formData: FormData) {
 
 export async function saveQuarterFinalGrades(formData: FormData) {
   const profile = await requireRole("tutor");
-  const schoolId = requireContextSchoolId(profile.schoolContext.schoolId);
+  const { schoolId, academicYearId } =
+    await requireAcademicOperationContext(profile);
   const courseId = String(formData.get("course_id") ?? "");
   const subjectId = String(formData.get("subject_id") ?? "");
   const term = normalizeTermValue(String(formData.get("term") ?? "1"));
@@ -312,12 +358,39 @@ export async function saveQuarterFinalGrades(formData: FormData) {
 
   const supabase = await createClient();
   const teacherId = await getAuthenticatedTeacherId(supabase, profile.id);
-  await assertTeacherAssignment(supabase, schoolId, teacherId, courseId, subjectId);
-  await assertEvaluationIsNotPublished(supabase, courseId, term);
-  await assertCriteriaTotalIsComplete(supabase, teacherId, courseId, subjectId, term);
+  await assertTeacherAssignment(
+    supabase,
+    schoolId,
+    academicYearId,
+    teacherId,
+    courseId,
+    subjectId
+  );
+  await assertEvaluationIsNotPublished(
+    supabase,
+    schoolId,
+    academicYearId,
+    courseId,
+    term
+  );
+  await assertCriteriaTotalIsComplete(
+    supabase,
+    schoolId,
+    academicYearId,
+    teacherId,
+    courseId,
+    subjectId,
+    term
+  );
 
   const studentIds = formData.getAll("student_id").map((value) => String(value));
-  await assertStudentsBelongToCourse(supabase, schoolId, courseId, studentIds);
+  await assertStudentsBelongToCourse(
+    supabase,
+    schoolId,
+    academicYearId,
+    courseId,
+    studentIds
+  );
   const rows: QuarterFinalGradeInsert[] = studentIds.map((studentId) => {
     const calculatedGrade = Number(String(formData.get(`calculated_${studentId}`) ?? "").replace(",", "."));
     const finalGrade = Number(String(formData.get(`final_${studentId}`) ?? "").replace(",", "."));
@@ -327,6 +400,8 @@ export async function saveQuarterFinalGrades(formData: FormData) {
     }
 
     return {
+      school_id: schoolId,
+      academic_year_id: academicYearId,
       student_id: studentId,
       subject_id: subjectId,
       teacher_id: teacherId,
@@ -342,11 +417,11 @@ export async function saveQuarterFinalGrades(formData: FormData) {
     const { error } = await supabase
       .from("quarter_final_grades")
       .upsert(rows as never, {
-        onConflict: "academic_year_id,student_id,subject_id,teacher_id,course_id,term"
+        onConflict: "school_id,academic_year_id,student_id,subject_id,teacher_id,course_id,term"
       });
 
     if (error) {
-      throw new Error(error.message);
+      throw academicWriteError(error, "No se pudieron guardar las notas finales.");
     }
 
     await logAuditAction({
@@ -374,7 +449,8 @@ export async function saveQuarterFinalGrades(formData: FormData) {
 
 export async function saveTermSubjectGrades(formData: FormData) {
   const profile = await requireRole("tutor");
-  const schoolId = requireContextSchoolId(profile.schoolContext.schoolId);
+  const { schoolId, academicYearId } =
+    await requireAcademicOperationContext(profile);
   const courseId = String(formData.get("course_id") ?? "");
   const subjectId = String(formData.get("subject_id") ?? "");
   const term = normalizeTermValue(String(formData.get("term") ?? "1"));
@@ -387,11 +463,32 @@ export async function saveTermSubjectGrades(formData: FormData) {
 
   const supabase = await createClient();
   const teacherId = await getAuthenticatedTeacherId(supabase, profile.id);
-  await assertTeacherAssignment(supabase, schoolId, teacherId, courseId, subjectId);
-  await assertCriteriaTotalIsComplete(supabase, teacherId, courseId, subjectId, term);
+  await assertTeacherAssignment(
+    supabase,
+    schoolId,
+    academicYearId,
+    teacherId,
+    courseId,
+    subjectId
+  );
+  await assertCriteriaTotalIsComplete(
+    supabase,
+    schoolId,
+    academicYearId,
+    teacherId,
+    courseId,
+    subjectId,
+    term
+  );
 
   const studentIds = formData.getAll("student_id").map((value) => String(value));
-  await assertStudentsBelongToCourse(supabase, schoolId, courseId, studentIds);
+  await assertStudentsBelongToCourse(
+    supabase,
+    schoolId,
+    academicYearId,
+    courseId,
+    studentIds
+  );
   const rows: TermSubjectGradeInsert[] = studentIds.map((studentId) => {
     const calculatedRaw = String(formData.get(`calculated_${studentId}`) ?? "").replace(",", ".");
     const finalRaw = String(formData.get(`final_${studentId}`) ?? "").replace(",", ".");
@@ -411,6 +508,8 @@ export async function saveTermSubjectGrades(formData: FormData) {
     }
 
     return {
+      school_id: schoolId,
+      academic_year_id: academicYearId,
       student_id: studentId,
       subject_id: subjectId,
       teacher_id: teacherId,
@@ -428,11 +527,11 @@ export async function saveTermSubjectGrades(formData: FormData) {
     const { error } = await supabase
       .from("term_subject_grades")
       .upsert(rows as never, {
-        onConflict: "academic_year_id,student_id,subject_id,term"
+        onConflict: "school_id,academic_year_id,student_id,subject_id,term"
       });
 
     if (error) {
-      throw new Error(error.message);
+      throw academicWriteError(error, "No se pudieron guardar las notas trimestrales.");
     }
 
     await logAuditAction({
@@ -537,7 +636,8 @@ async function notifyStaffAboutClosedEvaluation(
 
 export async function reopenTermSubjectGrade(formData: FormData) {
   const profile = await requireRole("tutor");
-  const schoolId = requireContextSchoolId(profile.schoolContext.schoolId);
+  const { schoolId, academicYearId } =
+    await requireAcademicOperationContext(profile);
   const gradeId = String(formData.get("term_subject_grade_id") ?? "").trim();
 
   if (!gradeId) {
@@ -550,6 +650,8 @@ export async function reopenTermSubjectGrade(formData: FormData) {
     .from("term_subject_grades")
     .select("id,course_id,subject_id,term,status,final_grade,calculated_grade,closed_at")
     .eq("id", gradeId)
+    .eq("school_id", schoolId)
+    .eq("academic_year_id", academicYearId)
     .eq("teacher_id", teacherId)
     .maybeSingle<{
       id: string;
@@ -563,7 +665,12 @@ export async function reopenTermSubjectGrade(formData: FormData) {
     }>();
 
   if (currentGradeError) {
-    throw new Error(currentGradeError.message);
+    throw new Error(
+      academicReadError(
+        currentGradeError,
+        "No se pudo consultar la evaluación trimestral."
+      )
+    );
   }
 
   if (!currentGrade) {
@@ -573,11 +680,18 @@ export async function reopenTermSubjectGrade(formData: FormData) {
   await assertTeacherAssignment(
     supabase,
     schoolId,
+    academicYearId,
     teacherId,
     currentGrade.course_id,
     currentGrade.subject_id
   );
-  await assertEvaluationIsNotPublished(supabase, currentGrade.course_id, currentGrade.term);
+  await assertEvaluationIsNotPublished(
+    supabase,
+    schoolId,
+    academicYearId,
+    currentGrade.course_id,
+    currentGrade.term
+  );
 
   const { error } = await supabase
     .from("term_subject_grades")
@@ -586,10 +700,12 @@ export async function reopenTermSubjectGrade(formData: FormData) {
       closed_at: null
     } as never)
     .eq("id", gradeId)
+    .eq("school_id", schoolId)
+    .eq("academic_year_id", academicYearId)
     .eq("teacher_id", teacherId);
 
   if (error) {
-    throw new Error(error.message);
+    throw academicWriteError(error, "No se pudo reabrir la evaluación.");
   }
 
   await logAuditAction({
@@ -614,19 +730,27 @@ export async function reopenTermSubjectGrade(formData: FormData) {
 
 async function assertEvaluationIsNotPublished(
   supabase: Awaited<ReturnType<typeof createClient>>,
+  schoolId: string,
+  academicYearId: string,
   courseId: string,
   term: (typeof validTerms)[number]
 ) {
   const { data, error } = await supabase
     .from("evaluation_publications")
     .select("published")
+    .eq("school_id", schoolId)
     .eq("course_id", courseId)
     .eq("term", term)
-    .eq("academic_year_id", await requireActiveAcademicYearId())
+    .eq("academic_year_id", academicYearId)
     .maybeSingle<{ published: boolean }>();
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error(
+      academicReadError(
+        error,
+        "No se pudo comprobar el estado de publicación."
+      )
+    );
   }
 
   if (data?.published) {
@@ -636,6 +760,8 @@ async function assertEvaluationIsNotPublished(
 
 async function assertCriteriaTotalIsComplete(
   supabase: Awaited<ReturnType<typeof createClient>>,
+  schoolId: string,
+  academicYearId: string,
   teacherId: string,
   courseId: string,
   subjectId: string,
@@ -644,16 +770,22 @@ async function assertCriteriaTotalIsComplete(
   const { data, error } = await supabase
     .from("evaluation_criteria")
     .select("weight")
+    .eq("school_id", schoolId)
     .eq("teacher_id", teacherId)
     .eq("course_id", courseId)
     .eq("subject_id", subjectId)
     .eq("term", term)
     .eq("active", true)
-    .eq("academic_year_id", await requireActiveAcademicYearId())
+    .eq("academic_year_id", academicYearId)
     .returns<{ weight: number }[]>();
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error(
+      academicReadError(
+        error,
+        "No se pudo validar la configuración de criterios."
+      )
+    );
   }
 
   const total = (data ?? []).reduce((sum, criterion) => sum + Number(criterion.weight), 0);
@@ -679,6 +811,7 @@ async function getAuthenticatedTeacherId(supabase: Awaited<ReturnType<typeof cre
 async function assertTeacherAssignment(
   supabase: Awaited<ReturnType<typeof createClient>>,
   schoolId: string,
+  academicYearId: string,
   teacherId: string,
   courseId: string,
   subjectId: string
@@ -690,11 +823,16 @@ async function assertTeacherAssignment(
     .eq("teacher_id", teacherId)
     .eq("course_id", courseId)
     .eq("subject_id", subjectId)
-    .eq("academic_year_id", await requireActiveAcademicYearId())
+    .eq("academic_year_id", academicYearId)
     .maybeSingle<{ id: string }>();
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error(
+      academicReadError(
+        error,
+        "No se pudo validar la asignación docente."
+      )
+    );
   }
 
   if (!assignment) {
@@ -705,6 +843,7 @@ async function assertTeacherAssignment(
 async function assertStudentsBelongToCourse(
   supabase: Awaited<ReturnType<typeof createClient>>,
   schoolId: string,
+  academicYearId: string,
   courseId: string,
   studentIds: string[]
 ) {
@@ -715,34 +854,15 @@ async function assertStudentsBelongToCourse(
     .from("students")
     .select("id")
     .eq("school_id", schoolId)
+    .eq("academic_year_id", academicYearId)
     .eq("course_id", courseId)
     .eq("active", true)
     .in("id", uniqueStudentIds)
     .returns<{ id: string }[]>();
 
   if (error || (data ?? []).length !== uniqueStudentIds.length) {
-    throw new Error(
-      error?.message ?? "Hay alumnos que no pertenecen al curso y centro activos."
-    );
+    throw new Error("Hay alumnos que no pertenecen al curso y centro activos.");
   }
-}
-
-function requireContextSchoolId(schoolId: string | null) {
-  if (!schoolId) {
-    throw new Error("No hay un centro activo seleccionado.");
-  }
-
-  return schoolId;
-}
-
-async function requireActiveAcademicYearId() {
-  const { academicYear, errorMessage } = await getActiveAcademicYear();
-
-  if (!academicYear) {
-    throw new Error(errorMessage ?? "No hay curso escolar activo.");
-  }
-
-  return academicYear.id;
 }
 
 function normalizeTermValue(value: string) {

@@ -1,6 +1,10 @@
 import { createAdminClient, hasSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/auth/session";
+import {
+  academicReadError,
+  requireAcademicOperationContext
+} from "@/lib/grades/context";
 import { calculateAnnualGrade, roundAnnualGrade } from "@/lib/grades/annual";
 import { requireOperationalSchoolContext } from "@/lib/schools/context";
 
@@ -99,6 +103,7 @@ export async function getFinalReportForProfile({
   studentId: string;
 }): Promise<{ report: FinalReportData | null; errorMessage: string | null; status: number }> {
   const schoolContext = await requireOperationalSchoolContext(profile);
+  const { academicYearId } = await requireAcademicOperationContext(profile);
   const contextualRole = schoolContext.role;
   const supabase = (hasSupabaseAdminClient() ? createAdminClient() : await createClient()) as unknown as ReportClient;
   const { data: student, error: studentError } = await supabase
@@ -106,9 +111,16 @@ export async function getFinalReportForProfile({
     .select("id,school_id,name,last_name,course_id,academic_year_id")
     .eq("id", studentId)
     .eq("school_id", schoolContext.schoolId)
+    .eq("academic_year_id", academicYearId)
     .maybeSingle<StudentRow>();
 
-  if (studentError) return { report: null, errorMessage: studentError.message, status: 500 };
+  if (studentError) {
+    return {
+      report: null,
+      errorMessage: academicReadError(studentError, "No se pudo consultar el alumno."),
+      status: 500
+    };
+  }
   if (!student) return { report: null, errorMessage: "Alumno no encontrado.", status: 404 };
 
   if (contextualRole === "family") {
@@ -121,7 +133,13 @@ export async function getFinalReportForProfile({
       .eq("school_id", schoolContext.schoolId)
       .maybeSingle<{ student_id: string }>();
 
-    if (relationError) return { report: null, errorMessage: relationError.message, status: 500 };
+    if (relationError) {
+      return {
+        report: null,
+        errorMessage: academicReadError(relationError, "No se pudo validar la relación familiar."),
+        status: 500
+      };
+    }
     if (!relation) return { report: null, errorMessage: "No tienes acceso a este alumno.", status: 403 };
   }
 
@@ -142,6 +160,7 @@ export async function getFinalReportForProfile({
     supabase
       .from("final_evaluation_publications")
       .select("published,published_at")
+      .eq("school_id", schoolContext.schoolId)
       .eq("course_id", student.course_id)
       .eq("academic_year_id", student.academic_year_id)
       .maybeSingle<PublicationRow>(),
@@ -155,6 +174,7 @@ export async function getFinalReportForProfile({
     supabase
       .from("term_subject_grades")
       .select("subject_id,teacher_id,term,final_grade")
+      .eq("school_id", schoolContext.schoolId)
       .eq("student_id", studentId)
       .eq("course_id", student.course_id)
       .eq("academic_year_id", student.academic_year_id)
@@ -163,6 +183,7 @@ export async function getFinalReportForProfile({
     supabase
       .from("final_course_grades")
       .select("subject_id,teacher_id,term1_grade,term2_grade,term3_grade,term1_weight,term2_weight,term3_weight,calculated_grade,final_grade,final_observation,status")
+      .eq("school_id", schoolContext.schoolId)
       .eq("student_id", studentId)
       .eq("course_id", student.course_id)
       .eq("academic_year_id", student.academic_year_id)
@@ -170,13 +191,14 @@ export async function getFinalReportForProfile({
   ]);
 
   const queryError =
-    courseError?.message ??
-    academicYearError?.message ??
-    publicationError?.message ??
-    assignmentsError?.message ??
-    termGradesError?.message ??
-    finalRowsError?.message ??
-    null;
+    courseError ||
+    academicYearError ||
+    publicationError ||
+    assignmentsError ||
+    termGradesError ||
+    finalRowsError
+      ? "No se pudo preparar el boletín final."
+      : null;
   if (queryError) return { report: null, errorMessage: queryError, status: 500 };
 
   if (contextualRole === "family" && !publication?.published) {
@@ -197,6 +219,7 @@ export async function getFinalReportForProfile({
       ? supabase
           .from("annual_evaluation_weights")
           .select("teacher_id,subject_id,term1_weight,term2_weight,term3_weight")
+          .eq("school_id", schoolContext.schoolId)
           .eq("course_id", student.course_id)
           .eq("academic_year_id", student.academic_year_id)
           .in("subject_id", subjectIds)
@@ -206,7 +229,10 @@ export async function getFinalReportForProfile({
       : Promise.resolve({ data: [], error: null })
   ]);
 
-  const labelError = subjectsError?.message ?? weightsError?.message ?? null;
+  const labelError =
+    subjectsError || weightsError
+      ? "No se pudieron consultar las materias y ponderaciones."
+      : null;
   if (labelError) return { report: null, errorMessage: labelError, status: 500 };
 
   const subjectsById = new Map((subjects ?? []).map((subject: SubjectRow) => [subject.id, subject.name]));

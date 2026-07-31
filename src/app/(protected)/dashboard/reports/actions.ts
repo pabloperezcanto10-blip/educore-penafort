@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { logAuditAction } from "@/lib/audit";
 import { requireRole } from "@/lib/auth/session";
+import {
+  academicWriteError,
+  requireAcademicOperationContext
+} from "@/lib/grades/context";
 import { createClient } from "@/lib/supabase/server";
 import { createInternalNotifications, type InternalNotificationInsert } from "@/lib/internal-notifications";
 import { withToast } from "@/lib/toast";
@@ -15,8 +19,8 @@ type EvaluationPublicationInsert = Database["public"]["Tables"]["evaluation_publ
 
 export async function publishEvaluation(formData: FormData) {
   const profile = await requireRole(["director", "superadmin"]);
-  const schoolId = profile.schoolContext.schoolId;
-  if (!schoolId) throw new Error("Selecciona un centro antes de publicar evaluaciones.");
+  const { schoolId, academicYearId } =
+    await requireAcademicOperationContext(profile);
 
   const courseId = String(formData.get("course_id") ?? "").trim();
   const termValue = String(formData.get("term") ?? "1");
@@ -43,13 +47,16 @@ export async function publishEvaluation(formData: FormData) {
     .select("id")
     .eq("id", courseId)
     .eq("school_id", schoolId)
+    .eq("academic_year_id", academicYearId)
     .maybeSingle<{ id: string }>();
 
   if (courseError || !course) {
-    throw new Error(courseError?.message ?? "El curso no pertenece al centro activo.");
+    throw new Error("El curso no pertenece al contexto académico activo.");
   }
 
   const row: EvaluationPublicationInsert = {
+    school_id: schoolId,
+    academic_year_id: academicYearId,
     course_id: courseId,
     term,
     published: true,
@@ -59,10 +66,12 @@ export async function publishEvaluation(formData: FormData) {
 
   const { error } = await supabase
     .from("evaluation_publications")
-    .upsert(row as never, { onConflict: "academic_year_id,course_id,term" });
+    .upsert(row as never, {
+      onConflict: "school_id,academic_year_id,course_id,term"
+    });
 
   if (error) {
-    throw new Error(error.message);
+    throw academicWriteError(error, "No se pudieron publicar los boletines.");
   }
 
   await logAuditAction({

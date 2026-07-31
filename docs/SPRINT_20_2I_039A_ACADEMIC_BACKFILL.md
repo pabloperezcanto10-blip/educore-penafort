@@ -191,3 +191,14 @@ The RLS matrix and protected-route regression passed and left no synthetic
 rows or QA identities. 039C application scoping, tenant-aware conflict
 targets and academic-year defaults remain required before production
 promotion. See `docs/SPRINT_20_2J_039B_ACADEMIC_RLS.md`.
+
+## 039C completion
+
+The current application callers have been migrated to the eight tenant-aware
+039A unique targets and explicit school/year scope. Static verification found
+no remaining legacy academic `ON CONFLICT` target in `src`.
+
+The legacy database uniqueness objects are retained temporarily for rollback
+compatibility. Migration 041 was not created in Sprint 20.2K. See
+`docs/SPRINT_20_2K_039C_ACADEMIC_APPLICATION.md` for the removal gates and
+authenticated QA evidence.

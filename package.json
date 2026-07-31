@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "verify:academic-scope": "node scripts/verify-academic-application-scope.mjs"
   },
   "dependencies": {
     "@next/third-parties": "14.2.35",

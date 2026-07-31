@@ -921,3 +921,26 @@ fallback de centro ni un tenant por defecto.
 La baseline remota de staging termina en `001-040`. Produccion y `main`
 permanecen intactos. La evidencia completa esta en
 `docs/SPRINT_20_2J_039B_ACADEMIC_RLS.md`.
+
+## Aplicación académica 039C
+
+Sprint 20.2K incorpora `requireAcademicOperationContext()` como frontera
+compartida para las ocho tablas académicas. El contexto une usuario
+autenticado, membership activa, centro seleccionado y un único curso
+académico activo del mismo centro. Las consultas no dependen solo de RLS:
+aplican filtros directos de `school_id` y `academic_year_id`.
+
+Las escrituras incluyen ambos campos server-side y validan curso, materia,
+alumno y assignment contra el contexto. Los ocho `ON CONFLICT` de la
+aplicación apuntan a las uniques tenant-aware de 039A. Los usos académicos de
+`createAdminClient()` resuelven autorización y ámbito antes de abrir el
+cliente privilegiado.
+
+La regresión autenticada probó Superadmin, Director, Tutor, Tutor multischool,
+Familia, membership inactiva y ausencia de membership en los dos tenants QA.
+Los cambios A -> B -> A no mezclaron datos ni caché. La limpieza y dos
+auditorías posteriores dejaron cero residuos.
+
+No se crea 041 todavía. Las uniques legacy se conservan hasta ensayar rollback
+en una restauración equivalente a producción. Evidencia completa:
+`docs/SPRINT_20_2K_039C_ACADEMIC_APPLICATION.md`.

@@ -618,3 +618,16 @@ Superadmin, Director, direct tutor, assigned teacher, multischool tutor,
 Family, inactive membership, missing membership and cross-tenant negative
 cases. Detailed evidence and the remaining 039C blockers are documented in
 `docs/SPRINT_20_2J_039B_ACADEMIC_RLS.md`.
+
+## 23. Sprint 20.2K application status
+
+039C is implemented on branch `staging`. Application reads and writes for the
+eight academic tables now resolve active school plus the active academic year,
+carry explicit tenant filters/payloads, and use the tenant-aware 039A conflict
+targets. Authenticated A/B route regression and transactional RLS verification
+passed with zero QA residue.
+
+Legacy uniqueness remains as a compatibility safety net. No migration 041 was
+created; its retirement requires a production-like restore rehearsal and a
+separate approved window. Full evidence is in
+`docs/SPRINT_20_2K_039C_ACADEMIC_APPLICATION.md`.

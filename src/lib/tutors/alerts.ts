@@ -1,4 +1,8 @@
 import { getTutorUnreadCommunicationsCount } from "@/lib/communications/notifications";
+import {
+  academicReadError,
+  requireAcademicOperationContext
+} from "@/lib/grades/context";
 import { createClient } from "@/lib/supabase/server";
 import { getStudentsForTutor, type TutorStudent } from "@/lib/tutors/students";
 
@@ -48,6 +52,8 @@ export async function getTutorAlerts(tutorId: string): Promise<{
     return { alerts: [], errorMessage: null };
   }
 
+  const { schoolId, academicYearId } =
+    await requireAcademicOperationContext();
   const supabase = await createClient();
   const studentIds = students.map((student) => student.id);
   const since = new Date();
@@ -75,6 +81,8 @@ export async function getTutorAlerts(tutorId: string): Promise<{
     supabase
       .from("partial_grades")
       .select("student_id,grade,assessment_name")
+      .eq("school_id", schoolId)
+      .eq("academic_year_id", academicYearId)
       .eq("teacher_id", tutorId)
       .in("student_id", studentIds)
       .lt("grade", 5)
@@ -92,7 +100,9 @@ export async function getTutorAlerts(tutorId: string): Promise<{
   const firstError =
     attendanceError?.message ??
     incidentsError?.message ??
-    gradesError?.message ??
+    (gradesError
+      ? academicReadError(gradesError, "No se pudieron consultar las alertas académicas.")
+      : null) ??
     observationsError?.message ??
     communicationsError;
 

@@ -5,12 +5,18 @@ import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth/session";
 import { logAuditAction } from "@/lib/audit";
 import { calculateAnnualGrade, roundAnnualGrade } from "@/lib/grades/annual";
+import {
+  academicReadError,
+  academicWriteError,
+  requireAcademicOperationContext
+} from "@/lib/grades/context";
 import { createClient } from "@/lib/supabase/server";
 import { withToast } from "@/lib/toast";
 
 export async function saveAnnualWeights(formData: FormData) {
   const profile = await requireRole("tutor");
-  const schoolId = requireContextSchoolId(profile.schoolContext.schoolId);
+  const { schoolId, academicYearId } =
+    await requireAcademicOperationContext(profile);
   const courseId = stringValue(formData, "course_id");
   const subjectId = stringValue(formData, "subject_id");
   const term1 = numberValue(formData, "term1_weight");
@@ -29,12 +35,15 @@ export async function saveAnnualWeights(formData: FormData) {
   await assertTeacherCourseSubject(
     supabase,
     schoolId,
+    academicYearId,
     profile.id,
     courseId,
     subjectId
   );
   const { error } = await supabase.from("annual_evaluation_weights").upsert(
     {
+      school_id: schoolId,
+      academic_year_id: academicYearId,
       teacher_id: profile.id,
       course_id: courseId,
       subject_id: subjectId,
@@ -43,10 +52,12 @@ export async function saveAnnualWeights(formData: FormData) {
       term3_weight: term3,
       active: true
     } as never,
-    { onConflict: "academic_year_id,teacher_id,course_id,subject_id" }
+    { onConflict: "school_id,academic_year_id,teacher_id,course_id,subject_id" }
   );
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    throw academicWriteError(error, "No se pudieron guardar los pesos anuales.");
+  }
 
   revalidatePath("/dashboard/tutor/final-grades");
   redirect(withToast(`/dashboard/tutor/final-grades?course_id=${courseId}&subject_id=${subjectId}`, "success", "Pesos anuales guardados correctamente."));
@@ -54,7 +65,8 @@ export async function saveAnnualWeights(formData: FormData) {
 
 export async function saveFinalCourseGrade(formData: FormData) {
   const profile = await requireRole("tutor");
-  const schoolId = requireContextSchoolId(profile.schoolContext.schoolId);
+  const { schoolId, academicYearId } =
+    await requireAcademicOperationContext(profile);
   const studentId = stringValue(formData, "student_id");
   const courseId = stringValue(formData, "course_id");
   const subjectId = stringValue(formData, "subject_id");
@@ -82,6 +94,7 @@ export async function saveFinalCourseGrade(formData: FormData) {
   await assertTeacherCourseSubject(
     supabase,
     schoolId,
+    academicYearId,
     profile.id,
     courseId,
     subjectId
@@ -90,16 +103,19 @@ export async function saveFinalCourseGrade(formData: FormData) {
     .from("students")
     .select("id")
     .eq("school_id", schoolId)
+    .eq("academic_year_id", academicYearId)
     .eq("course_id", courseId)
     .eq("id", studentId)
     .maybeSingle<{ id: string }>();
 
   if (studentError || !student) {
-    throw new Error(studentError?.message ?? "El alumno no pertenece al centro activo.");
+    throw new Error("El alumno no pertenece al contexto académico activo.");
   }
 
   const { error } = await supabase.from("final_course_grades").upsert(
     {
+      school_id: schoolId,
+      academic_year_id: academicYearId,
       student_id: studentId,
       subject_id: subjectId,
       teacher_id: profile.id,
@@ -116,10 +132,12 @@ export async function saveFinalCourseGrade(formData: FormData) {
       status: close ? "closed" : "draft",
       closed_at: close ? new Date().toISOString() : null
     } as never,
-    { onConflict: "academic_year_id,student_id,subject_id" }
+    { onConflict: "school_id,academic_year_id,student_id,subject_id" }
   );
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    throw academicWriteError(error, "No se pudo guardar la calificación final.");
+  }
 
   await logAuditAction({
     actorUserId: profile.id,
@@ -160,6 +178,7 @@ function nullableNumberValue(formData: FormData, name: string) {
 async function assertTeacherCourseSubject(
   supabase: Awaited<ReturnType<typeof createClient>>,
   schoolId: string,
+  academicYearId: string,
   teacherId: string,
   courseId: string,
   subjectId: string
@@ -168,20 +187,18 @@ async function assertTeacherCourseSubject(
     .from("teacher_assignments")
     .select("id")
     .eq("school_id", schoolId)
+    .eq("academic_year_id", academicYearId)
     .eq("teacher_id", teacherId)
     .eq("course_id", courseId)
     .eq("subject_id", subjectId)
     .maybeSingle<{ id: string }>();
 
   if (error || !data) {
-    throw new Error(error?.message ?? "La asignacion no pertenece al centro activo.");
+    throw new Error(
+      academicReadError(
+        error,
+        "La asignación no pertenece al contexto académico activo."
+      )
+    );
   }
-}
-
-function requireContextSchoolId(schoolId: string | null) {
-  if (!schoolId) {
-    throw new Error("No hay un centro activo seleccionado.");
-  }
-
-  return schoolId;
 }

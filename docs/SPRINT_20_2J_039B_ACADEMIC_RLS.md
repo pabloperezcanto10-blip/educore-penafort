@@ -153,3 +153,16 @@ decision.
 
 Decision: **GO WITH BLOCKERS** for 039C. Migration 040 is accepted for
 staging, but `037-040` must not be promoted to production yet.
+
+## 039C application validation
+
+Sprint 20.2K now supplies the application-side defense requested by 039B:
+every direct academic read carries school/year scope, every action resolves
+`ActiveSchoolContext`, and each upsert uses a 039A tenant-aware conflict
+target. Real authenticated sessions confirmed Director/Tutor/Family isolation,
+publication visibility, inactive/no-membership denial and multischool
+A -> B -> A behavior.
+
+The decision remains **GO WITH BLOCKERS** for production promotion because
+legacy unique retirement, restore rehearsal and the production change window
+are still pending. See `docs/SPRINT_20_2K_039C_ACADEMIC_APPLICATION.md`.

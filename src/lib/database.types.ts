@@ -391,6 +391,7 @@ export type Database = {
       partial_grades: {
         Row: {
           id: string;
+          school_id: string;
           student_id: string;
           teacher_id: string;
           subject_id: string;
@@ -408,6 +409,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
+          school_id: string;
           student_id: string;
           teacher_id: string;
           subject_id: string;
@@ -424,6 +426,11 @@ export type Database = {
           created_at?: string;
         };
         Update: {
+          school_id?: string;
+          student_id?: string;
+          teacher_id?: string;
+          subject_id?: string;
+          course_id?: string;
           term?: "1" | "2" | "3";
           assessment_type?: "parcial" | "trimestral";
           assessment_name?: string;
@@ -439,6 +446,7 @@ export type Database = {
       evaluation_criteria: {
         Row: {
           id: string;
+          school_id: string;
           teacher_id: string;
           course_id: string;
           subject_id: string;
@@ -461,6 +469,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
+          school_id: string;
           teacher_id: string;
           course_id: string;
           subject_id: string;
@@ -482,6 +491,11 @@ export type Database = {
           created_at?: string;
         };
         Update: {
+          school_id?: string;
+          teacher_id?: string;
+          course_id?: string;
+          subject_id?: string;
+          term?: "1" | "2" | "3";
           name?: string;
           weight?: number;
           criterion_type?:
@@ -502,6 +516,7 @@ export type Database = {
       quarter_final_grades: {
         Row: {
           id: string;
+          school_id: string;
           student_id: string;
           subject_id: string;
           teacher_id: string;
@@ -515,6 +530,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
+          school_id: string;
           student_id: string;
           subject_id: string;
           teacher_id: string;
@@ -527,6 +543,12 @@ export type Database = {
           created_at?: string;
         };
         Update: {
+          school_id?: string;
+          student_id?: string;
+          subject_id?: string;
+          teacher_id?: string;
+          course_id?: string;
+          term?: "1" | "2" | "3";
           calculated_grade?: number;
           final_grade?: number;
           teacher_observation?: string | null;
@@ -537,6 +559,7 @@ export type Database = {
       term_subject_grades: {
         Row: {
           id: string;
+          school_id: string;
           student_id: string;
           subject_id: string;
           teacher_id: string;
@@ -553,6 +576,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
+          school_id: string;
           student_id: string;
           subject_id: string;
           teacher_id: string;
@@ -568,6 +592,13 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          school_id?: string;
+          student_id?: string;
+          subject_id?: string;
+          teacher_id?: string;
+          course_id?: string;
+          academic_year_id?: string;
+          term?: "1" | "2" | "3";
           calculated_grade?: number | null;
           final_grade?: number | null;
           final_observation?: string | null;
@@ -580,6 +611,7 @@ export type Database = {
       evaluation_publications: {
         Row: {
           id: string;
+          school_id: string;
           course_id: string;
           academic_year_id: string;
           term: "1" | "2" | "3";
@@ -591,6 +623,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
+          school_id: string;
           course_id: string;
           academic_year_id?: string;
           term: "1" | "2" | "3";
@@ -601,6 +634,154 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          school_id?: string;
+          course_id?: string;
+          academic_year_id?: string;
+          term?: "1" | "2" | "3";
+          published?: boolean;
+          published_at?: string | null;
+          published_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      annual_evaluation_weights: {
+        Row: {
+          id: string;
+          school_id: string;
+          teacher_id: string;
+          course_id: string;
+          subject_id: string;
+          academic_year_id: string;
+          term1_weight: number;
+          term2_weight: number;
+          term3_weight: number;
+          active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          school_id: string;
+          teacher_id: string;
+          course_id: string;
+          subject_id: string;
+          academic_year_id: string;
+          term1_weight?: number;
+          term2_weight?: number;
+          term3_weight?: number;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          school_id?: string;
+          teacher_id?: string;
+          course_id?: string;
+          subject_id?: string;
+          academic_year_id?: string;
+          term1_weight?: number;
+          term2_weight?: number;
+          term3_weight?: number;
+          active?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      final_course_grades: {
+        Row: {
+          id: string;
+          school_id: string;
+          student_id: string;
+          subject_id: string;
+          teacher_id: string;
+          course_id: string;
+          academic_year_id: string;
+          term1_grade: number | null;
+          term2_grade: number | null;
+          term3_grade: number | null;
+          term1_weight: number;
+          term2_weight: number;
+          term3_weight: number;
+          calculated_grade: number | null;
+          final_grade: number | null;
+          final_observation: string | null;
+          status: "pending" | "draft" | "closed";
+          closed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          school_id: string;
+          student_id: string;
+          subject_id: string;
+          teacher_id: string;
+          course_id: string;
+          academic_year_id: string;
+          term1_grade?: number | null;
+          term2_grade?: number | null;
+          term3_grade?: number | null;
+          term1_weight: number;
+          term2_weight: number;
+          term3_weight: number;
+          calculated_grade?: number | null;
+          final_grade?: number | null;
+          final_observation?: string | null;
+          status?: "pending" | "draft" | "closed";
+          closed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          school_id?: string;
+          student_id?: string;
+          subject_id?: string;
+          teacher_id?: string;
+          course_id?: string;
+          academic_year_id?: string;
+          term1_grade?: number | null;
+          term2_grade?: number | null;
+          term3_grade?: number | null;
+          term1_weight?: number;
+          term2_weight?: number;
+          term3_weight?: number;
+          calculated_grade?: number | null;
+          final_grade?: number | null;
+          final_observation?: string | null;
+          status?: "pending" | "draft" | "closed";
+          closed_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      final_evaluation_publications: {
+        Row: {
+          id: string;
+          school_id: string;
+          course_id: string;
+          academic_year_id: string;
+          published: boolean;
+          published_at: string | null;
+          published_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          school_id: string;
+          course_id: string;
+          academic_year_id: string;
+          published?: boolean;
+          published_at?: string | null;
+          published_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          school_id?: string;
+          course_id?: string;
+          academic_year_id?: string;
           published?: boolean;
           published_at?: string | null;
           published_by?: string | null;

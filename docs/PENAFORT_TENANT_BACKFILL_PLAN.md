@@ -747,3 +747,20 @@ final devolvio cero usuarios Auth, profiles y memberships del conjunto
 La decision sigue siendo **GO CON BLOQUEOS**: 039B queda aceptada solo en
 staging, mientras que 039C, el ensayo combinado, el backup restaurable y la
 ventana de produccion siguen pendientes.
+
+## Ejecución 039C en staging
+
+La aplicación académica queda contextualizada por centro y curso académico en
+Sprint 20.2K. Se adaptaron loaders, PDFs, supervisión y Server Actions de las
+ocho tablas 039. Los `ON CONFLICT` incluyen `school_id` y
+`academic_year_id`, y la validación A/B no mostró lectura, escritura,
+publicación ni caché cruzada.
+
+La QA utilizó exclusivamente identidades y filas sintéticas `20_2K_QA` en los
+dos tenants QA de staging. La aplicación local fue forzada con variables de
+proceso de staging; `.env.local` no se modificó. Tras cerrar sesiones y
+detener el servidor, cleanup y auditoría doble confirmaron cero residuos.
+
+No se promueve todavía 037-040 a producción y no se crea Colegio EducaCora.
+Quedan como bloqueos: backup restaurable, ensayo de promoción completo,
+ventana operativa y decisión separada sobre retirada de uniques legacy (041).

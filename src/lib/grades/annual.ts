@@ -1,6 +1,9 @@
 import { createAdminClient, hasSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { getActiveAcademicYear } from "@/lib/academic-years";
+import {
+  academicReadError,
+  requireAcademicOperationContext
+} from "@/lib/grades/context";
 import {
   requireOperationalSchoolContext,
   requireSchoolRole
@@ -10,6 +13,8 @@ type AnnualClient = ReturnType<typeof createAdminClient>;
 
 export type AnnualWeight = {
   id: string;
+  school_id: string;
+  academic_year_id: string;
   teacher_id: string;
   course_id: string;
   subject_id: string;
@@ -21,6 +26,8 @@ export type AnnualWeight = {
 
 export type FinalCourseGrade = {
   id: string;
+  school_id: string;
+  academic_year_id: string;
   student_id: string;
   subject_id: string;
   teacher_id: string;
@@ -40,6 +47,8 @@ export type FinalCourseGrade = {
 
 export type FinalPublication = {
   id: string;
+  school_id: string;
+  academic_year_id: string;
   course_id: string;
   published: boolean;
   published_at: string | null;
@@ -69,9 +78,9 @@ export type FinalCourseRow = {
   existingId: string | null;
 };
 
-const weightSelect = "id,teacher_id,course_id,subject_id,term1_weight,term2_weight,term3_weight,active";
+const weightSelect = "id,school_id,academic_year_id,teacher_id,course_id,subject_id,term1_weight,term2_weight,term3_weight,active";
 const finalGradeSelect =
-  "id,student_id,subject_id,teacher_id,course_id,term1_grade,term2_grade,term3_grade,term1_weight,term2_weight,term3_weight,calculated_grade,final_grade,final_observation,status,closed_at";
+  "id,school_id,academic_year_id,student_id,subject_id,teacher_id,course_id,term1_grade,term2_grade,term3_grade,term1_weight,term2_weight,term3_weight,calculated_grade,final_grade,final_observation,status,closed_at";
 
 export function calculateAnnualGrade({
   term1,
@@ -104,22 +113,24 @@ export async function getAnnualWeight(params: {
   courseId: string;
   subjectId: string;
 }): Promise<{ weight: AnnualWeight | null; errorMessage: string | null }> {
+  const { schoolId, academicYearId } =
+    await requireAcademicOperationContext();
   const supabase = await createClient();
-  const { academicYear } = await getActiveAcademicYear();
-  if (!academicYear) {
-    return { weight: null, errorMessage: "No hay curso escolar activo." };
-  }
   const { data, error } = await supabase
     .from("annual_evaluation_weights")
     .select(weightSelect)
+    .eq("school_id", schoolId)
     .eq("teacher_id", params.teacherId)
     .eq("course_id", params.courseId)
     .eq("subject_id", params.subjectId)
-    .eq("academic_year_id", academicYear.id)
+    .eq("academic_year_id", academicYearId)
     .maybeSingle<AnnualWeight>();
 
   if (error) {
-    return { weight: null, errorMessage: error.message };
+    return {
+      weight: null,
+      errorMessage: academicReadError(error, "No se pudieron consultar los pesos anuales.")
+    };
   }
 
   return { weight: data, errorMessage: null };
@@ -130,40 +141,45 @@ export async function getFinalRowsForTeacher(params: {
   courseId: string;
   subjectId: string;
 }): Promise<{ rows: FinalCourseRow[]; errorMessage: string | null }> {
+  const { schoolId, academicYearId } =
+    await requireAcademicOperationContext();
   const supabase = await createAnnualClient();
-  const { academicYear } = await getActiveAcademicYear();
-  if (!academicYear) {
-    return { rows: [], errorMessage: "No hay curso escolar activo." };
-  }
   const [{ data: students, error: studentsError }, { weight, errorMessage: weightError }, { data: termGrades, error: termsError }, { data: finals, error: finalsError }] =
     await Promise.all([
       supabase
         .from("students")
         .select("id,name,last_name,course_id")
+        .eq("school_id", schoolId)
         .eq("course_id", params.courseId)
         .eq("active", true)
-        .eq("academic_year_id", academicYear.id)
+        .eq("academic_year_id", academicYearId)
         .returns<{ id: string; name: string; last_name: string; course_id: string }[]>(),
       getAnnualWeight(params),
       supabase
         .from("term_subject_grades")
         .select("student_id,subject_id,teacher_id,course_id,term,final_grade,status")
+        .eq("school_id", schoolId)
         .eq("teacher_id", params.teacherId)
         .eq("course_id", params.courseId)
         .eq("subject_id", params.subjectId)
-        .eq("academic_year_id", academicYear.id)
+        .eq("academic_year_id", academicYearId)
         .returns<{ student_id: string; term: "1" | "2" | "3"; final_grade: number | null; status: string }[]>(),
       supabase
         .from("final_course_grades")
         .select(finalGradeSelect)
+        .eq("school_id", schoolId)
         .eq("teacher_id", params.teacherId)
         .eq("course_id", params.courseId)
         .eq("subject_id", params.subjectId)
-        .eq("academic_year_id", academicYear.id)
+        .eq("academic_year_id", academicYearId)
         .returns<FinalCourseGrade[]>()
     ]);
 
-  const firstError = studentsError?.message ?? weightError ?? termsError?.message ?? finalsError?.message ?? null;
+  const firstError =
+    weightError ??
+    (studentsError || termsError || finalsError
+      ? "No se pudieron consultar las calificaciones finales del curso."
+      : null);
 
   if (firstError) {
     return { rows: [], errorMessage: firstError };
@@ -233,26 +249,28 @@ export async function getFinalRowsForSupervision(courseId?: string): Promise<{
     return { rows: [], errorMessage: "No hay un centro activo seleccionado." };
   }
 
+  const { academicYearId } = await requireAcademicOperationContext();
   const supabase = await createAnnualClient();
-  const { academicYear } = await getActiveAcademicYear(schoolContext.schoolId);
-  if (!academicYear) {
-    return { rows: [], errorMessage: "No hay curso escolar activo." };
-  }
   const { data, error } = courseId
     ? await supabase
         .from("final_course_grades")
         .select(finalGradeSelect)
+        .eq("school_id", schoolContext.schoolId)
         .eq("course_id", courseId)
-        .eq("academic_year_id", academicYear.id)
+        .eq("academic_year_id", academicYearId)
         .returns<FinalCourseGrade[]>()
     : await supabase
         .from("final_course_grades")
         .select(finalGradeSelect)
-        .eq("academic_year_id", academicYear.id)
+        .eq("school_id", schoolContext.schoolId)
+        .eq("academic_year_id", academicYearId)
         .returns<FinalCourseGrade[]>();
 
   if (error) {
-    return { rows: [], errorMessage: error.message };
+    return {
+      rows: [],
+      errorMessage: academicReadError(error, "No se pudieron supervisar las calificaciones finales.")
+    };
   }
 
   return attachFinalLabels(data ?? []);
@@ -262,20 +280,22 @@ export async function getFinalPublication(courseId: string): Promise<{
   publication: FinalPublication | null;
   errorMessage: string | null;
 }> {
+  const { schoolId, academicYearId } =
+    await requireAcademicOperationContext();
   const supabase = await createClient();
-  const { academicYear } = await getActiveAcademicYear();
-  if (!academicYear) {
-    return { publication: null, errorMessage: "No hay curso escolar activo." };
-  }
   const { data, error } = await supabase
     .from("final_evaluation_publications")
-    .select("id,course_id,published,published_at,published_by")
+    .select("id,school_id,academic_year_id,course_id,published,published_at,published_by")
+    .eq("school_id", schoolId)
     .eq("course_id", courseId)
-    .eq("academic_year_id", academicYear.id)
+    .eq("academic_year_id", academicYearId)
     .maybeSingle<FinalPublication>();
 
   if (error) {
-    return { publication: null, errorMessage: error.message };
+    return {
+      publication: null,
+      errorMessage: academicReadError(error, "No se pudo consultar la publicación final.")
+    };
   }
 
   return { publication: data, errorMessage: null };
@@ -290,11 +310,8 @@ export async function getFamilyFinalRows(familyId: string): Promise<{
     return { rows: [], errorMessage: "No hay un centro activo seleccionado." };
   }
 
+  const { academicYearId } = await requireAcademicOperationContext();
   const supabase = await createAnnualClient();
-  const { academicYear } = await getActiveAcademicYear(schoolContext.schoolId);
-  if (!academicYear) {
-    return { rows: [], errorMessage: "No hay curso escolar activo." };
-  }
   const { data: relations, error: relationsError } = await supabase
     .from("parent_students")
     .select("student_id")
@@ -303,7 +320,10 @@ export async function getFamilyFinalRows(familyId: string): Promise<{
     .returns<{ student_id: string }[]>();
 
   if (relationsError) {
-    return { rows: [], errorMessage: relationsError.message };
+    return {
+      rows: [],
+      errorMessage: academicReadError(relationsError, "No se pudo validar la relación familiar.")
+    };
   }
 
   const studentIds = (relations ?? []).map((relation) => relation.student_id);
@@ -315,22 +335,31 @@ export async function getFamilyFinalRows(familyId: string): Promise<{
   const { data, error } = await supabase
     .from("final_course_grades")
     .select(finalGradeSelect)
+    .eq("school_id", schoolContext.schoolId)
     .in("student_id", studentIds)
     .eq("status", "closed")
-    .eq("academic_year_id", academicYear.id)
+    .eq("academic_year_id", academicYearId)
     .returns<FinalCourseGrade[]>();
 
   if (error) {
-    return { rows: [], errorMessage: error.message };
+    return {
+      rows: [],
+      errorMessage: academicReadError(error, "No se pudieron consultar las calificaciones finales publicadas.")
+    };
   }
 
-  const published = await getPublishedCourseIds();
+  const published = await getPublishedCourseIds(
+    schoolContext.schoolId,
+    academicYearId
+  );
   return attachFinalLabels((data ?? []).filter((row) => published.has(row.course_id)));
 }
 
 function defaultWeight(params: { teacherId: string; courseId: string; subjectId: string }): AnnualWeight {
   return {
     id: "",
+    school_id: "",
+    academic_year_id: "",
     teacher_id: params.teacherId,
     course_id: params.courseId,
     subject_id: params.subjectId,
@@ -411,7 +440,10 @@ async function getLabels({
     ]);
 
   return {
-    errorMessage: coursesError?.message ?? subjectsError?.message ?? teachersError?.message ?? studentsError?.message ?? null,
+    errorMessage:
+      coursesError || subjectsError || teachersError || studentsError
+        ? "No se pudieron resolver las etiquetas de calificaciones finales."
+        : null,
     courses: new Map((courses ?? []).map((course) => [course.id, course.name])),
     subjects: new Map((subjects ?? []).map((subject) => [subject.id, subject.name])),
     teachers: new Map((teachers ?? []).map((teacher) => [teacher.id, teacher.full_name ?? teacher.email ?? teacher.id])),
@@ -419,17 +451,17 @@ async function getLabels({
   };
 }
 
-async function getPublishedCourseIds() {
+async function getPublishedCourseIds(
+  schoolId: string,
+  academicYearId: string
+) {
   const supabase = await createAnnualClient();
-  const { academicYear } = await getActiveAcademicYear();
-  if (!academicYear) {
-    return new Set<string>();
-  }
   const { data } = await supabase
     .from("final_evaluation_publications")
     .select("course_id")
+    .eq("school_id", schoolId)
     .eq("published", true)
-    .eq("academic_year_id", academicYear.id)
+    .eq("academic_year_id", academicYearId)
     .returns<{ course_id: string }[]>();
 
   return new Set((data ?? []).map((row) => row.course_id));

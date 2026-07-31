@@ -36,7 +36,10 @@ export async function getActiveAcademicYear(
     .maybeSingle<AcademicYear>();
 
   if (error) {
-    return { academicYear: null, errorMessage: error.message };
+    return {
+      academicYear: null,
+      errorMessage: "No se pudo resolver el curso escolar activo del centro."
+    };
   }
 
   return { academicYear: data, errorMessage: null };
@@ -66,7 +69,10 @@ export async function getAcademicYears(
     .returns<AcademicYear[]>();
 
   if (error) {
-    return { academicYears: [], errorMessage: error.message };
+    return {
+      academicYears: [],
+      errorMessage: "No se pudieron consultar los cursos escolares del centro."
+    };
   }
 
   return { academicYears: data ?? [], errorMessage: null };
