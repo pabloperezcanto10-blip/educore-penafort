@@ -82,3 +82,16 @@ this wave.
 
 Execution evidence and promotion blockers are documented in
 `docs/SPRINT_20_2K_039C_ACADEMIC_APPLICATION.md`.
+
+## Sprint 20.2L1 scope
+
+20.2L1 audits the eight academic legacy uniqueness objects without changing
+the application, RLS, migrations or remote data. The catalog and repository
+audit found eight canonical tenant-aware replacements, no runtime legacy
+consumer and no dependent PostgreSQL function, view or job.
+
+`041_remove_legacy_academic_uniques.sql` is a non-executable design draft. It
+must remain under `supabase/plans/20_2` until a separate staging-only 20.2L2
+backup, collision rehearsal and rollback test approve an executable migration.
+The evidence and decision are in
+`docs/SPRINT_20_2L1_LEGACY_ACADEMIC_UNIQUES.md`.
