@@ -190,22 +190,16 @@ versioned.
 
 ## Legacy uniqueness and migration 041
 
-All current application upserts for the eight academic tables use
-tenant-aware 039A targets. The legacy uniqueness objects are nevertheless
-retained in staging for this sprint.
+All application upserts continue to use the tenant-aware 039A targets. Sprint
+20.2L1 found no legacy consumer, and Sprint 20.2L2 applied executable
+migration 041 only to staging after backup, A/B rehearsal and rollback tests.
+The eight legacy objects are now absent from staging; the eight tenant-aware
+replacements remain valid.
 
-Migration 041 is deliberately **not created**. Removing compatibility
-constraints is irreversible without a carefully rehearsed recreation script
-and should occur only after:
-
-- a production-like restore rehearsal;
-- a full catalog check showing no external/older caller uses a legacy target;
-- an approved production backup and rollback window;
-- promotion of the combined 037-040 sequence has been accepted.
-
-Decision for 039C: **GO WITH BLOCKERS**. The application boundary is validated;
-retirement of legacy unique objects and production promotion remain separate
-gates.
+Decision for 039C remains **GO WITH BLOCKERS** for production. The staging
+compatibility cleanup is complete, but promotion of the combined 037-041
+sequence still requires a separately approved backup/restore rehearsal and
+maintenance window.
 
 ## Reproducible checks
 

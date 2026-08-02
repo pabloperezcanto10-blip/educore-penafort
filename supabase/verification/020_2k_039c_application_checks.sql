@@ -420,6 +420,50 @@ on conflict (
   assessment_type, assessment_name
 ) do update set grade = excluded.grade;
 
+insert into public.evaluation_criteria (
+  id, school_id, academic_year_id, teacher_id, course_id, subject_id,
+  term, name, weight, criterion_type, visible_to_family
+)
+select
+  '202c6100-0000-4000-8000-000000000612',
+  root.school_id,
+  root.academic_year_id,
+  '202c1000-0000-4000-8000-000000000105',
+  root.course_id,
+  root.subject_id,
+  '1',
+  '20_2K_QA criterion',
+  100,
+  'parcial',
+  true
+from _20_2k_roots root
+where root.slot = 'b'
+on conflict (
+  school_id, academic_year_id, teacher_id, course_id, subject_id, term, name
+) do update set weight = excluded.weight;
+
+insert into public.quarter_final_grades (
+  id, school_id, academic_year_id, student_id, subject_id, teacher_id,
+  course_id, term, calculated_grade, final_grade
+)
+select
+  '202c6200-0000-4000-8000-000000000622',
+  root.school_id,
+  root.academic_year_id,
+  '202c4000-0000-4000-8000-000000000402',
+  root.subject_id,
+  '202c1000-0000-4000-8000-000000000105',
+  root.course_id,
+  '1',
+  8,
+  8
+from _20_2k_roots root
+where root.slot = 'b'
+on conflict (
+  school_id, academic_year_id, student_id, subject_id, teacher_id,
+  course_id, term
+) do update set final_grade = excluded.final_grade;
+
 insert into public.term_subject_grades (
   id, school_id, academic_year_id, student_id, subject_id, teacher_id,
   course_id, term, calculated_grade, final_grade, status, closed_at
@@ -442,6 +486,26 @@ where root.slot = 'b'
 on conflict (
   school_id, academic_year_id, student_id, subject_id, term
 ) do update set final_grade = excluded.final_grade;
+
+insert into public.annual_evaluation_weights (
+  id, school_id, academic_year_id, teacher_id, course_id, subject_id,
+  term1_weight, term2_weight, term3_weight
+)
+select
+  '202c6400-0000-4000-8000-000000000642',
+  root.school_id,
+  root.academic_year_id,
+  '202c1000-0000-4000-8000-000000000105',
+  root.course_id,
+  root.subject_id,
+  33,
+  33,
+  34
+from _20_2k_roots root
+where root.slot = 'b'
+on conflict (
+  school_id, academic_year_id, teacher_id, course_id, subject_id
+) do update set term3_weight = excluded.term3_weight;
 
 insert into public.final_course_grades (
   id, school_id, academic_year_id, student_id, subject_id, teacher_id,
@@ -467,6 +531,19 @@ where root.slot = 'b'
 on conflict (
   school_id, academic_year_id, student_id, subject_id
 ) do update set final_grade = excluded.final_grade;
+
+do $tutor_b_checks$
+begin
+  if (select count(*) from public.partial_grades where school_id = (select school_id from _20_2k_roots where slot = 'b')) <> 1
+     or (select count(*) from public.evaluation_criteria where school_id = (select school_id from _20_2k_roots where slot = 'b')) <> 1
+     or (select count(*) from public.quarter_final_grades where school_id = (select school_id from _20_2k_roots where slot = 'b')) <> 1
+     or (select count(*) from public.term_subject_grades where school_id = (select school_id from _20_2k_roots where slot = 'b')) <> 1
+     or (select count(*) from public.annual_evaluation_weights where school_id = (select school_id from _20_2k_roots where slot = 'b')) <> 1
+     or (select count(*) from public.final_course_grades where school_id = (select school_id from _20_2k_roots where slot = 'b')) <> 1 then
+    raise exception '20.2K Tutor B did not write exactly one scoped row per target.';
+  end if;
+end
+$tutor_b_checks$;
 reset role;
 
 -- Directors exercise both publication ON CONFLICT targets.
@@ -564,6 +641,291 @@ on conflict (
   school_id, academic_year_id, course_id
 ) do update set published = excluded.published;
 reset role;
+
+-- Re-run every canonical conflict target in A, then B. Each pass must update
+-- only its own tenant row and preserve the peer tenant unchanged.
+insert into public.partial_grades (
+  id, school_id, academic_year_id, student_id, teacher_id, subject_id,
+  course_id, term, assessment_type, assessment_name, grade, visible_to_family
+)
+select
+  '202c6000-0000-4000-8000-000000000601', root.school_id,
+  root.academic_year_id, '202c4000-0000-4000-8000-000000000401',
+  '202c1000-0000-4000-8000-000000000104', root.subject_id,
+  root.course_id, '1', 'parcial', '20_2K_QA assessment', 7.25, true
+from _20_2k_roots root where root.slot = 'a'
+on conflict (
+  school_id, academic_year_id, student_id, subject_id, term,
+  assessment_type, assessment_name
+) do update set grade = excluded.grade;
+
+insert into public.evaluation_criteria (
+  id, school_id, academic_year_id, teacher_id, course_id, subject_id,
+  term, name, weight, criterion_type, visible_to_family
+)
+select
+  '202c6100-0000-4000-8000-000000000611', root.school_id,
+  root.academic_year_id, '202c1000-0000-4000-8000-000000000104',
+  root.course_id, root.subject_id, '1', '20_2K_QA criterion', 99,
+  'parcial', true
+from _20_2k_roots root where root.slot = 'a'
+on conflict (
+  school_id, academic_year_id, teacher_id, course_id, subject_id, term, name
+) do update set weight = excluded.weight;
+
+insert into public.quarter_final_grades (
+  id, school_id, academic_year_id, student_id, subject_id, teacher_id,
+  course_id, term, calculated_grade, final_grade
+)
+select
+  '202c6200-0000-4000-8000-000000000621', root.school_id,
+  root.academic_year_id, '202c4000-0000-4000-8000-000000000401',
+  root.subject_id, '202c1000-0000-4000-8000-000000000104',
+  root.course_id, '1', 7.25, 7.25
+from _20_2k_roots root where root.slot = 'a'
+on conflict (
+  school_id, academic_year_id, student_id, subject_id, teacher_id,
+  course_id, term
+) do update set calculated_grade = excluded.calculated_grade,
+                final_grade = excluded.final_grade;
+
+insert into public.term_subject_grades (
+  id, school_id, academic_year_id, student_id, subject_id, teacher_id,
+  course_id, term, calculated_grade, final_grade, final_observation,
+  status, closed_at
+)
+select
+  '202c6300-0000-4000-8000-000000000631', root.school_id,
+  root.academic_year_id, '202c4000-0000-4000-8000-000000000401',
+  root.subject_id, '202c1000-0000-4000-8000-000000000104',
+  root.course_id, '1', 7, 6, '20_2K_QA observation A',
+  'closed', now()
+from _20_2k_roots root where root.slot = 'a'
+on conflict (
+  school_id, academic_year_id, student_id, subject_id, term
+) do update set final_grade = excluded.final_grade,
+                final_observation = excluded.final_observation;
+
+insert into public.annual_evaluation_weights (
+  id, school_id, academic_year_id, teacher_id, course_id, subject_id,
+  term1_weight, term2_weight, term3_weight
+)
+select
+  '202c6400-0000-4000-8000-000000000641', root.school_id,
+  root.academic_year_id, '202c1000-0000-4000-8000-000000000104',
+  root.course_id, root.subject_id, 32, 34, 34
+from _20_2k_roots root where root.slot = 'a'
+on conflict (
+  school_id, academic_year_id, teacher_id, course_id, subject_id
+) do update set term1_weight = excluded.term1_weight,
+                term2_weight = excluded.term2_weight,
+                term3_weight = excluded.term3_weight;
+
+insert into public.final_course_grades (
+  id, school_id, academic_year_id, student_id, subject_id, teacher_id,
+  course_id, term1_weight, term2_weight, term3_weight, final_grade,
+  final_observation, status, closed_at
+)
+select
+  '202c6500-0000-4000-8000-000000000651', root.school_id,
+  root.academic_year_id, '202c4000-0000-4000-8000-000000000401',
+  root.subject_id, '202c1000-0000-4000-8000-000000000104',
+  root.course_id, 32, 34, 34, 6, '20_2K_QA final A',
+  'closed', now()
+from _20_2k_roots root where root.slot = 'a'
+on conflict (
+  school_id, academic_year_id, student_id, subject_id
+) do update set final_grade = excluded.final_grade,
+                final_observation = excluded.final_observation;
+
+insert into public.evaluation_publications (
+  id, school_id, academic_year_id, course_id, term, published,
+  published_at, published_by
+)
+select
+  '202c6600-0000-4000-8000-000000000661', root.school_id,
+  root.academic_year_id, root.course_id, '1', true, now(),
+  '202c1000-0000-4000-8000-000000000102'
+from _20_2k_roots root where root.slot = 'a'
+on conflict (school_id, academic_year_id, course_id, term)
+do update set published = excluded.published,
+              published_at = excluded.published_at;
+
+insert into public.final_evaluation_publications (
+  id, school_id, academic_year_id, course_id, published,
+  published_at, published_by
+)
+select
+  '202c6700-0000-4000-8000-000000000671', root.school_id,
+  root.academic_year_id, root.course_id, true, now(),
+  '202c1000-0000-4000-8000-000000000102'
+from _20_2k_roots root where root.slot = 'a'
+on conflict (school_id, academic_year_id, course_id)
+do update set published = excluded.published,
+              published_at = excluded.published_at;
+
+do $tenant_a_upsert_isolation$
+begin
+  if (select grade from public.partial_grades where school_id = (select school_id from _20_2k_roots where slot = 'b')) <> 8
+     or (select weight from public.evaluation_criteria where school_id = (select school_id from _20_2k_roots where slot = 'b')) <> 100
+     or (select final_grade from public.quarter_final_grades where school_id = (select school_id from _20_2k_roots where slot = 'b')) <> 8
+     or (select final_grade from public.term_subject_grades where school_id = (select school_id from _20_2k_roots where slot = 'b')) <> 8
+     or (select term1_weight from public.annual_evaluation_weights where school_id = (select school_id from _20_2k_roots where slot = 'b')) <> 33
+     or (select final_grade from public.final_course_grades where school_id = (select school_id from _20_2k_roots where slot = 'b')) <> 8
+     or (select published from public.evaluation_publications where school_id = (select school_id from _20_2k_roots where slot = 'b'))
+     or (select published from public.final_evaluation_publications where school_id = (select school_id from _20_2k_roots where slot = 'b')) then
+    raise exception '20.2K tenant A upsert changed tenant B.';
+  end if;
+end
+$tenant_a_upsert_isolation$;
+
+insert into public.partial_grades (
+  id, school_id, academic_year_id, student_id, teacher_id, subject_id,
+  course_id, term, assessment_type, assessment_name, grade, visible_to_family
+)
+select
+  '202c6000-0000-4000-8000-000000000602', root.school_id,
+  root.academic_year_id, '202c4000-0000-4000-8000-000000000402',
+  '202c1000-0000-4000-8000-000000000105', root.subject_id,
+  root.course_id, '1', 'parcial', '20_2K_QA assessment', 8.25, true
+from _20_2k_roots root where root.slot = 'b'
+on conflict (
+  school_id, academic_year_id, student_id, subject_id, term,
+  assessment_type, assessment_name
+) do update set grade = excluded.grade;
+
+insert into public.evaluation_criteria (
+  id, school_id, academic_year_id, teacher_id, course_id, subject_id,
+  term, name, weight, criterion_type, visible_to_family
+)
+select
+  '202c6100-0000-4000-8000-000000000612', root.school_id,
+  root.academic_year_id, '202c1000-0000-4000-8000-000000000105',
+  root.course_id, root.subject_id, '1', '20_2K_QA criterion', 98,
+  'parcial', true
+from _20_2k_roots root where root.slot = 'b'
+on conflict (
+  school_id, academic_year_id, teacher_id, course_id, subject_id, term, name
+) do update set weight = excluded.weight;
+
+insert into public.quarter_final_grades (
+  id, school_id, academic_year_id, student_id, subject_id, teacher_id,
+  course_id, term, calculated_grade, final_grade
+)
+select
+  '202c6200-0000-4000-8000-000000000622', root.school_id,
+  root.academic_year_id, '202c4000-0000-4000-8000-000000000402',
+  root.subject_id, '202c1000-0000-4000-8000-000000000105',
+  root.course_id, '1', 8.25, 8.25
+from _20_2k_roots root where root.slot = 'b'
+on conflict (
+  school_id, academic_year_id, student_id, subject_id, teacher_id,
+  course_id, term
+) do update set calculated_grade = excluded.calculated_grade,
+                final_grade = excluded.final_grade;
+
+insert into public.term_subject_grades (
+  id, school_id, academic_year_id, student_id, subject_id, teacher_id,
+  course_id, term, calculated_grade, final_grade, final_observation,
+  status, closed_at
+)
+select
+  '202c6300-0000-4000-8000-000000000632', root.school_id,
+  root.academic_year_id, '202c4000-0000-4000-8000-000000000402',
+  root.subject_id, '202c1000-0000-4000-8000-000000000105',
+  root.course_id, '1', 8, 9, '20_2K_QA observation B',
+  'closed', now()
+from _20_2k_roots root where root.slot = 'b'
+on conflict (
+  school_id, academic_year_id, student_id, subject_id, term
+) do update set final_grade = excluded.final_grade,
+                final_observation = excluded.final_observation;
+
+insert into public.annual_evaluation_weights (
+  id, school_id, academic_year_id, teacher_id, course_id, subject_id,
+  term1_weight, term2_weight, term3_weight
+)
+select
+  '202c6400-0000-4000-8000-000000000642', root.school_id,
+  root.academic_year_id, '202c1000-0000-4000-8000-000000000105',
+  root.course_id, root.subject_id, 31, 34, 35
+from _20_2k_roots root where root.slot = 'b'
+on conflict (
+  school_id, academic_year_id, teacher_id, course_id, subject_id
+) do update set term1_weight = excluded.term1_weight,
+                term2_weight = excluded.term2_weight,
+                term3_weight = excluded.term3_weight;
+
+insert into public.final_course_grades (
+  id, school_id, academic_year_id, student_id, subject_id, teacher_id,
+  course_id, term1_weight, term2_weight, term3_weight, final_grade,
+  final_observation, status, closed_at
+)
+select
+  '202c6500-0000-4000-8000-000000000652', root.school_id,
+  root.academic_year_id, '202c4000-0000-4000-8000-000000000402',
+  root.subject_id, '202c1000-0000-4000-8000-000000000105',
+  root.course_id, 31, 34, 35, 9, '20_2K_QA final B',
+  'closed', now()
+from _20_2k_roots root where root.slot = 'b'
+on conflict (
+  school_id, academic_year_id, student_id, subject_id
+) do update set final_grade = excluded.final_grade,
+                final_observation = excluded.final_observation;
+
+insert into public.evaluation_publications (
+  id, school_id, academic_year_id, course_id, term, published
+)
+select
+  '202c6600-0000-4000-8000-000000000662', root.school_id,
+  root.academic_year_id, root.course_id, '1', false
+from _20_2k_roots root where root.slot = 'b'
+on conflict (school_id, academic_year_id, course_id, term)
+do update set published = excluded.published;
+
+insert into public.final_evaluation_publications (
+  id, school_id, academic_year_id, course_id, published
+)
+select
+  '202c6700-0000-4000-8000-000000000672', root.school_id,
+  root.academic_year_id, root.course_id, false
+from _20_2k_roots root where root.slot = 'b'
+on conflict (school_id, academic_year_id, course_id)
+do update set published = excluded.published;
+
+do $tenant_b_upsert_isolation$
+begin
+  if (select grade from public.partial_grades where school_id = (select school_id from _20_2k_roots where slot = 'a')) <> 7.25
+     or (select weight from public.evaluation_criteria where school_id = (select school_id from _20_2k_roots where slot = 'a')) <> 99
+     or (select final_grade from public.quarter_final_grades where school_id = (select school_id from _20_2k_roots where slot = 'a')) <> 7.25
+     or (select final_grade from public.term_subject_grades where school_id = (select school_id from _20_2k_roots where slot = 'a')) <> 6
+     or (select term1_weight from public.annual_evaluation_weights where school_id = (select school_id from _20_2k_roots where slot = 'a')) <> 32
+     or (select final_grade from public.final_course_grades where school_id = (select school_id from _20_2k_roots where slot = 'a')) <> 6
+     or not (select published from public.evaluation_publications where school_id = (select school_id from _20_2k_roots where slot = 'a'))
+     or not (select published from public.final_evaluation_publications where school_id = (select school_id from _20_2k_roots where slot = 'a'))
+     or (select count(*) from public.partial_grades where assessment_name = '20_2K_QA assessment') <> 2
+     or (select count(*) from public.evaluation_criteria where name = '20_2K_QA criterion') <> 2
+     or (select final_grade from public.term_subject_grades where school_id = (select school_id from _20_2k_roots where slot = 'b')) <> 9
+     or (select final_grade from public.final_course_grades where school_id = (select school_id from _20_2k_roots where slot = 'b')) <> 9 then
+    raise exception '20.2K tenant B isolation failed: %', (
+      select jsonb_build_object(
+        'a_partial', (select grade from public.partial_grades where school_id = root.school_id),
+        'a_criterion', (select weight from public.evaluation_criteria where school_id = root.school_id),
+        'a_quarter', (select final_grade from public.quarter_final_grades where school_id = root.school_id),
+        'a_term', (select final_grade from public.term_subject_grades where school_id = root.school_id),
+        'a_weight', (select term1_weight from public.annual_evaluation_weights where school_id = root.school_id),
+        'a_final', (select final_grade from public.final_course_grades where school_id = root.school_id),
+        'a_term_published', (select published from public.evaluation_publications where school_id = root.school_id),
+        'a_final_published', (select published from public.final_evaluation_publications where school_id = root.school_id),
+        'partial_count', (select count(*) from public.partial_grades where assessment_name = '20_2K_QA assessment'),
+        'criteria_count', (select count(*) from public.evaluation_criteria where name = '20_2K_QA criterion')
+      )
+      from _20_2k_roots root
+      where root.slot = 'a'
+    );
+  end if;
+end
+$tenant_b_upsert_isolation$;
 
 -- Family A sees visible/published A rows only.
 select set_config('request.jwt.claim.sub', '202c1000-0000-4000-8000-000000000106', true);
@@ -715,6 +1077,102 @@ reset role;
 do $cross_tenant_root_checks$
 begin
   begin
+    insert into public.partial_grades (
+      school_id, academic_year_id, student_id, teacher_id, subject_id,
+      course_id, term, assessment_type, assessment_name, grade
+    )
+    select
+      root_a.school_id, root_a.academic_year_id,
+      '202c4000-0000-4000-8000-000000000402',
+      '202c1000-0000-4000-8000-000000000105',
+      root_b.subject_id, root_b.course_id, '3', 'parcial',
+      '20_2K_QA structural cross', 5
+    from _20_2k_roots root_a cross join _20_2k_roots root_b
+    where root_a.slot = 'a' and root_b.slot = 'b';
+    raise exception '20.2K cross-tenant partial grade unexpectedly succeeded.';
+  exception when foreign_key_violation or check_violation then null;
+  end;
+
+  begin
+    insert into public.evaluation_criteria (
+      school_id, academic_year_id, teacher_id, course_id, subject_id,
+      term, name, weight, criterion_type
+    )
+    select
+      root_a.school_id, root_a.academic_year_id,
+      '202c1000-0000-4000-8000-000000000105',
+      root_b.course_id, root_b.subject_id, '3',
+      '20_2K_QA structural cross', 100, 'parcial'
+    from _20_2k_roots root_a cross join _20_2k_roots root_b
+    where root_a.slot = 'a' and root_b.slot = 'b';
+    raise exception '20.2K cross-tenant criterion unexpectedly succeeded.';
+  exception when foreign_key_violation or check_violation then null;
+  end;
+
+  begin
+    insert into public.quarter_final_grades (
+      school_id, academic_year_id, student_id, subject_id, teacher_id,
+      course_id, term, calculated_grade, final_grade
+    )
+    select
+      root_a.school_id, root_a.academic_year_id,
+      '202c4000-0000-4000-8000-000000000402', root_b.subject_id,
+      '202c1000-0000-4000-8000-000000000105', root_b.course_id,
+      '3', 5, 5
+    from _20_2k_roots root_a cross join _20_2k_roots root_b
+    where root_a.slot = 'a' and root_b.slot = 'b';
+    raise exception '20.2K cross-tenant quarter grade unexpectedly succeeded.';
+  exception when foreign_key_violation or check_violation then null;
+  end;
+
+  begin
+    insert into public.term_subject_grades (
+      school_id, academic_year_id, student_id, subject_id, teacher_id,
+      course_id, term, calculated_grade, final_grade, status
+    )
+    select
+      root_a.school_id, root_a.academic_year_id,
+      '202c4000-0000-4000-8000-000000000402', root_b.subject_id,
+      '202c1000-0000-4000-8000-000000000105', root_b.course_id,
+      '3', 5, 5, 'draft'
+    from _20_2k_roots root_a cross join _20_2k_roots root_b
+    where root_a.slot = 'a' and root_b.slot = 'b';
+    raise exception '20.2K cross-tenant term grade unexpectedly succeeded.';
+  exception when foreign_key_violation or check_violation then null;
+  end;
+
+  begin
+    insert into public.annual_evaluation_weights (
+      school_id, academic_year_id, teacher_id, course_id, subject_id,
+      term1_weight, term2_weight, term3_weight
+    )
+    select
+      root_a.school_id, root_a.academic_year_id,
+      '202c1000-0000-4000-8000-000000000105',
+      root_b.course_id, root_b.subject_id, 33, 33, 34
+    from _20_2k_roots root_a cross join _20_2k_roots root_b
+    where root_a.slot = 'a' and root_b.slot = 'b';
+    raise exception '20.2K cross-tenant annual weights unexpectedly succeeded.';
+  exception when foreign_key_violation or check_violation then null;
+  end;
+
+  begin
+    insert into public.final_course_grades (
+      school_id, academic_year_id, student_id, subject_id, teacher_id,
+      course_id, term1_weight, term2_weight, term3_weight, final_grade, status
+    )
+    select
+      root_a.school_id, root_a.academic_year_id,
+      '202c4000-0000-4000-8000-000000000402', root_b.subject_id,
+      '202c1000-0000-4000-8000-000000000105', root_b.course_id,
+      33, 33, 34, 5, 'draft'
+    from _20_2k_roots root_a cross join _20_2k_roots root_b
+    where root_a.slot = 'a' and root_b.slot = 'b';
+    raise exception '20.2K cross-tenant final grade unexpectedly succeeded.';
+  exception when foreign_key_violation or check_violation then null;
+  end;
+
+  begin
     insert into public.evaluation_publications (
       school_id, academic_year_id, course_id, term, published
     )
@@ -731,6 +1189,18 @@ begin
   exception
     when foreign_key_violation or check_violation then
       null;
+  end;
+
+  begin
+    insert into public.final_evaluation_publications (
+      school_id, academic_year_id, course_id, published
+    )
+    select
+      root_a.school_id, root_a.academic_year_id, root_b.course_id, false
+    from _20_2k_roots root_a cross join _20_2k_roots root_b
+    where root_a.slot = 'a' and root_b.slot = 'b';
+    raise exception '20.2K contradictory final publication roots unexpectedly succeeded.';
+  exception when foreign_key_violation or check_violation then null;
   end;
 end
 $cross_tenant_root_checks$;

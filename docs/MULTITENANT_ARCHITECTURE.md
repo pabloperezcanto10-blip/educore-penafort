@@ -941,6 +941,20 @@ Familia, membership inactiva y ausencia de membership en los dos tenants QA.
 Los cambios A -> B -> A no mezclaron datos ni caché. La limpieza y dos
 auditorías posteriores dejaron cero residuos.
 
-No se crea 041 todavía. Las uniques legacy se conservan hasta ensayar rollback
-en una restauración equivalente a producción. Evidencia completa:
+Al cierre de 20.2K todavía no se había creado 041 y las uniques legacy se
+conservaban hasta ensayar rollback. Evidencia histórica:
 `docs/SPRINT_20_2K_039C_ACADEMIC_APPLICATION.md`.
+
+## Retirada de compatibilidad académica 041
+
+Sprint 20.2L2 aplica solo en staging
+`041_remove_legacy_academic_uniques.sql`. Las ocho unicidades de negocio
+canónicas incluyen `school_id` y `academic_year_id`; las ocho unicidades
+legacy redundantes quedan retiradas. Las relaciones `(id, school_id)` y
+`(academic_year_id, school_id)`, las 36 políticas RLS, grants y triggers no
+cambian.
+
+La matriz A/B previa y posterior valida los ocho upserts, todos los roles y
+los rechazos de relaciones cruzadas. Producción y `main` siguen sin 041. La
+evidencia reproducible está en
+`docs/SPRINT_20_2L2_REMOVE_LEGACY_ACADEMIC_UNIQUES.md`.

@@ -1,6 +1,6 @@
 # Sprint 20.2L1 - Legacy academic uniqueness audit
 
-Status: **GO for a staging-only 20.2L2 removal rehearsal**.
+Status: **completed audit; staging removal executed in Sprint 20.2L2**.
 
 This sprint is audit and design only. It does not add an executable migration,
 drop a constraint, change RLS, change application code or write remote data.
@@ -149,3 +149,11 @@ separate Sprint 20.2L2. This is not approval for production.
 6. rerun 039B RLS, 039C application and authenticated multischool regression;
 7. update the schema baseline only after acceptance;
 8. keep production, main and real Penafort data untouched.
+
+## Sprint 20.2L2 outcome
+
+All gates above passed. Executable migration 041 removed the eight legacy
+objects only in staging. The eight replacements and eight compound-FK support
+indexes remain valid, the before/after A/B matrix passed, rollback was
+recreated inside `BEGIN/ROLLBACK`, postflight is green and two residue audits
+returned zero. See `docs/SPRINT_20_2L2_REMOVE_LEGACY_ACADEMIC_UNIQUES.md`.

@@ -761,6 +761,18 @@ dos tenants QA de staging. La aplicación local fue forzada con variables de
 proceso de staging; `.env.local` no se modificó. Tras cerrar sesiones y
 detener el servidor, cleanup y auditoría doble confirmaron cero residuos.
 
-No se promueve todavía 037-040 a producción y no se crea Colegio EducaCora.
-Quedan como bloqueos: backup restaurable, ensayo de promoción completo,
-ventana operativa y decisión separada sobre retirada de uniques legacy (041).
+No se promueve todavía 037-041 a producción y no se crea Colegio EducaCora.
+Quedan como bloqueos: backup restaurable de producción, ensayo de promoción
+completo, ventana operativa y aprobación explícita.
+
+## Cierre staging de unicidades legacy
+
+Sprint 20.2L2 completa en staging la decisión separada sobre 041. Se captura
+un snapshot de catálogo recuperable, se valida el rollback exacto y se retiran
+las ocho unicidades legacy sin modificar filas. La regresión A/B y por roles
+termina sin mezcla y dos auditorías confirman cero residuos sintéticos.
+
+Este resultado no autoriza producción. Antes de promover 037-041 siguen siendo
+obligatorios un backup/restore de producción, la ventana operativa, un
+preflight fresco y aprobación explícita. Colegio Peñafort real permanece
+intacto y no debe crearse un segundo centro real todavía.

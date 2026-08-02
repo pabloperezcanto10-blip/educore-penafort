@@ -716,6 +716,17 @@ las sesiones reales A/B pasaron. Los fixtures `20_2K_QA` se eliminaron y dos
 auditorías independientes confirmaron cero residuos.
 
 La baseline de producción, `main`, Auth de producción y los datos reales de
-Colegio Peñafort no cambian. La promoción de `037-040` continúa bloqueada por
-el ensayo restaurable, la ventana operativa y la retirada futura de
-compatibilidad legacy.
+Colegio Peñafort no cambian. Tras 20.2L2, la promoción de `037-041` continúa
+bloqueada por el ensayo restaurable de producción y la ventana operativa.
+
+## Baseline staging tras Sprint 20.2L2
+
+Staging queda alineado en `001-041`. La migración 041 elimina exclusivamente
+ocho objetos de unicidad legacy de las tablas académicas 039. Permanecen ocho
+uniques de negocio tenant-aware y ocho índices `(id, school_id)` para FKs
+compuestas.
+
+Los conteos funcionales antes y después son idénticos: cero filas en las ocho
+tablas de staging durante el ensayo, cero publicaciones y cero valores
+`visible_to_family`. RLS mantiene 36 políticas, grants 143 y triggers no
+internos 21. Producción y `main` permanecen en su baseline anterior.

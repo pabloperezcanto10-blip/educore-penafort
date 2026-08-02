@@ -90,8 +90,19 @@ the application, RLS, migrations or remote data. The catalog and repository
 audit found eight canonical tenant-aware replacements, no runtime legacy
 consumer and no dependent PostgreSQL function, view or job.
 
-`041_remove_legacy_academic_uniques.sql` is a non-executable design draft. It
-must remain under `supabase/plans/20_2` until a separate staging-only 20.2L2
-backup, collision rehearsal and rollback test approve an executable migration.
-The evidence and decision are in
+`041_remove_legacy_academic_uniques.sql` is the preserved, non-executable L1
+design draft. Sprint 20.2L2 subsequently completed the staging-only backup,
+collision rehearsal and rollback test before creating the executable
+migration. The original audit evidence is in
 `docs/SPRINT_20_2L1_LEGACY_ACADEMIC_UNIQUES.md`.
+
+## Sprint 20.2L2 scope
+
+`041_remove_legacy_academic_uniques.sql` is now an executable migration and is
+applied only to staging. It removes the eight audited legacy uniqueness
+objects after fail-closed replacement, context, FK and duplicate checks.
+
+Recovery evidence is kept in `041_prechange_staging_snapshot.md`; the manual
+recreation script is `041_rollback_staging.sql`. Postflight, rollback rehearsal
+and exact fixture-residue checks live under `supabase/verification/020_2l2_*`.
+Production promotion remains a separate blocked decision.
