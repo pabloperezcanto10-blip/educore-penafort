@@ -1,5 +1,10 @@
 # Sprint 20.2M2C - Clon aislado y restore completo de produccion
 
+> **ESTRATEGIA SUSPENDIDA - NO ES LA RUTA ACTIVA ACTUAL.** Desde el Sprint
+> 20.2N1, staging es el entorno canónico para construir y validar el producto
+> multitenant. Este documento se conserva únicamente como evidencia histórica;
+> no autoriza actuaciones sobre producción legacy.
+
 Fecha: 3 de agosto de 2026
 
 Rama: `staging`
