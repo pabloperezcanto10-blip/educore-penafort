@@ -1,18 +1,18 @@
 "use client";
 
-import Link from "next/link";
 import { useFormState, useFormStatus } from "react-dom";
 import { LogIn } from "lucide-react";
 import { login } from "./actions";
 
-function SubmitButton() {
+function SubmitButton({ primaryColor }: { primaryColor: string }) {
   const { pending } = useFormStatus();
 
   return (
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
+      className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
+      style={{ backgroundColor: primaryColor }}
     >
       <LogIn className="h-4 w-4" aria-hidden="true" />
       {pending ? "Entrando..." : "Entrar"}
@@ -20,11 +20,22 @@ function SubmitButton() {
   );
 }
 
-export function LoginForm() {
+type LoginFormProps = {
+  schoolSlug: string;
+  schoolName: string;
+  primaryColor: string;
+};
+
+export function LoginForm({
+  schoolSlug,
+  schoolName,
+  primaryColor
+}: LoginFormProps) {
   const [state, formAction] = useFormState(login, {});
 
   return (
     <form action={formAction} className="space-y-5">
+      <input type="hidden" name="school" value={schoolSlug} />
       <div className="space-y-2">
         <label htmlFor="email" className="text-sm font-medium text-foreground">
           Email
@@ -59,13 +70,10 @@ export function LoginForm() {
         </p>
       ) : null}
 
-      <SubmitButton />
+      <SubmitButton primaryColor={primaryColor} />
 
       <p className="text-center text-sm text-muted-foreground">
-        ¿No tienes cuenta?{" "}
-        <Link href="/register" className="font-medium text-primary">
-          Crea una cuenta
-        </Link>
+        Acceso exclusivo para cuentas vinculadas a {schoolName}.
       </p>
     </form>
   );

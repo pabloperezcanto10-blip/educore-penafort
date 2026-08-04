@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Play } from "lucide-react";
 import { HeroProductDemo } from "@/components/landing/hero-product-demo";
+import { PUBLIC_SCHOOL_SELECTOR_PATH } from "@/lib/schools/public-schools";
 import styles from "./living-hero.module.css";
 
 export function LivingHero() {
@@ -28,10 +29,10 @@ export function LivingHero() {
               <Play aria-hidden="true" />
               Probar EducaCora
             </Link>
-            <a className="btn btn-soft" href="#acceso">
+            <Link className="btn btn-soft" href={PUBLIC_SCHOOL_SELECTOR_PATH}>
               Accede a tu centro
               <ArrowRight aria-hidden="true" />
-            </a>
+            </Link>
           </div>
           <ul className={`${styles.trustRow} ${styles.enterTrust}`} aria-label="Comunidad conectada">
             <li>Dirección</li>

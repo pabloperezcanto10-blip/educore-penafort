@@ -2,6 +2,10 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import { ContactTrigger } from "@/components/contact/contact-modal";
 import { EduCoreCenterLauncher } from "@/components/pwa/educore-center-launcher";
+import {
+  PUBLIC_SCHOOLS,
+  getPublicSchoolLoginPath
+} from "@/lib/schools/public-schools";
 
 export const metadata: Metadata = {
   title: "EducaCora | Selecciona tu centro educativo",
@@ -15,15 +19,14 @@ export const metadata: Metadata = {
   }
 };
 
-const centers = [
-  {
-    id: "colegio-penafort",
-    name: "Colegio Peñafort",
-    location: "Alicante",
-    verified: true,
-    href: "/login"
-  }
-];
+const centers = PUBLIC_SCHOOLS.map((school) => ({
+  id: school.slug,
+  name: school.name,
+  location: school.location,
+  verified: school.verified,
+  href: getPublicSchoolLoginPath(school),
+  iconUrl: school.brand.assets.icon
+}));
 
 export default function EduCoreAppLauncherPage() {
   return (

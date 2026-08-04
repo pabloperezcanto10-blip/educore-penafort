@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Mail, Menu, X } from "lucide-react";
 import { ContactTrigger } from "@/components/contact/contact-modal";
+import { PUBLIC_SCHOOL_SELECTOR_PATH } from "@/lib/schools/public-schools";
 
 const navigationItems = [
   { label: "Qué resuelve", href: "#resuelve" },
@@ -73,9 +74,9 @@ export function MobilePublicNav() {
               Contacto
             </ContactTrigger>
           </div>
-          <a className="btn btn-soft" href="#acceso" onClick={() => closeMenu(false)}>
+          <Link className="btn btn-soft" href={PUBLIC_SCHOOL_SELECTOR_PATH} onClick={() => closeMenu(false)}>
             Accede a tu centro
-          </a>
+          </Link>
         </div>
       </div>
     </div>

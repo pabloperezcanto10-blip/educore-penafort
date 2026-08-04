@@ -1,4 +1,5 @@
 import type { Profile } from "../src/lib/auth/session";
+import { ROLES } from "../src/lib/auth/roles";
 import {
   resolveActiveSchoolContext,
   SchoolContextError
@@ -11,6 +12,11 @@ import type {
   School,
   SchoolMembershipWithSchool
 } from "../src/lib/schools/types";
+import {
+  PUBLIC_SCHOOLS,
+  getPublicSchoolBySlug,
+  getPublicSchoolLoginPath
+} from "../src/lib/schools/public-schools";
 
 const tutorProfile: Profile = {
   id: "20e10000-0000-4000-8000-000000000103",
@@ -140,6 +146,33 @@ function expectContextError(
   }
   throw new Error(`Expected ${code}, but no error was thrown.`);
 }
+
+const publicSchoolSlugs = PUBLIC_SCHOOLS.map(({ slug }) => slug);
+assert(
+  publicSchoolSlugs.join(",") === "colegio-penafort,educacora",
+  "The public selector must expose exactly Peñafort and EducaCora."
+);
+assert(
+  getPublicSchoolBySlug(" EDUCACORA ")?.slug === "educacora",
+  "The public school allowlist did not normalize a valid slug."
+);
+assert(
+  getPublicSchoolBySlug("qa-school") === null,
+  "QA School must never be exposed by the public selector."
+);
+assert(
+  getPublicSchoolLoginPath(PUBLIC_SCHOOLS[0]) ===
+    "/login?school=colegio-penafort",
+  "The Peñafort public login path is incorrect."
+);
+assert(
+  getPublicSchoolLoginPath(PUBLIC_SCHOOLS[1]) === "/login?school=educacora",
+  "The EducaCora public login path is incorrect."
+);
+assert(
+  !ROLES.includes("admin" as (typeof ROLES)[number]),
+  "A school administrator role must not be inferred from the current role model."
+);
 
 const singleContext = resolveActiveSchoolContext({
   profile: tutorProfile,

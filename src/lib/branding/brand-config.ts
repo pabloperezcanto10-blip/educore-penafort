@@ -60,3 +60,9 @@ export const educacoraExperienceBrand: BrandConfig = {
   },
   poweredBy: "EducaCora"
 };
+
+export const educacoraSchoolBrand: BrandConfig = {
+  ...educacoraExperienceBrand,
+  id: "educacora",
+  name: "Colegio EducaCora"
+};

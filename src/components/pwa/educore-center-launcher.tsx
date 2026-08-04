@@ -7,9 +7,10 @@ import { useEffect, useState } from "react";
 type Center = {
   id: string;
   name: string;
-  location: string;
+  location: string | null;
   verified?: boolean;
   href: string;
+  iconUrl: string;
 };
 
 const LAST_CENTER_KEY = "educore:last-center";
@@ -52,7 +53,7 @@ export function EduCoreCenterLauncher({ centers }: { centers: Center[] }) {
         >
           <span className="flex items-center gap-4">
             <Image
-              src="/brand/educore/app-icon-light.svg"
+              src={center.iconUrl}
               alt=""
               width={512}
               height={512}
@@ -69,10 +70,11 @@ export function EduCoreCenterLauncher({ centers }: { centers: Center[] }) {
                   </span>
                 ) : null}
               </span>
-              <span className="mt-1 block text-sm font-medium text-[#6B737C]">
-                {center.location}
-                {center.verified ? " · Centro verificado" : ""}
-              </span>
+              {center.location ? (
+                <span className="mt-1 block text-sm font-medium text-[#6B737C]">
+                  {center.location}
+                </span>
+              ) : null}
             </span>
           </span>
           <span className="inline-flex h-12 min-w-36 items-center justify-center rounded-full bg-[#0F1B2E] px-7 text-sm font-semibold text-white transition group-hover:bg-[#1D3045]">

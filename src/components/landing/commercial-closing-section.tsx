@@ -15,6 +15,7 @@ import { CoriumAvatar } from "@/components/ai/corium-avatar";
 import { ContactTrigger } from "@/components/contact/contact-modal";
 import { InstallEduCoreButton } from "@/components/pwa/install-educore-button";
 import { PUBLIC_CONTACT_EMAIL } from "@/lib/site-config";
+import { PUBLIC_SCHOOL_SELECTOR_PATH } from "@/lib/schools/public-schools";
 import styles from "./commercial-closing.module.css";
 
 const experienceSteps = [
@@ -78,7 +79,7 @@ export function CommercialClosingSection() {
                   Probar EducaCora
                   <ArrowRight aria-hidden="true" />
                 </Link>
-                <a className={styles.tertiaryAction} href="#acceso">Acceder a mi centro</a>
+                <Link className={styles.tertiaryAction} href={PUBLIC_SCHOOL_SELECTOR_PATH}>Acceder a mi centro</Link>
               </div>
 
               <div className={styles.demoAssurance}>
@@ -218,7 +219,7 @@ export function CommercialClosingSection() {
           </div>
 
           <p className={styles.existingCenterLink}>
-            ¿Tu centro ya utiliza EducaCora? <a href="#acceso">Acceder a mi centro</a>
+            ¿Tu centro ya utiliza EducaCora? <Link href={PUBLIC_SCHOOL_SELECTOR_PATH}>Acceder a mi centro</Link>
           </p>
         </div>
       </section>
@@ -233,7 +234,7 @@ export function CommercialClosingSection() {
           <nav className={styles.footerLinks} aria-label="Enlaces del pie de página">
             <Link href="/experience">Experience</Link>
             <Link href="/app">Aplicación</Link>
-            <a href="#acceso">Acceso a centros</a>
+            <Link href={PUBLIC_SCHOOL_SELECTOR_PATH}>Acceso a centros</Link>
             <ContactTrigger origin="home_footer" originLabel="Footer público" className={styles.footerButton}>Contacto</ContactTrigger>
             <Link href="/politica-privacidad">Política de Privacidad</Link>
           </nav>

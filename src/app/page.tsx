@@ -10,6 +10,7 @@ import { LivingHero } from "@/components/landing/living-hero";
 import { MobilePublicNav } from "@/components/landing/mobile-public-nav";
 import { RolePerspectivesSection } from "@/components/landing/role-perspectives-section";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_OG_IMAGE_URL, SITE_URL } from "@/lib/site-config";
+import { PUBLIC_SCHOOL_SELECTOR_PATH } from "@/lib/schools/public-schools";
 
 const structuredData = [
   {
@@ -56,7 +57,7 @@ const schools = [
   {
     name: "Selector de centros",
     description: "Elige tu centro educativo y accede con tus credenciales.",
-    href: "/app"
+    href: PUBLIC_SCHOOL_SELECTOR_PATH
   }
 ];
 
@@ -573,7 +574,7 @@ export default function HomePage() {
             </ContactTrigger>
           </nav>
           <div className="nav-actions">
-            <a className="btn btn-soft" href="#acceso">Accede a tu centro</a>
+            <Link className="btn btn-soft" href={PUBLIC_SCHOOL_SELECTOR_PATH}>Accede a tu centro</Link>
             <Link className="btn btn-primary" href="/experience">Probar EducaCora</Link>
             <MobilePublicNav />
           </div>

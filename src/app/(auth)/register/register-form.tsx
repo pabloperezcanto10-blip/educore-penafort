@@ -18,7 +18,7 @@ export function RegisterForm() {
       </div>
 
       <Link
-        href="/login"
+        href="/acceso-centro"
         className="inline-flex h-11 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-95"
       >
         Volver a iniciar sesión
