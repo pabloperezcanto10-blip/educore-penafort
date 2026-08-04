@@ -46,23 +46,32 @@ async function signIn(url, anonKey, email, password) {
   return client;
 }
 
-async function signInAsExistingSuperadmin(admin, url, anonKey, email) {
-  const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
-    type: "magiclink",
-    email
-  });
-  if (linkError) {
-    throw new Error(`Generate local superadmin verification link: ${linkError.message}`);
-  }
-  const tokenHash = linkData.properties?.hashed_token;
-  assert(tokenHash, "Supabase did not return a superadmin token hash.");
+function parseTextCredential(raw, heading) {
+  const start = raw.indexOf(heading);
+  assert(start >= 0, `Missing ${heading} credentials.`);
+  const next = raw.indexOf("\n\n", start);
+  const section = raw.slice(start, next === -1 ? raw.length : next);
+  const email = section.match(/^Email: (.+)$/m)?.[1]?.trim();
+  const password = section.match(/^Contraseña: (.+)$/m)?.[1]?.trim();
+  assert(email && password, `Incomplete ${heading} credentials.`);
+  return { email, password };
+}
 
-  const client = clientFor(url, anonKey);
-  const { error } = await client.auth.verifyOtp({ token_hash: tokenHash, type: "magiclink" });
-  if (error) {
-    throw new Error(`Authenticate existing superadmin: ${error.message}`);
+function readCredentials() {
+  const raw = readFileSync(credentialsPath, "utf8");
+  if (raw.trimStart().startsWith("{")) {
+    return JSON.parse(raw);
   }
-  return client;
+
+  return {
+    projectRef: STAGING_REF,
+    users: {
+      superadmin: parseTextCredential(raw, "SUPERADMIN GLOBAL"),
+      director: parseTextCredential(raw, "DIRECTOR EDUCACORA"),
+      tutor: parseTextCredential(raw, "TUTOR EDUCACORA"),
+      family: parseTextCredential(raw, "FAMILIA EDUCACORA")
+    }
+  };
 }
 
 async function assertOwnMembership(client, expectedSchoolId, expectedRole) {
@@ -99,7 +108,7 @@ async function main() {
   const serviceRoleKey = requiredEnvironment("SUPABASE_SERVICE_ROLE_KEY");
   assert(url === STAGING_URL, `Refusing target ${url}. Expected staging.`);
   assert(existsSync(credentialsPath), "The ignored EducaCora credential file is missing.");
-  const credentials = JSON.parse(readFileSync(credentialsPath, "utf8"));
+  const credentials = readCredentials();
   assert(credentials.projectRef === STAGING_REF, "Credentials point to another project.");
 
   const admin = clientFor(url, serviceRoleKey);
@@ -112,21 +121,19 @@ async function main() {
   assert(educacora?.active && educacora.status === "active", "EducaCora is not active.");
   assert(penafort?.active && penafort.status === "active", "Peñafort is not active.");
 
-  const superadmins = await dataOrThrow(
-    admin.from("profiles").select("id,email").eq("role", "superadmin").eq("active", true),
-    "Read active superadmin"
-  );
-  assert(superadmins.length === 1 && superadmins[0].email, "Expected one active superadmin with email.");
-  const superadminClient = await signInAsExistingSuperadmin(
-    admin,
+  const superadminClient = await signIn(
     url,
     anonKey,
-    superadmins[0].email
+    credentials.users.superadmin.email,
+    credentials.users.superadmin.password
   );
+  const superadminUser = await superadminClient.auth.getUser();
+  assert(!superadminUser.error && superadminUser.data.user, "Superadmin session is unavailable.");
   const selectorMemberships = await dataOrThrow(
     superadminClient
       .from("school_memberships")
       .select("school_id,role,active,schools!inner(slug,active)")
+      .eq("user_id", superadminUser.data.user.id)
       .eq("role", "superadmin")
       .eq("active", true)
       .eq("schools.active", true),

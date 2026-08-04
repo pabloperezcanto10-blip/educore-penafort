@@ -38,7 +38,7 @@ export async function login(_: LoginState, formData: FormData): Promise<LoginSta
   });
 
   if (error) {
-    return { message: "No se pudo iniciar sesión con esas credenciales." };
+    return { message: "Correo electrónico o contraseña incorrectos." };
   }
 
   const profile = await getCurrentUserProfile();

@@ -10,6 +10,7 @@ const SCHOOL_SLUG = "educacora";
 const PENAFORT_SLUG = "colegio-penafort";
 const QA_SCHOOL_SLUG = "qa-school";
 const DATASET_TAG = "20_2N1";
+const SUPERADMIN_EMAIL = "admin@penafortplatform.com";
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const credentialsPath = resolve(
   repositoryRoot,
@@ -53,7 +54,18 @@ function randomPassword() {
 
 function loadOrCreateCredentials() {
   if (existsSync(credentialsPath)) {
-    const parsed = JSON.parse(readFileSync(credentialsPath, "utf8"));
+    const raw = readFileSync(credentialsPath, "utf8");
+    const parsed = raw.trimStart().startsWith("{")
+      ? JSON.parse(raw)
+      : {
+          projectRef: STAGING_REF,
+          schoolSlug: SCHOOL_SLUG,
+          users: {
+            director: parseTextCredential(raw, "DIRECTOR EDUCACORA"),
+            tutor: parseTextCredential(raw, "TUTOR EDUCACORA"),
+            family: parseTextCredential(raw, "FAMILIA EDUCACORA")
+          }
+        };
     assert(parsed.projectRef === STAGING_REF, "The local credentials target another project.");
     assert(parsed.schoolSlug === SCHOOL_SLUG, "The local credentials target another school.");
     for (const [key, definition] of Object.entries(userDefinitions)) {
@@ -82,6 +94,17 @@ function loadOrCreateCredentials() {
     flag: "wx"
   });
   return { credentials, existed: false };
+}
+
+function parseTextCredential(raw, heading) {
+  const start = raw.indexOf(heading);
+  assert(start >= 0, `Missing ${heading} credentials.`);
+  const next = raw.indexOf("\n\n", start);
+  const section = raw.slice(start, next === -1 ? raw.length : next);
+  const email = section.match(/^Email: (.+)$/m)?.[1]?.trim();
+  const password = section.match(/^Contraseña: (.+)$/m)?.[1]?.trim();
+  assert(email && password, `Incomplete ${heading} credentials.`);
+  return { email, password };
 }
 
 async function dataOrThrow(promise, label) {
@@ -542,10 +565,15 @@ async function main() {
 
   const school = await ensureSchool(supabase);
   const profiles = await dataOrThrow(
-    supabase.from("profiles").select("id,email,role,active").eq("role", "superadmin").eq("active", true),
-    "Read active superadmin profiles"
+    supabase
+      .from("profiles")
+      .select("id,email,role,active")
+      .eq("email", SUPERADMIN_EMAIL)
+      .eq("role", "superadmin")
+      .eq("active", true),
+    "Read canonical active superadmin profile"
   );
-  assert(profiles.length === 1, "Expected exactly one active superadmin profile.");
+  assert(profiles.length === 1, "Expected the canonical active superadmin profile.");
   const superadmin = profiles[0];
   await ensureMembership(supabase, {
     schoolId: school.id,
