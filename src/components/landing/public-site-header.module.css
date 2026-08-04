@@ -1,0 +1,287 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: var(--ec-z-sticky);
+  border-bottom: 1px solid rgba(231, 235, 238, .85);
+  background: rgba(246, 243, 236, .82);
+  backdrop-filter: blur(22px);
+}
+
+.inner {
+  display: flex;
+  width: min(1180px, calc(100% - 40px));
+  height: 78px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 0 auto;
+}
+
+.brand {
+  display: inline-flex;
+  min-height: 44px;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.logo {
+  display: block;
+  width: 184px;
+  height: auto;
+}
+
+.links {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  color: var(--ec-text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.links a,
+.contact {
+  transition: color var(--ec-motion-short) ease;
+}
+
+.links a:hover,
+.contact:hover {
+  color: var(--ec-color-navy-950);
+}
+
+.links a:focus-visible,
+.contact:focus-visible,
+.button:focus-visible,
+.mobileNavTrigger:focus-visible,
+.mobileNavLink:focus-visible {
+  border-radius: 999px;
+  outline: 3px solid var(--ec-ring-brand);
+  outline-offset: 3px;
+}
+
+.contact {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(231, 235, 238, .95);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .52);
+  padding: 0 13px;
+  color: var(--ec-text-secondary);
+  font: inherit;
+  font-weight: inherit;
+  cursor: pointer;
+  transition: background var(--ec-motion-short) ease, border-color var(--ec-motion-short) ease, color var(--ec-motion-short) ease, box-shadow var(--ec-motion-short) ease;
+}
+
+.contact:hover {
+  border-color: rgba(47, 138, 112, .22);
+  background: rgba(255, 255, 255, .92);
+  box-shadow: 0 10px 24px rgba(15, 27, 46, .06);
+}
+
+.contact svg,
+.mobileNavContact svg {
+  width: 15px;
+  height: 15px;
+  color: var(--ec-color-green-700);
+}
+
+.actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.button {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 0 18px;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: transform var(--ec-motion-short) var(--ec-ease-move), background var(--ec-motion-short) ease, border-color var(--ec-motion-short) ease, box-shadow var(--ec-motion-short) ease;
+}
+
+.button:hover {
+  transform: translateY(-2px);
+}
+
+.softButton {
+  border-color: var(--ec-border-subtle);
+  background: rgba(255, 255, 255, .72);
+  color: var(--ec-color-navy-950);
+}
+
+.softButton:hover {
+  background: white;
+  box-shadow: 0 14px 30px rgba(15, 27, 46, .08);
+}
+
+.primaryButton {
+  background: var(--ec-color-navy-950);
+  color: white;
+  box-shadow: 0 16px 35px rgba(15, 27, 46, .2);
+}
+
+.primaryButton:hover {
+  background: var(--ec-color-navy-800);
+  box-shadow: 0 22px 44px rgba(15, 27, 46, .24);
+}
+
+.mobilePublicNav {
+  position: relative;
+  display: none;
+}
+
+.mobileNavTrigger {
+  position: relative;
+  z-index: 2;
+  display: inline-grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid var(--ec-border-subtle);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .76);
+  color: var(--ec-color-navy-950);
+  cursor: pointer;
+}
+
+.mobileNavTrigger svg {
+  width: 20px;
+  height: 20px;
+}
+
+.mobileNavBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  border: 0;
+  background: var(--ec-overlay);
+}
+
+.mobileNavPanel {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  z-index: 1;
+  width: min(320px, calc(100vw - 28px));
+  max-height: calc(100dvh - 92px);
+  overflow-y: auto;
+  border: 1px solid var(--ec-border-subtle);
+  border-radius: var(--ec-radius-lg);
+  background: rgba(255, 255, 255, .98);
+  padding: 12px;
+  box-shadow: var(--ec-shadow-elevated);
+}
+
+.mobileNavHeading {
+  padding: 8px 10px 10px;
+  color: var(--ec-text-muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.mobileNavPanel nav {
+  display: grid;
+  gap: 2px;
+}
+
+.mobileNavLink {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  border-radius: var(--ec-radius-sm);
+  background: transparent;
+  padding: 0 12px;
+  color: var(--ec-text-secondary);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mobileNavLink:hover {
+  background: rgba(47, 138, 112, .08);
+  color: var(--ec-color-navy-950);
+}
+
+.mobileNavActions {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+  border-top: 1px solid var(--ec-border-subtle);
+  padding-top: 10px;
+}
+
+.mobileNavActions .button {
+  width: 100%;
+}
+
+@media (max-width: 1120px) {
+  .links {
+    display: none;
+  }
+
+  .mobilePublicNav {
+    display: block;
+  }
+}
+
+@media (max-width: 640px) {
+  .inner {
+    width: min(calc(100% - 28px), 1180px);
+    height: 68px;
+    gap: 8px;
+  }
+
+  .logo {
+    width: clamp(112px, 30vw, 132px);
+  }
+
+  .actions {
+    gap: 8px;
+  }
+
+  .actions > .softButton {
+    display: none;
+  }
+
+  .actions > .primaryButton {
+    min-height: 44px;
+    padding-inline: 12px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 360px) {
+  .logo {
+    width: 96px;
+  }
+
+  .actions > .primaryButton {
+    padding-inline: 8px;
+    font-size: 11px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button,
+  .mobileNavPanel {
+    transition: none;
+  }
+}

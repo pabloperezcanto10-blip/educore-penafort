@@ -1,13 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Mail } from "lucide-react";
 import { CoriumAvatar } from "@/components/ai/corium-avatar";
-import { ContactTrigger } from "@/components/contact/contact-modal";
 import { CommercialClosingSection } from "@/components/landing/commercial-closing-section";
 import { ConnectedModulesSection } from "@/components/landing/connected-modules-section";
 import { LandingExperienceMotion } from "@/components/landing/landing-experience-motion";
 import { LivingHero } from "@/components/landing/living-hero";
-import { MobilePublicNav } from "@/components/landing/mobile-public-nav";
+import { PublicSiteHeader } from "@/components/landing/public-site-header";
 import { RolePerspectivesSection } from "@/components/landing/role-perspectives-section";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_OG_IMAGE_URL, SITE_URL } from "@/lib/site-config";
 import { PUBLIC_SCHOOL_SELECTOR_PATH } from "@/lib/schools/public-schools";
@@ -556,30 +554,7 @@ export default function HomePage() {
         }
       ` }} />
 
-      <header className="nav">
-        <div className="container nav-inner">
-          <Link className="brand" href="/">
-            <Image className="brand-logo" src="/brand/educore/logo.svg" alt="EducaCora" width={512} height={150} priority />
-          </Link>
-          <nav className="nav-links" aria-label="Principal">
-            <a href="#resuelve">Qué resuelve</a>
-            <a href="#modulos">Módulos</a>
-            <a href="#roles">Roles</a>
-            <a href="#acceso">Centros</a>
-            <Link href="/experience">Experience</Link>
-            <a href="#seguridad">Seguridad</a>
-            <ContactTrigger origin="home_header" originLabel="Home — navegación" className="nav-link-button nav-contact">
-              <Mail aria-hidden="true" />
-              Contacto
-            </ContactTrigger>
-          </nav>
-          <div className="nav-actions">
-            <Link className="btn btn-soft" href={PUBLIC_SCHOOL_SELECTOR_PATH}>Accede a tu centro</Link>
-            <Link className="btn btn-primary" href="/experience">Probar EducaCora</Link>
-            <MobilePublicNav />
-          </div>
-        </div>
-      </header>
+      <PublicSiteHeader />
 
       <LivingHero />
 

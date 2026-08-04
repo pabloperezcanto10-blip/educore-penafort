@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Mail, Menu, X } from "lucide-react";
 import { ContactTrigger } from "@/components/contact/contact-modal";
 import { PUBLIC_SCHOOL_SELECTOR_PATH } from "@/lib/schools/public-schools";
+import styles from "./public-site-header.module.css";
 
 const navigationItems = [
   { label: "Qué resuelve", href: "#resuelve" },
@@ -14,7 +15,15 @@ const navigationItems = [
   { label: "Seguridad", href: "#seguridad" }
 ];
 
-export function MobilePublicNav() {
+type MobilePublicNavProps = {
+  anchorPrefix?: "" | "/";
+  showCenterAccess?: boolean;
+};
+
+export function MobilePublicNav({
+  anchorPrefix = "",
+  showCenterAccess = true
+}: MobilePublicNavProps) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -41,11 +50,11 @@ export function MobilePublicNav() {
   }, [closeMenu, open]);
 
   return (
-    <div className="mobile-public-nav">
+    <div className={styles.mobilePublicNav}>
       <button
         ref={triggerRef}
         type="button"
-        className="mobile-nav-trigger"
+        className={styles.mobileNavTrigger}
         aria-label={open ? "Cerrar navegación" : "Abrir navegación"}
         aria-expanded={open}
         aria-controls="public-mobile-menu"
@@ -54,29 +63,31 @@ export function MobilePublicNav() {
         {open ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
       </button>
 
-      <button className="mobile-nav-backdrop" type="button" aria-label="Cerrar navegación" hidden={!open} onClick={() => closeMenu()} />
-      <div ref={panelRef} className="mobile-nav-panel" id="public-mobile-menu" hidden={!open}>
-        <div className="mobile-nav-heading">Explora EducaCora</div>
+      <button className={styles.mobileNavBackdrop} type="button" aria-label="Cerrar navegación" hidden={!open} onClick={() => closeMenu()} />
+      <div ref={panelRef} className={styles.mobileNavPanel} id="public-mobile-menu" hidden={!open}>
+        <div className={styles.mobileNavHeading}>Explora EducaCora</div>
         <nav aria-label="Navegación móvil">
           {navigationItems.map((item) => (
-            <a className="mobile-nav-link" href={item.href} key={item.href} onClick={() => closeMenu(false)}>
+            <a className={styles.mobileNavLink} href={`${anchorPrefix}${item.href}`} key={item.href} onClick={() => closeMenu(false)}>
               {item.label}
             </a>
           ))}
-          <Link className="mobile-nav-link" href="/experience" onClick={() => closeMenu(false)}>
+          <Link className={styles.mobileNavLink} href="/experience" onClick={() => closeMenu(false)}>
             Experience
           </Link>
         </nav>
-        <div className="mobile-nav-actions">
+        <div className={styles.mobileNavActions}>
           <div onClickCapture={() => closeMenu(false)}>
-            <ContactTrigger origin="home_header" originLabel="Home — navegación móvil" className="mobile-nav-link mobile-nav-contact">
+            <ContactTrigger origin="home_header" originLabel="Home — navegación móvil" className={`${styles.mobileNavLink} ${styles.mobileNavContact}`}>
               <Mail aria-hidden="true" />
               Contacto
             </ContactTrigger>
           </div>
-          <Link className="btn btn-soft" href={PUBLIC_SCHOOL_SELECTOR_PATH} onClick={() => closeMenu(false)}>
-            Accede a tu centro
-          </Link>
+          {showCenterAccess ? (
+            <Link className={`${styles.button} ${styles.softButton}`} href={PUBLIC_SCHOOL_SELECTOR_PATH} onClick={() => closeMenu(false)}>
+              Accede a tu centro
+            </Link>
+          ) : null}
         </div>
       </div>
     </div>

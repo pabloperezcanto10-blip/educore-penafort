@@ -699,6 +699,11 @@
   padding: 28px 0 18px;
 }
 
+.publicContainer {
+  width: min(1180px, calc(100% - 40px));
+  margin-inline: auto;
+}
+
 .footerMain {
   display: flex;
   align-items: flex-start;
@@ -821,6 +826,12 @@
 
   .footerLinks {
     justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .publicContainer {
+    width: min(calc(100% - 28px), 1180px);
   }
 }
 

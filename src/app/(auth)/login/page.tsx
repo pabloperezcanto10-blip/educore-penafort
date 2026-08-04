@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { LoginForm } from "./login-form";
 import { getCurrentUserProfile } from "@/lib/auth/session";
 import { getAuthenticatedEntryPath } from "@/lib/schools/context";
@@ -71,9 +72,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         </div>
         <Link
           href={PUBLIC_SCHOOL_SELECTOR_PATH}
-          className="mt-6 inline-flex min-h-11 items-center text-sm font-medium text-muted-foreground underline-offset-4 hover:underline"
+          className="mt-6 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-muted-foreground underline-offset-4 hover:underline"
         >
-          Elegir otro centro
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          Cambiar de centro
         </Link>
       </section>
     </main>
