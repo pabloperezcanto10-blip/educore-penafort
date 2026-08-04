@@ -105,6 +105,7 @@ Por seguridad no se ha creado una cuenta falsa con rol Director ni se ha concedi
 - Slug ausente, inventado o no autorizado: rechazado antes del login.
 - QA School: excluido de la allowlist pública.
 - Cuenta EducaCora en login Peñafort: rechazada con mensaje genérico.
+- Cuenta sintética temporal Peñafort en login EducaCora: rechazada con el mismo mensaje y eliminada al terminar, sin fixtures residuales.
 - Centro solicitado sin membership activa: sesión cerrada y cookie eliminada.
 - Membership inactiva, centro inactivo, usuario sin membership y rol incompatible: rechazados por `ActiveSchoolContext`.
 - Director, Tutor y Familia EducaCora ven una única membership y un único centro activo.
