@@ -478,7 +478,7 @@ export async function createAdminTeacherAssignment(formData: FormData) {
   const supabase = await createClient();
   const academicYearId = await requireActiveAcademicYearId();
   const schoolId = await requireAdminSchoolId();
-  const { data: existingAssignment } = await supabase
+  const { data: existingAssignment, error: existingAssignmentError } = await supabase
     .from("teacher_assignments")
     .select("id")
     .eq("school_id", schoolId)
@@ -487,6 +487,12 @@ export async function createAdminTeacherAssignment(formData: FormData) {
     .eq("subject_id", subjectId)
     .eq("academic_year_id", academicYearId)
     .maybeSingle<{ id: string }>();
+
+  if (existingAssignmentError) {
+    throw new Error("No se pudo comprobar la asignacion docente.");
+  }
+
+  await ensureCourseSubject({ courseId, subjectId });
 
   if (!existingAssignment) {
     const payload: TeacherAssignmentInsert = {
@@ -497,10 +503,12 @@ export async function createAdminTeacherAssignment(formData: FormData) {
       academic_year_id: academicYearId
     };
 
-    await supabase.from("teacher_assignments").insert(payload as never);
+    const { error } = await supabase.from("teacher_assignments").insert(payload as never);
+    if (error) {
+      throw new Error("No se pudo crear la asignacion docente.");
+    }
   }
 
-  await ensureCourseSubject({ courseId, subjectId });
   revalidatePath("/dashboard/admin/subjects");
   redirect(withToast("/dashboard/admin/subjects", "success", "Profesor asignado correctamente."));
 }
@@ -518,14 +526,19 @@ export async function createAdminTeacherAssignmentsBulk(formData: FormData) {
 
   let created = 0;
   let existing = 0;
+  let errors = 0;
 
   for (const subjectId of subjectIds) {
     for (const courseId of courseIds) {
-      const didCreate = await ensureTeacherAssignmentWithResult({ teacherId, courseId, subjectId });
-      if (didCreate) {
-        created += 1;
-      } else {
-        existing += 1;
+      try {
+        const didCreate = await ensureTeacherAssignmentWithResult({ teacherId, courseId, subjectId });
+        if (didCreate) {
+          created += 1;
+        } else {
+          existing += 1;
+        }
+      } catch {
+        errors += 1;
       }
     }
   }
@@ -534,9 +547,11 @@ export async function createAdminTeacherAssignmentsBulk(formData: FormData) {
   revalidatePath("/dashboard/admin/maintenance");
   redirect(
     withToast(
-      `/dashboard/admin/subjects?assigned=1&created=${created}&existing=${existing}&errors=0`,
-      "success",
-      created > 0 ? "Asignaciones creadas correctamente." : "No se crearon duplicados."
+      `/dashboard/admin/subjects?assigned=1&created=${created}&existing=${existing}&errors=${errors}`,
+      errors > 0 ? "warning" : "success",
+      errors > 0
+        ? "Algunas asignaciones no se pudieron crear. Revisa que el docente, los cursos y las materias pertenezcan al centro activo."
+        : created > 0 ? "Asignaciones creadas correctamente." : "No se crearon duplicados."
     )
   );
 }
@@ -668,12 +683,50 @@ export async function createAdminTeacherQuick(formData: FormData) {
     return;
   }
 
-  const { userId } = await createAdminAuthUser({
-    fullName,
-    email,
-    role,
-    password: temporaryPassword
-  });
+  let userId: string;
+  let schoolId: string;
+  try {
+    ({ userId, schoolId } = await createAdminAuthUser({
+      fullName,
+      email,
+      role,
+      password: temporaryPassword
+    }));
+  } catch {
+    redirect(withToast("/dashboard/admin/create?type=teacher", "error", "No se pudo completar el alta docente. No se ha dejado una cuenta parcial."));
+  }
+
+  let createdAssignments = 0;
+
+  try {
+    if (courseIds.length > 0 && subjectIds.length > 0) {
+      for (const subjectId of subjectIds) {
+        for (const courseId of courseIds) {
+          const didCreate = await ensureTeacherAssignmentWithResult({
+            teacherId: userId,
+            courseId,
+            subjectId
+          });
+
+          if (didCreate) {
+            createdAssignments += 1;
+          }
+        }
+      }
+    }
+  } catch {
+    const cleanupComplete = await cleanupProvisionedAdminUser({ userId, schoolId });
+    redirect(
+      withToast(
+        "/dashboard/admin/create?type=teacher",
+        "error",
+        cleanupComplete
+          ? "No se pudieron crear las asignaciones. El alta docente se ha revertido por completo."
+          : "No se pudo completar el alta docente y la compensacion requiere revision administrativa."
+      )
+    );
+  }
+
   await logAuditAction({
     actorUserId: actor.id,
     actorRole: actor.role,
@@ -685,27 +738,10 @@ export async function createAdminTeacherQuick(formData: FormData) {
       email,
       full_name: fullName,
       role,
+      school_id: schoolId,
       must_change_password: role !== "superadmin"
     }
   });
-
-  let createdAssignments = 0;
-
-  if (courseIds.length > 0 && subjectIds.length > 0) {
-    for (const subjectId of subjectIds) {
-      for (const courseId of courseIds) {
-        const didCreate = await ensureTeacherAssignmentWithResult({
-          teacherId: userId,
-          courseId,
-          subjectId
-        });
-
-        if (didCreate) {
-          createdAssignments += 1;
-        }
-      }
-    }
-  }
 
   revalidateAdminCreatePaths();
   redirect(
@@ -795,6 +831,7 @@ async function createAdminAuthUser({
   metadata?: Record<string, string>;
 }) {
   const supabaseAdmin = createAdminClient();
+  const schoolId = await requireAdminSchoolId();
   const { data, error } = await supabaseAdmin.auth.admin.createUser({
     email,
     password,
@@ -811,16 +848,26 @@ async function createAdminAuthUser({
   }
 
   const userId = data.user.id;
-  const schoolId = await requireAdminSchoolId();
   const profile: ProfileInsert = {
     id: userId,
     email,
     full_name: fullName,
     role,
+    active: true,
     must_change_password: role !== "superadmin"
   };
 
-  await supabaseAdmin.from("profiles").upsert(profile as never);
+  const { error: profileError } = await supabaseAdmin
+    .from("profiles")
+    .upsert(profile as never, { onConflict: "id" });
+
+  if (profileError) {
+    const cleanupComplete = await cleanupProvisionedAdminUser({ userId, schoolId });
+    throw new Error(cleanupComplete
+      ? "No se pudo crear el perfil del usuario."
+      : "No se pudo crear el perfil y la compensacion requiere revision administrativa.");
+  }
+
   const membership: SchoolMembershipInsert = {
     school_id: schoolId,
     user_id: userId,
@@ -832,11 +879,50 @@ async function createAdminAuthUser({
     .insert(membership as never);
 
   if (membershipError) {
-    await supabaseAdmin.auth.admin.deleteUser(userId);
-    throw new Error("No se pudo asignar el usuario al centro activo.");
+    const cleanupComplete = await cleanupProvisionedAdminUser({ userId, schoolId });
+    throw new Error(cleanupComplete
+      ? "No se pudo asignar el usuario al centro activo."
+      : "No se pudo asignar el usuario y la compensacion requiere revision administrativa.");
   }
 
-  return { userId };
+  return { userId, schoolId };
+}
+
+async function cleanupProvisionedAdminUser({
+  userId,
+  schoolId
+}: {
+  userId: string;
+  schoolId: string;
+}) {
+  const supabaseAdmin = createAdminClient();
+  const cleanupErrors: unknown[] = [];
+  const cleanupQueries = [
+    supabaseAdmin
+      .from("teacher_assignments")
+      .delete()
+      .eq("school_id", schoolId)
+      .eq("teacher_id", userId),
+    supabaseAdmin
+      .from("school_memberships")
+      .delete()
+      .eq("school_id", schoolId)
+      .eq("user_id", userId),
+    supabaseAdmin
+      .from("profiles")
+      .delete()
+      .eq("id", userId)
+  ];
+
+  for (const query of cleanupQueries) {
+    const { error } = await query;
+    if (error) cleanupErrors.push(error);
+  }
+
+  const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+  if (authError) cleanupErrors.push(authError);
+
+  return cleanupErrors.length === 0;
 }
 
 async function ensureTeacherAssignment({
@@ -851,7 +937,7 @@ async function ensureTeacherAssignment({
   const supabase = await createClient();
   const academicYearId = await requireActiveAcademicYearId();
   const schoolId = await requireAdminSchoolId();
-  const { data: existingAssignment } = await supabase
+  const { data: existingAssignment, error: existingAssignmentError } = await supabase
     .from("teacher_assignments")
     .select("id")
     .eq("school_id", schoolId)
@@ -860,6 +946,12 @@ async function ensureTeacherAssignment({
     .eq("subject_id", subjectId)
     .eq("academic_year_id", academicYearId)
     .maybeSingle<{ id: string }>();
+
+  if (existingAssignmentError) {
+    throw new Error("No se pudo comprobar la asignacion docente.");
+  }
+
+  await ensureCourseSubject({ courseId, subjectId });
 
   if (!existingAssignment) {
     const payload: TeacherAssignmentInsert = {
@@ -870,10 +962,11 @@ async function ensureTeacherAssignment({
       academic_year_id: academicYearId
     };
 
-    await supabase.from("teacher_assignments").insert(payload as never);
+    const { error } = await supabase.from("teacher_assignments").insert(payload as never);
+    if (error) {
+      throw new Error("No se pudo crear la asignacion docente.");
+    }
   }
-
-  await ensureCourseSubject({ courseId, subjectId });
 }
 
 async function ensureTeacherAssignmentWithResult({
@@ -888,7 +981,7 @@ async function ensureTeacherAssignmentWithResult({
   const supabase = await createClient();
   const academicYearId = await requireActiveAcademicYearId();
   const schoolId = await requireAdminSchoolId();
-  const { data: existingAssignment } = await supabase
+  const { data: existingAssignment, error: existingAssignmentError } = await supabase
     .from("teacher_assignments")
     .select("id")
     .eq("school_id", schoolId)
@@ -898,8 +991,13 @@ async function ensureTeacherAssignmentWithResult({
     .eq("academic_year_id", academicYearId)
     .maybeSingle<{ id: string }>();
 
+  if (existingAssignmentError) {
+    throw new Error("No se pudo comprobar la asignacion docente.");
+  }
+
+  await ensureCourseSubject({ courseId, subjectId });
+
   if (existingAssignment) {
-    await ensureCourseSubject({ courseId, subjectId });
     return false;
   }
 
@@ -911,8 +1009,11 @@ async function ensureTeacherAssignmentWithResult({
     academic_year_id: academicYearId
   };
 
-  await supabase.from("teacher_assignments").insert(payload as never);
-  await ensureCourseSubject({ courseId, subjectId });
+  const { error } = await supabase.from("teacher_assignments").insert(payload as never);
+  if (error) {
+    throw new Error("No se pudo crear la asignacion docente.");
+  }
+
   return true;
 }
 
@@ -925,7 +1026,7 @@ async function ensureCourseSubject({
 }) {
   const supabase = await createClient();
   const academicYearId = await requireActiveAcademicYearId();
-  const { data: existingCourseSubject } = await supabase
+  const { data: existingCourseSubject, error: existingCourseSubjectError } = await supabase
     .from("course_subjects")
     .select("id")
     .eq("school_id", await requireAdminSchoolId())
@@ -933,6 +1034,10 @@ async function ensureCourseSubject({
     .eq("subject_id", subjectId)
     .eq("academic_year_id", academicYearId)
     .maybeSingle<{ id: string }>();
+
+  if (existingCourseSubjectError) {
+    throw new Error("No se pudo comprobar la relacion entre curso y materia.");
+  }
 
   if (!existingCourseSubject) {
     const payload: CourseSubjectInsert = {
@@ -944,7 +1049,10 @@ async function ensureCourseSubject({
       track: null
     };
 
-    await supabase.from("course_subjects").insert(payload as never);
+    const { error } = await supabase.from("course_subjects").insert(payload as never);
+    if (error) {
+      throw new Error("No se pudo relacionar el curso con la materia.");
+    }
   }
 }
 
