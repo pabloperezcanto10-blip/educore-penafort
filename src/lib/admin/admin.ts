@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { requireRole } from "@/lib/auth/session";
 import type { Role } from "@/lib/auth/roles";
 import { getActiveAcademicYear } from "@/lib/academic-years";
 import { getActiveCourses } from "@/lib/courses";
@@ -57,8 +59,9 @@ export async function getAdminProfiles(): Promise<{
   profiles: AdminProfile[];
   errorMessage: string | null;
 }> {
+  await requireRole(["superadmin", "director"]);
   const schoolContext = await requireOperationalSchoolContext();
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data: memberships, error: membershipsError } = await supabase
     .from("school_memberships")
     .select("user_id,role,active")
