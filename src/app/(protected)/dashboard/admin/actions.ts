@@ -9,7 +9,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAcademicYear } from "@/lib/academic-years";
 import { requireOperationalSchoolContext } from "@/lib/schools/context";
-import { withToast } from "@/lib/toast";
+import { withToast as buildToastUrl, type ToastType } from "@/lib/toast";
 import type { Database } from "@/lib/database.types";
 
 type StudentInsert = Database["public"]["Tables"]["students"]["Insert"];
@@ -34,6 +34,10 @@ function requiredString(formData: FormData, key: string) {
 function optionalString(formData: FormData, key: string) {
   const value = requiredString(formData, key);
   return value.length > 0 ? value : null;
+}
+
+function withToast(href: string, type: ToastType, message: string) {
+  return buildToastUrl(href, type, message, { refresh: type === "success" });
 }
 
 export async function createAdminStudent(formData: FormData) {

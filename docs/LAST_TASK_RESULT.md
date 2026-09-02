@@ -14,8 +14,11 @@ se ignoraba antes de mostrar el toast de exito.
 
 ## Correccion
 
-- El toast limpia su URL con `window.history.replaceState()` y conserva el
-  render fresco recibido tras `revalidatePath()`.
+- El toast limpia su URL con `window.history.replaceState()` sin iniciar una
+  segunda navegacion.
+- Las mutaciones administrativas exitosas solicitan de forma explicita un
+  unico `router.refresh()` despues de `revalidatePath()`; los errores, avisos y
+  toasts del resto de la aplicacion no fuerzan refrescos.
 - Las mutaciones de memberships se ejecutan con el cliente administrativo solo
   despues de autorizar al Superadmin y resolver el centro activo.
 - Todas las lecturas y escrituras de memberships se limitan al `school_id`
