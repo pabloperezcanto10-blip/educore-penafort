@@ -1,34 +1,35 @@
-# Ultimo resultado: alta docente desde Superadmin
+# Ultimo resultado: refresco de vistas administrativas
 
 ## Diagnostico
 
-El modelo docente operativo de EducaCora es `auth.users` + `profiles` +
-`school_memberships`. Los listados y selectores obtienen los perfiles con
-membership activa del centro seleccionado; `teacher_assignments.teacher_id`
-usa el mismo UUID. La tabla `teachers` es legado y no participa en este flujo.
+Las Server Actions invalidaban sus rutas y redirigian con un toast, pero
+`GlobalToast` eliminaba despues los parametros mediante `router.replace()`.
+Esa segunda navegacion podia reutilizar el Router Cache anterior y volver a
+mostrar el arbol de Server Components previo a la mutacion.
 
-La causa visible era el lector `getAdminProfiles()`: consultaba
-`school_memberships` con el cliente autenticado, pero la RLS de esa tabla solo
-permite leer la membership propia. Aunque el docente existia correctamente, el
-Superadmin no podia verlo en listados ni selectores.
-
-Ademas, el alta ignoraba el error de `profiles.upsert`, por lo que podia
-devolver exito aunque el perfil canonico no se hubiera persistido. Los helpers
-de asignacion tambien ignoraban errores de lectura y escritura.
+Ademas, las acciones de rol y estado de usuario escribian
+`school_memberships` con el cliente autenticado. Esa tabla solo concede lectura
+al rol `authenticated`, por lo que la escritura podia ser rechazada y el error
+se ignoraba antes de mostrar el toast de exito.
 
 ## Correccion
 
-- El centro se resuelve en servidor antes de crear Auth.
-- El directorio usa service role unicamente despues de autorizar Director o
-  Superadmin y siempre se limita al `school_id` del centro activo.
-- Se comprueba la escritura de perfil activo y membership.
-- Si falla perfil, membership o una asignacion inicial, se ejecuta compensacion
-  y no se deja una cuenta parcial.
-- Los errores de asignacion dejan de declararse como exitos.
-- La fila legacy `teachers` no se crea ni se duplica.
+- El toast limpia su URL con `window.history.replaceState()` y conserva el
+  render fresco recibido tras `revalidatePath()`.
+- Las mutaciones de memberships se ejecutan con el cliente administrativo solo
+  despues de autorizar al Superadmin y resolver el centro activo.
+- Todas las lecturas y escrituras de memberships se limitan al `school_id`
+  activo y comprueban que exista exactamente la fila afectada.
+- El estado siguiente se calcula desde la membership persistida, no desde un
+  campo oculto potencialmente obsoleto.
+- Un fallo real ya no puede producir un toast de exito.
 
-## Docente existente
+## Validacion
 
-`pablopereztutor@penafort.com` ya conserva Auth, perfil tutor activo,
-membership activa en Colegio Penafort y dos asignaciones. No fue necesario
-alterar su email, contrasena ni identidad.
+- `npm run lint`: OK.
+- `npx tsc --noEmit`: OK.
+- `npm run build`: OK.
+- `git diff --check`: OK.
+
+La comprobacion definitiva sin recarga manual se realiza en Production tras el
+deployment del commit de esta tarea.

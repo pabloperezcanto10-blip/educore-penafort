@@ -140,12 +140,18 @@ export async function updateAdminUserRole(formData: FormData) {
     return;
   }
 
-  const supabase = await createClient();
-  await supabase
+  const supabaseAdmin = createAdminClient();
+  const { data: updatedMembership, error: updateError } = await supabaseAdmin
     .from("school_memberships")
     .update({ role } as never)
     .eq("school_id", schoolId)
-    .eq("user_id", id);
+    .eq("user_id", id)
+    .select("id")
+    .maybeSingle<{ id: string }>();
+
+  if (updateError || !updatedMembership) {
+    redirect(withToast("/dashboard/admin/users", "error", "No se pudo actualizar el rol del usuario."));
+  }
 
   revalidatePath("/dashboard/admin/users");
   redirect(withToast("/dashboard/admin/users", "success", "Rol actualizado correctamente."));
@@ -156,7 +162,6 @@ export async function toggleAdminUserActive(formData: FormData) {
   const schoolId = await requireAdminSchoolId();
 
   const id = requiredString(formData, "id");
-  const active = requiredString(formData, "active") === "true";
   const role = requiredString(formData, "role");
 
   if (!id || (role !== "family" && role !== "tutor")) {
@@ -167,28 +172,51 @@ export async function toggleAdminUserActive(formData: FormData) {
     return;
   }
 
-  const supabase = await createClient();
-  const { data: beforeMembership } = await supabase
+  const supabaseAdmin = createAdminClient();
+  const { data: beforeMembership, error: membershipError } = await supabaseAdmin
     .from("school_memberships")
     .select("id,user_id,school_id,role,active")
     .eq("school_id", schoolId)
     .eq("user_id", id)
-    .maybeSingle();
-  await supabase
+    .maybeSingle<{
+      id: string;
+      user_id: string;
+      school_id: string;
+      role: Role;
+      active: boolean;
+    }>();
+
+  if (
+    membershipError ||
+    !beforeMembership ||
+    (beforeMembership.role !== "family" && beforeMembership.role !== "tutor")
+  ) {
+    redirect(withToast("/dashboard/admin/users", "error", "No se pudo localizar el usuario en el centro activo."));
+  }
+
+  const nextActive = !beforeMembership.active;
+  const { data: updatedMembership, error: updateError } = await supabaseAdmin
     .from("school_memberships")
-    .update({ active: !active } as never)
+    .update({ active: nextActive } as never)
     .eq("school_id", schoolId)
-    .eq("user_id", id);
+    .eq("user_id", id)
+    .select("id")
+    .maybeSingle<{ id: string }>();
+
+  if (updateError || !updatedMembership) {
+    redirect(withToast("/dashboard/admin/users", "error", "No se pudo actualizar el estado del usuario."));
+  }
+
   await logAuditAction({
     actorUserId: currentProfile.id,
     actorRole: currentProfile.role,
-    action: active ? "user_deactivated" : "user_reactivated",
+    action: beforeMembership.active ? "user_deactivated" : "user_reactivated",
     module: "admin_users",
     entityType: "profile",
     entityId: id,
     beforeData: beforeMembership ?? null,
     afterData: {
-      active: !active,
+      active: nextActive,
       school_id: schoolId
     }
   });
@@ -196,7 +224,7 @@ export async function toggleAdminUserActive(formData: FormData) {
   revalidatePath("/dashboard/admin/users");
   revalidatePath("/dashboard/admin/maintenance");
   revalidatePath("/dashboard/admin/create");
-  redirect(withToast("/dashboard/admin/users", "success", active ? "Usuario desactivado correctamente." : "Usuario reactivado correctamente."));
+  redirect(withToast("/dashboard/admin/users", "success", beforeMembership.active ? "Usuario desactivado correctamente." : "Usuario reactivado correctamente."));
 }
 
 export async function deleteAdminUser(formData: FormData) {

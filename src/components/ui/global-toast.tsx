@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { X } from "lucide-react";
 import type { ToastType } from "@/lib/toast";
 
@@ -55,7 +55,6 @@ function normalizeToastType(value: string | null): ToastType {
 }
 
 export function GlobalToast() {
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const toastId = searchParams.get("toast_id");
@@ -82,8 +81,9 @@ export function GlobalToast() {
       const next = current.filter((toast) => toast.id !== toastId);
       return [{ id: toastId, message, type }, ...next].slice(0, 3);
     });
-    router.replace(cleanHref, { scroll: false });
-  }, [cleanHref, message, router, toastId, type]);
+    // Keep the freshly rendered Server Component tree while removing one-time toast params.
+    window.history.replaceState(window.history.state, "", cleanHref);
+  }, [cleanHref, message, toastId, type]);
 
   function dismissToast(id: string) {
     setToasts((current) => current.filter((toast) => toast.id !== id));
