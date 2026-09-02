@@ -12,6 +12,10 @@ Ademas, las acciones de rol y estado de usuario escribian
 al rol `authenticated`, por lo que la escritura podia ser rechazada y el error
 se ignoraba antes de mostrar el toast de exito.
 
+Las eliminaciones de asignaciones tenian una variante del mismo problema:
+PostgREST podia devolver `error = null` al afectar cero filas bajo RLS, y la
+accion declaraba exito sin comprobar el resultado eliminado.
+
 ## Correccion
 
 - El toast limpia su URL con `window.history.replaceState()` sin iniciar una
@@ -25,6 +29,8 @@ se ignoraba antes de mostrar el toast de exito.
   activo y comprueban que exista exactamente la fila afectada.
 - El estado siguiente se calcula desde la membership persistida, no desde un
   campo oculto potencialmente obsoleto.
+- Las eliminaciones individual y agrupada de asignaciones exigen filas
+  eliminadas en el `school_id` activo antes de mostrar exito.
 - Un fallo real ya no puede producir un toast de exito.
 
 ## Validacion

@@ -597,14 +597,16 @@ export async function deleteAdminTeacherAssignment(formData: FormData) {
     redirect(withToast("/dashboard/admin/subjects", "error", "No se pudo eliminar la asignacion."));
   }
 
-  const supabase = await createClient();
-  const { error } = await supabase
+  const supabaseAdmin = createAdminClient();
+  const { data: deletedAssignment, error } = await supabaseAdmin
     .from("teacher_assignments")
     .delete()
     .eq("school_id", await requireAdminSchoolId())
-    .eq("id", id);
+    .eq("id", id)
+    .select("id")
+    .maybeSingle<{ id: string }>();
 
-  if (error) {
+  if (error || !deletedAssignment) {
     redirect(withToast("/dashboard/admin/subjects", "error", "No se pudo eliminar la asignacion."));
   }
 
@@ -623,15 +625,17 @@ export async function deleteAdminTeacherAssignmentGroup(formData: FormData) {
     redirect(withToast("/dashboard/admin/subjects", "error", "No se pudo eliminar el grupo de asignaciones."));
   }
 
-  const supabase = await createClient();
-  const { error } = await supabase
+  const supabaseAdmin = createAdminClient();
+  const { data: deletedAssignments, error } = await supabaseAdmin
     .from("teacher_assignments")
     .delete()
     .eq("school_id", await requireAdminSchoolId())
     .eq("teacher_id", teacherId)
-    .eq("subject_id", subjectId);
+    .eq("subject_id", subjectId)
+    .select("id")
+    .returns<Array<{ id: string }>>();
 
-  if (error) {
+  if (error || !deletedAssignments || deletedAssignments.length === 0) {
     redirect(withToast("/dashboard/admin/subjects", "error", "No se pudo eliminar el grupo de asignaciones."));
   }
 
