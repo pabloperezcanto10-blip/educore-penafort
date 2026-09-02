@@ -205,7 +205,7 @@ function ScheduleSlot({ slot, registered, isToday }: { slot: TeacherScheduleSlot
           <Coffee className="h-4 w-4 shrink-0" aria-hidden="true" />
           <div className="min-w-0">
             <p className="text-[11px] font-semibold">{formatScheduleTime(slot.start_time)} - {formatScheduleTime(slot.end_time)}</p>
-            <p className="truncate text-xs font-semibold">Patio / descanso</p>
+            <p className="truncate text-xs font-semibold">{slot.course_name}</p>
           </div>
         </div>
       </article>

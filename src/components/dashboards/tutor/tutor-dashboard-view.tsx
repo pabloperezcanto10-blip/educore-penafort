@@ -215,7 +215,7 @@ function ScheduleSlotCard({ slot, registered, routes }: { slot: TeacherScheduleS
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold text-slate-500">{formatScheduleTime(slot.start_time)} - {formatScheduleTime(slot.end_time)}</p>
-            <h3 className="mt-0.5 text-sm font-semibold text-slate-950">Patio / descanso</h3>
+            <h3 className="mt-0.5 text-sm font-semibold text-slate-950">{slot.course_name}</h3>
           </div>
           <GradebookBadge tone="gray">Descanso</GradebookBadge>
         </div>
