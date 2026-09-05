@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CalendarDays, ClipboardList, Inbox, type LucideIcon } from "lucide-react";
 
 import { WorkCenterTabs } from "@/components/dashboard/work-center-tabs";
+import { CompactDashboardNotifications } from "@/components/dashboard/compact-dashboard-notifications";
 import { GradebookBadge, GradebookCard, GradebookCardHeader, ProgressBar } from "@/components/grades/gradebook-design";
 import { StudentActivityTimeline, type StudentActivityItem } from "@/components/students/student-profile";
 import type { CalendarEventSummary } from "@/lib/calendar/ical";
@@ -16,7 +17,7 @@ export type TutorDashboardTab = "pendientes" | "cuaderno" | "alumnos" | "comunic
 export type TutorDashboardRoutes = {
   root: string;
   attendance: string;
-  attendanceSlot: (slotId: string) => string;
+  attendanceSlot: (slotId: string, date?: string) => string;
   calendar: string;
   communications: string;
   gradebook: string;
@@ -35,6 +36,7 @@ export type TutorDashboardData = {
   subjectCourses: TeacherSubjectCourse[];
   teachingSlotsCount: number;
   todayEvents: CalendarEventSummary[];
+  todayDate: string;
   todaySchedule: TeacherScheduleSlot[];
   tutorName: string;
   unreadCommunications: number;
@@ -62,7 +64,8 @@ export const tutorDashboardTabs: Array<{ id: TutorDashboardTab; label: string }>
 export const productionTutorDashboardRoutes: TutorDashboardRoutes = {
   root: "/dashboard/tutor",
   attendance: "/dashboard/tutor/attendance",
-  attendanceSlot: (slotId) => `/dashboard/tutor/attendance/${slotId}`,
+  attendanceSlot: (slotId, date) =>
+    `/dashboard/tutor/attendance/${slotId}${date ? `?date=${encodeURIComponent(date)}` : ""}`,
   calendar: "/dashboard/tutor/calendar",
   communications: "/dashboard/tutor/communications",
   gradebook: "/dashboard/tutor/gradebook",
@@ -95,12 +98,13 @@ export function TutorDashboardView({ activeTab, brand, data, mode, routes }: Tut
       ) : null}
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <CompactNotifications notifications={data.dashboardNotifications} unreadCount={data.unreadCount} />
+        <CompactDashboardNotifications notifications={data.dashboardNotifications} unreadCount={data.unreadCount} />
         <CompactCalendar routes={routes} todayEvents={data.todayEvents} upcomingEvents={data.upcomingEvents} errorMessage={data.calendarError} />
       </div>
 
       <TodayScheduleCard
         routes={routes}
+        todayDate={data.todayDate}
         weekday={data.weekday}
         slots={data.todaySchedule}
         registeredScheduleIds={new Set(data.registeredScheduleIds)}
@@ -120,35 +124,6 @@ export function TutorDashboardView({ activeTab, brand, data, mode, routes }: Tut
 
       <StudentActivityTimeline items={data.activityItems} empty="Sin movimientos recientes registrados." />
     </section>
-  );
-}
-
-function CompactNotifications({ notifications, unreadCount }: { notifications: DashboardNotification[]; unreadCount: number }) {
-  return (
-    <GradebookCard className="p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-700">
-            <Inbox className="h-5 w-5" aria-hidden="true" />
-          </span>
-          <div>
-            <h2 className="text-sm font-semibold text-slate-950">Novedades</h2>
-            <p className="mt-1 text-sm text-slate-500">{unreadCount > 0 ? `${unreadCount} aviso${unreadCount === 1 ? "" : "s"} pendiente${unreadCount === 1 ? "" : "s"}.` : "Todo al día. No hay avisos pendientes."}</p>
-          </div>
-        </div>
-        <GradebookBadge tone={unreadCount > 0 ? "amber" : "green"}>{unreadCount > 0 ? "Pendiente" : "Todo al día"}</GradebookBadge>
-      </div>
-      {notifications.length > 0 ? (
-        <div className="mt-3 space-y-2">
-          {notifications.slice(0, 2).map((notification) => (
-            <Link key={`${notification.source}-${notification.id}`} href={notification.href} className="block rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 transition hover:bg-white">
-              <p className="text-sm font-semibold text-slate-950">{notification.title}</p>
-              <p className="mt-1 line-clamp-1 text-xs text-slate-500">{notification.body}</p>
-            </Link>
-          ))}
-        </div>
-      ) : null}
-    </GradebookCard>
   );
 }
 
@@ -186,7 +161,7 @@ function CompactCalendar({ todayEvents, upcomingEvents, errorMessage, routes }: 
   );
 }
 
-function TodayScheduleCard({ weekday, slots, registeredScheduleIds, routes }: { weekday: number | null; slots: TeacherScheduleSlot[]; registeredScheduleIds: Set<string>; routes: TutorDashboardRoutes }) {
+function TodayScheduleCard({ todayDate, weekday, slots, registeredScheduleIds, routes }: { todayDate: string; weekday: number | null; slots: TeacherScheduleSlot[]; registeredScheduleIds: Set<string>; routes: TutorDashboardRoutes }) {
   return (
     <GradebookCard>
       <GradebookCardHeader title="Horario de hoy">
@@ -200,7 +175,7 @@ function TodayScheduleCard({ weekday, slots, registeredScheduleIds, routes }: { 
           <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-3 text-sm text-slate-500">No hay clases programadas para hoy.</div>
         ) : (
           <div className="grid gap-2 lg:grid-cols-2 xl:grid-cols-3">
-            {slots.map((slot) => <ScheduleSlotCard key={slot.id} routes={routes} slot={slot} registered={registeredScheduleIds.has(slot.id)} />)}
+            {slots.map((slot) => <ScheduleSlotCard key={slot.id} routes={routes} slot={slot} registered={registeredScheduleIds.has(slot.id)} todayDate={todayDate} />)}
           </div>
         )}
       </div>
@@ -208,7 +183,7 @@ function TodayScheduleCard({ weekday, slots, registeredScheduleIds, routes }: { 
   );
 }
 
-function ScheduleSlotCard({ slot, registered, routes }: { slot: TeacherScheduleSlot; registered: boolean; routes: TutorDashboardRoutes }) {
+function ScheduleSlotCard({ slot, registered, routes, todayDate }: { slot: TeacherScheduleSlot; registered: boolean; routes: TutorDashboardRoutes; todayDate: string }) {
   if (slot.is_break) {
     return (
       <article className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-2.5">
@@ -233,7 +208,7 @@ function ScheduleSlotCard({ slot, registered, routes }: { slot: TeacherScheduleS
         </div>
         <GradebookBadge tone={registered ? "green" : "amber"}>{registered ? "Registrada" : "Pendiente"}</GradebookBadge>
       </div>
-      <Link href={routes.attendanceSlot(slot.id)} className="mt-2 inline-flex h-8 w-full items-center justify-center rounded-lg bg-sky-700 px-3 text-xs font-semibold text-white transition hover:bg-sky-800">
+      <Link href={routes.attendanceSlot(slot.id, todayDate)} className="mt-2 inline-flex h-8 w-full items-center justify-center rounded-lg bg-sky-700 px-3 text-xs font-semibold text-white transition hover:bg-sky-800">
         Pasar lista
       </Link>
     </article>

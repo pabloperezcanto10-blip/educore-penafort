@@ -74,7 +74,10 @@ function createDashboardNotifications(): DashboardNotification[] {
       body: "Irene Soler ha respondido a vuestra consulta sobre matemáticas.",
       href: getExperienceModuleHref("familia", "communications"),
       read: false,
-      created_at: isoMinutesAgo(22)
+      created_at: isoMinutesAgo(22),
+      reviewKey: "demo-dashboard-family-1",
+      reviewVersion: isoMinutesAgo(22),
+      reviewable: false
     },
     {
       id: "demo-dashboard-family-2",
@@ -83,7 +86,10 @@ function createDashboardNotifications(): DashboardNotification[] {
       body: "Ya podéis consultar las calificaciones visibles de la evaluación.",
       href: getExperienceModuleHref("familia", "gradebook"),
       read: false,
-      created_at: isoMinutesAgo(95)
+      created_at: isoMinutesAgo(95),
+      reviewKey: "demo-dashboard-family-2",
+      reviewVersion: isoMinutesAgo(95),
+      reviewable: false
     }
   ];
 }

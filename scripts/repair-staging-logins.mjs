@@ -28,7 +28,7 @@ const accountDefinitions = [
     key: "director",
     label: "Dir",
     email: "director@educacora.example.test",
-    fullName: "Dirección Demo 20_2N1",
+    fullName: "Dirección EducaCora",
     role: "director",
     schoolSlugs: [EDUCACORA_SLUG]
   },
@@ -36,7 +36,7 @@ const accountDefinitions = [
     key: "tutor",
     label: "Tutor",
     email: "tutor@educacora.example.test",
-    fullName: "Tutor Demo 20_2N1",
+    fullName: "Tutor EducaCora",
     role: "tutor",
     schoolSlugs: [EDUCACORA_SLUG]
   },
@@ -44,7 +44,7 @@ const accountDefinitions = [
     key: "family",
     label: "Familia",
     email: "familia@educacora.example.test",
-    fullName: "Familia Demo 20_2N1",
+    fullName: "Familia EducaCora",
     role: "family",
     schoolSlugs: [EDUCACORA_SLUG]
   }

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getActiveAcademicYear } from "@/lib/academic-years";
 import { requireOperationalSchoolContext } from "@/lib/schools/context";
+import { getIsoWeekday, getMadridDate } from "@/lib/date-time/madrid";
 
 export type TeacherScheduleSlot = {
   id: string;
@@ -17,7 +18,7 @@ export type TeacherScheduleSlot = {
 const weekdayLabels = {
   1: "Lunes",
   2: "Martes",
-  3: "Miercoles",
+  3: "Miércoles",
   4: "Jueves",
   5: "Viernes"
 } as const;
@@ -25,20 +26,8 @@ const weekdayLabels = {
 export const teacherScheduleWeekdays = [1, 2, 3, 4, 5] as const;
 
 export function getMadridWeekday() {
-  const weekday = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Europe/Madrid",
-    weekday: "short"
-  }).format(new Date());
-
-  const weekdays: Record<string, number> = {
-    Mon: 1,
-    Tue: 2,
-    Wed: 3,
-    Thu: 4,
-    Fri: 5
-  };
-
-  return weekdays[weekday] ?? null;
+  const weekday = getIsoWeekday(getMadridDate());
+  return weekday >= 1 && weekday <= 5 ? weekday : null;
 }
 
 export function getWeekdayLabel(weekday: number | null) {

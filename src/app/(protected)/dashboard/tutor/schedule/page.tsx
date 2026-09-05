@@ -1,26 +1,47 @@
 import Link from "next/link";
-import { ArrowLeft, CalendarCheck2, CalendarDays, CheckCircle2, Clock3, Coffee, ListChecks } from "lucide-react";
+import { ArrowLeft, ArrowRight, CalendarCheck2, CalendarDays, CheckCircle2, Clock3, Coffee, ListChecks } from "lucide-react";
 
 import { GradebookBadge, GradebookCard, GradebookCardHeader } from "@/components/grades/gradebook-design";
-import { getRegisteredScheduleIdsForDate } from "@/lib/attendance/session-attendance";
+import {
+  getRegisteredScheduleIdsForDate,
+  getRegisteredScheduleKeysForRange
+} from "@/lib/attendance/session-attendance";
 import { requireRole } from "@/lib/auth/session";
+import { getMadridDate, getMadridWeek, type MadridWeekDay } from "@/lib/date-time/madrid";
 import {
   formatScheduleTime,
   getMadridWeekday,
   getTeacherScheduleForWeek,
   getWeekdayLabel,
-  teacherScheduleWeekdays,
   type TeacherScheduleSlot
 } from "@/lib/tutors/schedule";
 
-export default async function TutorSchedulePage() {
+type TutorSchedulePageProps = {
+  searchParams?: {
+    week?: string;
+  };
+};
+
+export default async function TutorSchedulePage({ searchParams }: TutorSchedulePageProps) {
   const profile = await requireRole("tutor");
   const todayWeekday = getMadridWeekday();
+  const todayDate = getMadridDate();
+  const week = getMadridWeek(searchParams?.week);
   const { slots, errorMessage } = await getTeacherScheduleForWeek(profile.id);
-  const { registeredScheduleIds, errorMessage: registrationError } = await getRegisteredScheduleIdsForDate({
-    teacherId: profile.id,
-    scheduleIds: slots.filter((slot) => !slot.is_break).map((slot) => slot.id)
-  });
+  const scheduleIds = slots.filter((slot) => !slot.is_break).map((slot) => slot.id);
+  const [todayRegistration, weekRegistration] = await Promise.all([
+    getRegisteredScheduleIdsForDate({
+      teacherId: profile.id,
+      scheduleIds,
+      date: todayDate
+    }),
+    getRegisteredScheduleKeysForRange({
+      teacherId: profile.id,
+      scheduleIds,
+      startDate: week.startDate,
+      endDate: week.endDate
+    })
+  ]);
   const slotsByWeekday = new Map<number, TeacherScheduleSlot[]>();
 
   slots.forEach((slot) => {
@@ -31,8 +52,9 @@ export default async function TutorSchedulePage() {
   const teachingSlots = slots.filter((slot) => !slot.is_break);
   const todaySlots = todayWeekday ? slotsByWeekday.get(todayWeekday) ?? [] : [];
   const todayTeachingSlots = todaySlots.filter((slot) => !slot.is_break);
-  const pendingToday = todayTeachingSlots.filter((slot) => !registeredScheduleIds.has(slot.id)).length;
+  const pendingToday = todayTeachingSlots.filter((slot) => !todayRegistration.registeredScheduleIds.has(slot.id)).length;
   const nextSlot = getNextScheduleSlot(todaySlots);
+  const registrationError = todayRegistration.errorMessage ?? weekRegistration.errorMessage;
 
   return (
     <section className="space-y-5">
@@ -58,7 +80,7 @@ export default async function TutorSchedulePage() {
         </div>
       ) : slots.length === 0 ? (
         <GradebookCard className="p-5">
-          <EmptyState message="No hay horario asociado a este docente. Ejecuta la migracion 031_teacher_schedule.sql." />
+          <EmptyState message="No hay horario asociado a este docente." />
         </GradebookCard>
       ) : (
         <>
@@ -70,19 +92,38 @@ export default async function TutorSchedulePage() {
           />
 
           <GradebookCard>
-            <GradebookCardHeader title="Semana lectiva">
-              <GradebookBadge tone={todayWeekday ? "blue" : "gray"}>
-                {todayWeekday ? `${getWeekdayLabel(todayWeekday)} es hoy` : "Sin clases hoy"}
-              </GradebookBadge>
+            <GradebookCardHeader title={week.label}>
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <Link
+                  href={`/dashboard/tutor/schedule?week=${week.previousStartDate}`}
+                  className="inline-flex h-8 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+                  Semana anterior
+                </Link>
+                <Link
+                  href="/dashboard/tutor/schedule"
+                  className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-sky-700 transition hover:bg-slate-50"
+                >
+                  Esta semana
+                </Link>
+                <Link
+                  href={`/dashboard/tutor/schedule?week=${week.nextStartDate}`}
+                  className="inline-flex h-8 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+                >
+                  Semana siguiente
+                  <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                </Link>
+              </div>
             </GradebookCardHeader>
             <div className="grid gap-3 p-3 md:grid-cols-2 xl:grid-cols-5">
-              {teacherScheduleWeekdays.map((weekday) => (
+              {week.days.map((day) => (
                 <DayColumn
-                  key={weekday}
-                  weekday={weekday}
-                  slots={slotsByWeekday.get(weekday) ?? []}
-                  isToday={weekday === todayWeekday}
-                  registeredScheduleIds={registeredScheduleIds}
+                  key={day.date}
+                  day={day}
+                  slots={slotsByWeekday.get(day.weekday) ?? []}
+                  registeredScheduleKeys={weekRegistration.registeredScheduleKeys}
+                  todayDate={todayDate}
                 />
               ))}
             </div>
@@ -111,7 +152,7 @@ function ScheduleSummary({
       <SummaryItem icon={ListChecks} label="Asistencias pendientes" value={pendingToday} tone={pendingToday > 0 ? "amber" : "green"} />
       <SummaryItem
         icon={Clock3}
-        label="Proximo tramo"
+        label="Próximo tramo"
         value={nextSlot ? `${formatScheduleTime(nextSlot.start_time)} · ${nextSlot.is_break ? "Descanso" : nextSlot.course_name}` : "Sin tramos pendientes"}
         tone="slate"
       />
@@ -153,30 +194,30 @@ function SummaryItem({
 }
 
 function DayColumn({
-  weekday,
+  day,
   slots,
-  isToday,
-  registeredScheduleIds
+  registeredScheduleKeys,
+  todayDate
 }: {
-  weekday: number;
+  day: MadridWeekDay;
   slots: TeacherScheduleSlot[];
-  isToday: boolean;
-  registeredScheduleIds: Set<string>;
+  registeredScheduleKeys: Set<string>;
+  todayDate: string;
 }) {
   return (
     <section
       className={`rounded-xl border p-3 ${
-        isToday ? "border-sky-200 bg-sky-50/60 shadow-sm" : "border-slate-200 bg-slate-50/70"
+        day.isToday ? "border-sky-200 bg-sky-50/60 shadow-sm" : "border-slate-200 bg-slate-50/70"
       }`}
     >
       <div className="mb-3 flex items-center justify-between gap-2">
         <div>
-          <h2 className="text-sm font-bold text-slate-950">{getWeekdayLabel(weekday)}</h2>
+          <h2 className="text-sm font-bold text-slate-950">{day.label}</h2>
           <p className="text-xs text-slate-500">
             {slots.filter((slot) => !slot.is_break).length} clase{slots.filter((slot) => !slot.is_break).length === 1 ? "" : "s"}
           </p>
         </div>
-        {isToday ? <GradebookBadge tone="blue">Hoy</GradebookBadge> : null}
+        {day.isToday ? <GradebookBadge tone="blue">Hoy</GradebookBadge> : null}
       </div>
 
       <div className="space-y-2">
@@ -187,8 +228,9 @@ function DayColumn({
             <ScheduleSlot
               key={slot.id}
               slot={slot}
-              registered={registeredScheduleIds.has(slot.id)}
-              isToday={isToday}
+              date={day.date}
+              registered={registeredScheduleKeys.has(`${slot.id}:${day.date}`)}
+              todayDate={todayDate}
             />
           ))
         )}
@@ -197,7 +239,17 @@ function DayColumn({
   );
 }
 
-function ScheduleSlot({ slot, registered, isToday }: { slot: TeacherScheduleSlot; registered: boolean; isToday: boolean }) {
+function ScheduleSlot({
+  slot,
+  date,
+  registered,
+  todayDate
+}: {
+  slot: TeacherScheduleSlot;
+  date: string;
+  registered: boolean;
+  todayDate: string;
+}) {
   if (slot.is_break) {
     return (
       <article className="rounded-lg border border-dashed border-slate-200 bg-white/70 px-3 py-2 text-slate-500">
@@ -222,13 +274,13 @@ function ScheduleSlot({ slot, registered, isToday }: { slot: TeacherScheduleSlot
           <h3 className="mt-0.5 truncate text-sm font-bold text-slate-950">{slot.course_name}</h3>
           <p className="truncate text-xs text-slate-500">{slot.subject_name ?? "Sin materia"}</p>
         </div>
-        <GradebookBadge tone={registered ? "green" : isToday ? "amber" : "gray"}>
-          {registered ? "Registrada" : isToday ? "Pendiente" : "Programada"}
+        <GradebookBadge tone={registered ? "green" : date <= todayDate ? "amber" : "gray"}>
+          {registered ? "Registrada" : date <= todayDate ? "Pendiente" : "Programada"}
         </GradebookBadge>
       </div>
 
       <Link
-        href={`/dashboard/tutor/attendance/${slot.id}`}
+        href={`/dashboard/tutor/attendance/${slot.id}?date=${date}`}
         className="mt-2 inline-flex h-7 w-full items-center justify-center gap-1.5 rounded-lg bg-sky-700 px-2 text-xs font-semibold text-white transition hover:bg-sky-800"
       >
         <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />

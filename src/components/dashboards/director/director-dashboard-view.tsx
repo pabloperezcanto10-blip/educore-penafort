@@ -6,12 +6,12 @@ import {
   CheckCircle2,
   ClipboardList,
   FileCheck2,
-  Inbox,
   MessageSquareText,
   Users
 } from "lucide-react";
 
 import { CenterActivityTimeline, type CenterActivityItem } from "@/components/dashboard/center-activity-timeline";
+import { CompactDashboardNotifications } from "@/components/dashboard/compact-dashboard-notifications";
 import { WorkCenterTabs } from "@/components/dashboard/work-center-tabs";
 import { GradebookBadge, GradebookCard, GradebookCardHeader } from "@/components/grades/gradebook-design";
 import type { CalendarEventSummary } from "@/lib/calendar/ical";
@@ -119,7 +119,7 @@ export function DirectorDashboardView({
       ) : null}
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <CompactNotifications notifications={notifications} unreadCount={unreadCount} />
+        <CompactDashboardNotifications notifications={notifications} unreadCount={unreadCount} />
         <CompactCalendar routes={routes} todayEvents={todayEvents} upcomingEvents={upcomingEvents} errorMessage={calendarError} />
       </div>
 
@@ -169,37 +169,6 @@ export function DirectorDashboardView({
         }}
       />
     </section>
-  );
-}
-
-function CompactNotifications({ notifications, unreadCount }: { notifications: DashboardNotification[]; unreadCount: number }) {
-  return (
-    <GradebookCard className="p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-700">
-            <Inbox className="h-5 w-5" aria-hidden="true" />
-          </span>
-          <div>
-            <h2 className="text-sm font-semibold text-slate-950">Novedades</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              {unreadCount > 0 ? `${unreadCount} aviso${unreadCount === 1 ? "" : "s"} pendiente${unreadCount === 1 ? "" : "s"}.` : "Todo al día. No hay avisos pendientes."}
-            </p>
-          </div>
-        </div>
-        <GradebookBadge tone={unreadCount > 0 ? "amber" : "green"}>{unreadCount > 0 ? "Pendiente" : "Todo al día"}</GradebookBadge>
-      </div>
-      {notifications.length > 0 ? (
-        <div className="mt-3 space-y-2">
-          {notifications.slice(0, 2).map((notification) => (
-            <Link key={`${notification.source}-${notification.id}`} href={notification.href} className="block rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 transition hover:bg-white">
-              <p className="text-sm font-semibold text-slate-950">{notification.title}</p>
-              <p className="mt-1 line-clamp-1 text-xs text-slate-500">{notification.body}</p>
-            </Link>
-          ))}
-        </div>
-      ) : null}
-    </GradebookCard>
   );
 }
 

@@ -3,6 +3,7 @@ import { getActiveAcademicYear } from "@/lib/academic-years";
 import { getTodayDate } from "@/lib/attendance/attendance";
 import type { TeacherScheduleSlot } from "@/lib/tutors/schedule";
 import { requireOperationalSchoolContext } from "@/lib/schools/context";
+import { getIsoWeekday, isIsoDate } from "@/lib/date-time/madrid";
 
 export type SessionAttendanceStatus = "present" | "absent" | "late" | "justified";
 
@@ -95,7 +96,11 @@ export async function getSessionAttendanceContext({
   }
 
   if (!schedule || schedule.is_break) {
-    return { context: null, errorMessage: "No se encontro una sesion lectiva para este docente." };
+    return { context: null, errorMessage: "No se encontró una sesión lectiva para este docente." };
+  }
+
+  if (!isIsoDate(date) || getIsoWeekday(date) !== schedule.weekday) {
+    return { context: null, errorMessage: "La fecha seleccionada no corresponde a esta sesión." };
   }
 
   const { data: course, error: courseError } = await supabase
@@ -111,7 +116,7 @@ export async function getSessionAttendanceContext({
   }
 
   if (!course) {
-    return { context: null, errorMessage: "No se encontro el curso asociado a la sesion." };
+    return { context: null, errorMessage: "No se encontró el curso asociado a la sesión." };
   }
 
   const subjectName = schedule.subject_name ? (subjectAliases[schedule.subject_name] ?? schedule.subject_name) : null;
@@ -199,6 +204,49 @@ export async function getRegisteredScheduleIdsForDate({
 
   return {
     registeredScheduleIds: new Set((data ?? []).map((record) => record.schedule_id).filter((id): id is string => Boolean(id))),
+    errorMessage: null
+  };
+}
+
+export async function getRegisteredScheduleKeysForRange({
+  teacherId,
+  scheduleIds,
+  startDate,
+  endDate
+}: {
+  teacherId: string;
+  scheduleIds: string[];
+  startDate: string;
+  endDate: string;
+}) {
+  if (scheduleIds.length === 0) {
+    return { registeredScheduleKeys: new Set<string>(), errorMessage: null };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("attendance_records")
+    .select("schedule_id,attendance_date")
+    .eq("teacher_id", teacherId)
+    .gte("attendance_date", startDate)
+    .lte("attendance_date", endDate)
+    .in("schedule_id", scheduleIds)
+    .returns<{ schedule_id: string | null; attendance_date: string }[]>();
+
+  if (error) {
+    if (error.message.includes("attendance_records")) {
+      return { registeredScheduleKeys: new Set<string>(), errorMessage: null };
+    }
+
+    return { registeredScheduleKeys: new Set<string>(), errorMessage: error.message };
+  }
+
+  return {
+    registeredScheduleKeys: new Set(
+      (data ?? []).flatMap((record) =>
+        record.schedule_id ? [`${record.schedule_id}:${record.attendance_date}`] : []
+      )
+    ),
     errorMessage: null
   };
 }

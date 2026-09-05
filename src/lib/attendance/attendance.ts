@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getStudentsForTutor, type TutorStudent } from "@/lib/tutors/students";
 import { requireSchoolRole } from "@/lib/schools/context";
+import { getMadridDate } from "@/lib/date-time/madrid";
 
 export type AttendanceStatus = "present" | "absent" | "late";
 
@@ -48,12 +49,7 @@ type AttendanceStudent = {
 };
 
 export function getTodayDate() {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Madrid",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit"
-  }).format(new Date());
+  return getMadridDate();
 }
 
 export function getAttendanceLabel(status: AttendanceStatus) {

@@ -14,6 +14,7 @@ import { getSubjectCoursesForTeacher } from "@/lib/grades/grades";
 import { getDashboardNotifications } from "@/lib/internal-notifications";
 import { toBrandConfig } from "@/lib/schools/branding";
 import { getTeacherScheduleForToday } from "@/lib/tutors/schedule";
+import { getMadridDate } from "@/lib/date-time/madrid";
 
 type TutorDashboardPageProps = {
   searchParams?: {
@@ -70,6 +71,7 @@ export default async function TutorDashboardPage({ searchParams }: TutorDashboar
         subjectCourses,
         teachingSlotsCount: teachingSlots.length,
         todayEvents,
+        todayDate: getMadridDate(),
         todaySchedule,
         tutorName,
         unreadCommunications,

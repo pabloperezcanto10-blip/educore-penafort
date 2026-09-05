@@ -60,7 +60,10 @@ function createDemoNotifications(): DashboardNotification[] {
       body: "Familia Vega · Solicitud de reunión de seguimiento.",
       href: directorDashboardExperienceRoutes.communications,
       read: false,
-      created_at: isoMinutesAgo(18)
+      created_at: isoMinutesAgo(18),
+      reviewKey: "demo-notification-1",
+      reviewVersion: isoMinutesAgo(18),
+      reviewable: false
     },
     {
       id: "demo-notification-2",
@@ -69,7 +72,10 @@ function createDemoNotifications(): DashboardNotification[] {
       body: "2º ESO · Evaluación ordinaria lista para revisión.",
       href: directorDashboardExperienceRoutes.gradebook,
       read: false,
-      created_at: isoMinutesAgo(42)
+      created_at: isoMinutesAgo(42),
+      reviewKey: "demo-notification-2",
+      reviewVersion: isoMinutesAgo(42),
+      reviewable: false
     },
     {
       id: "demo-notification-3",
@@ -78,7 +84,10 @@ function createDemoNotifications(): DashboardNotification[] {
       body: "5º Primaria · Seguimiento recomendado por tutoría.",
       href: directorDashboardExperienceRoutes.students,
       read: true,
-      created_at: isoMinutesAgo(95)
+      created_at: isoMinutesAgo(95),
+      reviewKey: "demo-notification-3",
+      reviewVersion: isoMinutesAgo(95),
+      reviewable: false
     }
   ];
 }

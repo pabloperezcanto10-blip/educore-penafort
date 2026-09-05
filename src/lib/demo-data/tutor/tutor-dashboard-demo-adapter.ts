@@ -29,6 +29,7 @@ export function createTutorDashboardDemoData(_activeTab: TutorDashboardTab = "pe
     subjectCourses,
     teachingSlotsCount: teachingSlots.length,
     todayEvents,
+    todayDate: "2026-07-13",
     todaySchedule,
     tutorName: "Irene Soler",
     unreadCommunications: dashboardNotifications.filter((notification) => notification.source === "communication" && !notification.read).length,
@@ -97,7 +98,10 @@ function createNotifications(): DashboardNotification[] {
       body: "Familia Vidal · consulta sobre hábitos de estudio.",
       href: "/experience/docente?work_tab=comunicaciones&demo=communications",
       read: false,
-      created_at: isoMinutesAgo(16)
+      created_at: isoMinutesAgo(16),
+      reviewKey: "demo-teacher-notification-1",
+      reviewVersion: isoMinutesAgo(16),
+      reviewable: false
     },
     {
       id: "demo-teacher-notification-2",
@@ -106,7 +110,10 @@ function createNotifications(): DashboardNotification[] {
       body: "Matemáticas · 6º Primaria B · 4 alumnos pendientes.",
       href: "/experience/docente?work_tab=cuaderno&demo=gradebook",
       read: false,
-      created_at: isoMinutesAgo(44)
+      created_at: isoMinutesAgo(44),
+      reviewKey: "demo-teacher-notification-2",
+      reviewVersion: isoMinutesAgo(44),
+      reviewable: false
     },
     {
       id: "demo-teacher-notification-3",
@@ -115,7 +122,10 @@ function createNotifications(): DashboardNotification[] {
       body: "Familia Robles · justificante recibido.",
       href: "/experience/docente?work_tab=comunicaciones&demo=communications",
       read: true,
-      created_at: isoMinutesAgo(90)
+      created_at: isoMinutesAgo(90),
+      reviewKey: "demo-teacher-notification-3",
+      reviewVersion: isoMinutesAgo(90),
+      reviewable: false
     }
   ];
 }

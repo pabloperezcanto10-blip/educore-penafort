@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   FileCheck2,
   FilePlus2,
-  Inbox,
   ShieldCheck,
   Upload,
   Users,
@@ -14,6 +13,7 @@ import {
   type LucideIcon
 } from "lucide-react";
 import { CenterActivityTimeline, type CenterActivityItem } from "@/components/dashboard/center-activity-timeline";
+import { CompactDashboardNotifications } from "@/components/dashboard/compact-dashboard-notifications";
 import { WorkCenterTabs } from "@/components/dashboard/work-center-tabs";
 import { GradebookBadge, GradebookCard, GradebookCardHeader } from "@/components/grades/gradebook-design";
 import { requireRole } from "@/lib/auth/session";
@@ -120,7 +120,12 @@ export default async function AdminDashboardPage({ searchParams }: AdminDashboar
         </div>
       ) : null}
 
-      <CompactNotifications notifications={notifications} unreadCount={unreadCount} />
+      <CompactDashboardNotifications
+        notifications={notifications}
+        unreadCount={unreadCount}
+        title="Novedades técnicas"
+        emptyMessage="Sistema funcionando con normalidad."
+      />
 
       <GradebookCard>
         <GradebookCardHeader title="Centro de gestión">
@@ -146,38 +151,6 @@ export default async function AdminDashboardPage({ searchParams }: AdminDashboar
 
       <CenterActivityTimeline items={activityItems} />
     </section>
-  );
-}
-
-function CompactNotifications({ notifications, unreadCount }: { notifications: DashboardNotification[]; unreadCount: number }) {
-  return (
-    <GradebookCard className="p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-700">
-            <Inbox className="h-5 w-5" aria-hidden="true" />
-          </span>
-          <div>
-            <h2 className="text-sm font-semibold text-slate-950">Novedades técnicas</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              {unreadCount > 0 ? `${unreadCount} aviso${unreadCount === 1 ? "" : "s"} pendiente${unreadCount === 1 ? "" : "s"}.` : "Sistema funcionando con normalidad."}
-            </p>
-          </div>
-        </div>
-        <GradebookBadge tone={unreadCount > 0 ? "amber" : "green"}>{unreadCount > 0 ? "Revisar" : "Sin avisos"}</GradebookBadge>
-      </div>
-
-      {notifications.length > 0 ? (
-        <div className="mt-3 grid gap-2 md:grid-cols-2">
-          {notifications.slice(0, 2).map((notification) => (
-            <Link key={`${notification.source}-${notification.id}`} href={notification.href} className="block rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 transition hover:bg-white">
-              <p className="text-sm font-semibold text-slate-950">{notification.title}</p>
-              <p className="mt-1 line-clamp-1 text-xs text-slate-500">{notification.body}</p>
-            </Link>
-          ))}
-        </div>
-      ) : null}
-    </GradebookCard>
   );
 }
 

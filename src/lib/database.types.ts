@@ -881,6 +881,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      dashboard_pending_reviews: {
+        Row: {
+          id: string;
+          user_id: string;
+          school_id: string;
+          pending_key: string;
+          source_version: string;
+          reviewed_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          school_id: string;
+          pending_key: string;
+          source_version: string;
+          reviewed_at?: string;
+        };
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "dashboard_pending_reviews_school_id_fkey";
+            columns: ["school_id"];
+            referencedRelation: "schools";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       student_incidents: {
         Row: {
           id: string;

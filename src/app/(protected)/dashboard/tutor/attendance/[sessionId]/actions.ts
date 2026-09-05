@@ -9,6 +9,7 @@ import type { SessionAttendanceStatus } from "@/lib/attendance/session-attendanc
 import { createClient } from "@/lib/supabase/server";
 import { withToast } from "@/lib/toast";
 import type { Database } from "@/lib/database.types";
+import { getIsoWeekday, isIsoDate } from "@/lib/date-time/madrid";
 
 const statuses = ["present", "absent", "late", "justified"] as const;
 
@@ -29,27 +30,29 @@ export async function saveSessionAttendance(formData: FormData) {
   const subjectIdValue = String(formData.get("subject_id") ?? "").trim();
   const subjectId = subjectIdValue || null;
   const date = String(formData.get("attendance_date") ?? getTodayDate()).trim();
+  const returnPath = attendancePath(sessionId, date);
   const studentIds = formData.getAll("student_id").map((value) => String(value));
 
-  if (!sessionId || !courseId || studentIds.length === 0) {
-    redirect(withToast(`/dashboard/tutor/attendance/${sessionId || ""}`, "error", "No se pudo guardar la asistencia."));
+  if (!sessionId || !courseId || !isIsoDate(date) || studentIds.length === 0) {
+    redirect(withToast(returnPath, "error", "No se pudo guardar la asistencia."));
   }
 
   const supabase = await createClient();
   const { data: schedule, error: scheduleError } = await supabase
     .from("teacher_schedule")
-    .select("id,teacher_id,course_name,is_break")
+    .select("id,teacher_id,weekday,course_name,is_break")
     .eq("id", sessionId)
     .eq("teacher_id", profile.id)
     .maybeSingle<{
       id: string;
       teacher_id: string;
+      weekday: number;
       course_name: string;
       is_break: boolean;
     }>();
 
-  if (scheduleError || !schedule || schedule.is_break) {
-    redirect(withToast(`/dashboard/tutor/attendance/${sessionId}`, "error", "No se pudo guardar la asistencia."));
+  if (scheduleError || !schedule || schedule.is_break || getIsoWeekday(date) !== schedule.weekday) {
+    redirect(withToast(returnPath, "error", "No se pudo guardar la asistencia."));
   }
 
   const { data: course, error: courseError } = await supabase
@@ -60,7 +63,7 @@ export async function saveSessionAttendance(formData: FormData) {
     .maybeSingle<{ id: string; name: string }>();
 
   if (courseError || !course || course.name !== schedule.course_name) {
-    redirect(withToast(`/dashboard/tutor/attendance/${sessionId}`, "error", "La sesion no pertenece al centro activo."));
+    redirect(withToast(returnPath, "error", "La sesión no pertenece al centro activo."));
   }
 
   if (subjectId) {
@@ -74,7 +77,7 @@ export async function saveSessionAttendance(formData: FormData) {
       .maybeSingle<{ id: string }>();
 
     if (assignmentError || !assignment) {
-      redirect(withToast(`/dashboard/tutor/attendance/${sessionId}`, "error", "La asignacion no pertenece al centro activo."));
+      redirect(withToast(returnPath, "error", "La asignación no pertenece al centro activo."));
     }
   }
 
@@ -88,7 +91,7 @@ export async function saveSessionAttendance(formData: FormData) {
     .returns<{ id: string }[]>();
 
   if (studentsError || !students || students.length === 0) {
-    redirect(withToast(`/dashboard/tutor/attendance/${sessionId}`, "error", "No se pudo guardar la asistencia."));
+    redirect(withToast(returnPath, "error", "No se pudo guardar la asistencia."));
   }
 
   const allowedStudentIds = new Set(students.map((student) => student.id));
@@ -122,7 +125,7 @@ export async function saveSessionAttendance(formData: FormData) {
     .returns<ExistingRecord[]>();
 
   if (existingError) {
-    redirect(withToast(`/dashboard/tutor/attendance/${sessionId}`, "error", "No se pudo guardar la asistencia."));
+    redirect(withToast(returnPath, "error", "No se pudo guardar la asistencia."));
   }
 
   const existingByStudent = new Map((existing ?? []).map((record) => [record.student_id, record]));
@@ -131,7 +134,7 @@ export async function saveSessionAttendance(formData: FormData) {
     .upsert(records as never, { onConflict: "student_id,schedule_id,attendance_date" });
 
   if (error) {
-    redirect(withToast(`/dashboard/tutor/attendance/${sessionId}`, "error", "No se pudo guardar la asistencia."));
+    redirect(withToast(returnPath, "error", "No se pudo guardar la asistencia."));
   }
 
   await Promise.all(
@@ -154,5 +157,10 @@ export async function saveSessionAttendance(formData: FormData) {
   revalidatePath(`/dashboard/tutor/attendance/${sessionId}`);
   revalidatePath("/dashboard/tutor");
   revalidatePath("/dashboard/tutor/schedule");
-  redirect(withToast(`/dashboard/tutor/attendance/${sessionId}`, "success", "Asistencia guardada correctamente."));
+  redirect(withToast(returnPath, "success", "Asistencia guardada correctamente."));
+}
+
+function attendancePath(sessionId: string, date: string) {
+  const safeSessionId = encodeURIComponent(sessionId);
+  return `/dashboard/tutor/attendance/${safeSessionId}${isIsoDate(date) ? `?date=${encodeURIComponent(date)}` : ""}`;
 }

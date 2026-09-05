@@ -26,6 +26,9 @@ type SessionAttendancePageProps = {
   params: {
     sessionId: string;
   };
+  searchParams?: {
+    date?: string;
+  };
 };
 
 const statusOptions: SessionAttendanceStatus[] = ["present", "absent", "late", "justified"];
@@ -36,12 +39,16 @@ const statusLabels: Record<AttendanceStatusKey, string> = {
   justified: "Justificado"
 };
 
-export default async function SessionAttendancePage({ params }: SessionAttendancePageProps) {
+export default async function SessionAttendancePage({ params, searchParams }: SessionAttendancePageProps) {
   const profile = await requireRole("tutor");
   const { context, errorMessage } = await getSessionAttendanceContext({
     teacherId: profile.id,
-    sessionId: params.sessionId
+    sessionId: params.sessionId,
+    date: searchParams?.date
   });
+  const scheduleHref = searchParams?.date
+    ? `/dashboard/tutor/schedule?week=${encodeURIComponent(searchParams.date)}`
+    : "/dashboard/tutor/schedule";
 
   return (
     <section className="space-y-6">
@@ -49,7 +56,7 @@ export default async function SessionAttendancePage({ params }: SessionAttendanc
         description="Registra la asistencia real de la sesión seleccionada."
         actions={
           <>
-            <AttendanceLinkButton href="/dashboard/tutor/schedule">Ver horario completo</AttendanceLinkButton>
+            <AttendanceLinkButton href={scheduleHref}>Ver horario completo</AttendanceLinkButton>
             <AttendanceLinkButton href="/dashboard/tutor">Volver al dashboard</AttendanceLinkButton>
           </>
         }

@@ -21,17 +21,17 @@ const credentialsPath = resolve(
 const userDefinitions = {
   director: {
     email: "director@educacora.example.test",
-    fullName: "Dirección Demo 20_2N1",
+    fullName: "Dirección EducaCora",
     role: "director"
   },
   tutor: {
     email: "tutor@educacora.example.test",
-    fullName: "Tutor Demo 20_2N1",
+    fullName: "Tutor EducaCora",
     role: "tutor"
   },
   family: {
     email: "familia@educacora.example.test",
-    fullName: "Familia Demo 20_2N1",
+    fullName: "Familia EducaCora",
     role: "family"
   }
 };
@@ -269,7 +269,7 @@ async function ensureAcademicStructure(supabase, schoolId) {
     throw new Error("EducaCora has more than one active academic year.");
   }
 
-  const yearName = `2026-2027 · ${DATASET_TAG}`;
+  const yearName = "2026-2027";
   let academicYear = activeYears[0];
   if (academicYear && academicYear.name !== yearName) {
     throw new Error("EducaCora already has a contradictory active academic year.");
@@ -290,16 +290,16 @@ async function ensureAcademicStructure(supabase, schoolId) {
   const course = await ensureNamedRow(
     supabase,
     "courses",
-    { school_id: schoolId, academic_year_id: academicYear.id, name: `6º Primaria · ${DATASET_TAG}` },
+    { school_id: schoolId, academic_year_id: academicYear.id, name: "6º Primaria" },
     {
       school_id: schoolId,
       academic_year_id: academicYear.id,
-      name: `6º Primaria · ${DATASET_TAG}`
+      name: "6º Primaria"
     }
   );
 
   const subjects = [];
-  for (const name of [`Lengua Castellana · ${DATASET_TAG}`, `Matemáticas · ${DATASET_TAG}`]) {
+  for (const name of ["Lengua Castellana", "Matemáticas"]) {
     const subject = await ensureNamedRow(
       supabase,
       "subjects",
@@ -388,12 +388,12 @@ async function ensureFunctionalDataset(supabase, schoolId, users, structure) {
   const student = await ensureNamedRow(
     supabase,
     "students",
-    { school_id: schoolId, name: "Alumna", last_name: `Demo ${DATASET_TAG}` },
+    { school_id: schoolId, name: "Alumna", last_name: "EducaCora" },
     {
       school_id: schoolId,
       academic_year_id: structure.academicYear.id,
       name: "Alumna",
-      last_name: `Demo ${DATASET_TAG}`,
+      last_name: "EducaCora",
       birth_date: "2014-04-15",
       course_id: structure.course.id,
       tutor_teacher_id: users.tutor.id,
@@ -410,8 +410,8 @@ async function ensureFunctionalDataset(supabase, schoolId, users, structure) {
 
   for (const [subjectIndex, subject] of structure.subjects.entries()) {
     for (const [name, weight, criterionType] of [
-      [`Trabajo de aula ${DATASET_TAG}`, 50, "proyecto"],
-      [`Prueba escrita ${DATASET_TAG}`, 50, "parcial"]
+      ["Trabajo de aula", 50, "proyecto"],
+      ["Prueba escrita", 50, "parcial"]
     ]) {
       await ensureNamedRow(
         supabase,
@@ -451,7 +451,7 @@ async function ensureFunctionalDataset(supabase, schoolId, users, structure) {
         subject_id: subject.id,
         term: "1",
         assessment_type: "parcial",
-        assessment_name: `Prueba inicial ${DATASET_TAG}`
+        assessment_name: "Prueba inicial"
       },
       {
         school_id: schoolId,
@@ -462,11 +462,11 @@ async function ensureFunctionalDataset(supabase, schoolId, users, structure) {
         course_id: structure.course.id,
         term: "1",
         assessment_type: "parcial",
-        assessment_name: `Prueba inicial ${DATASET_TAG}`,
+        assessment_name: "Prueba inicial",
         grade: subjectIndex === 0 ? 8 : 7,
         assessment_date: "2026-10-15",
-        comment: `Dato sintético ${DATASET_TAG}`,
-        recommendation: `Seguimiento sintético ${DATASET_TAG}`,
+        comment: "Dato académico",
+        recommendation: "Seguimiento académico",
         visible_to_family: true
       }
     );
@@ -491,7 +491,7 @@ async function ensureFunctionalDataset(supabase, schoolId, users, structure) {
         term: "1",
         calculated_grade: subjectIndex === 0 ? 8 : 7,
         final_grade: subjectIndex === 0 ? 8 : 7,
-        final_observation: `Observación final sintética ${DATASET_TAG}`,
+        final_observation: "Observación final",
         status: "closed",
         closed_at: "2026-12-18T12:00:00.000Z"
       }

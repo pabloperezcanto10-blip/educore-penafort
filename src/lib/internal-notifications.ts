@@ -13,6 +13,9 @@ export type DashboardNotification = {
   href: string;
   read: boolean;
   created_at: string;
+  reviewKey: string;
+  reviewVersion: string;
+  reviewable: boolean;
 };
 
 export type InternalNotificationInsert = Database["public"]["Tables"]["internal_notifications"]["Insert"];
@@ -86,7 +89,7 @@ export async function getDashboardNotifications({
   const communicationRows = rawCommunicationRows.filter(({ id }) =>
     authorizedCommunicationIds.has(id)
   );
-  const errorMessage = communicationResult.error?.message ?? null;
+  const canReview = Boolean(schoolContext.schoolId);
   const internalNotifications = internalRows.map((notification) => ({
     id: notification.id,
     source: "internal" as const,
@@ -94,7 +97,10 @@ export async function getDashboardNotifications({
     body: notification.body ?? notificationLabel(notification.type, role),
     href: notification.related_href ?? dashboardHrefForRole(role),
     read: notification.read,
-    created_at: notification.created_at
+    created_at: notification.created_at,
+    reviewKey: getDashboardNotificationReviewKey("internal", notification.id),
+    reviewVersion: notification.created_at,
+    reviewable: canReview && isReviewableInternalNotificationType(notification.type)
   }));
   const communicationNotifications = communicationRows.map((notification) => ({
     id: notification.id,
@@ -103,17 +109,60 @@ export async function getDashboardNotifications({
     body: notification.message,
     href: communicationHref,
     read: notification.read,
-    created_at: notification.created_at
+    created_at: notification.created_at,
+    reviewKey: getDashboardNotificationReviewKey("communication", notification.id),
+    reviewVersion: notification.created_at,
+    reviewable: canReview
   }));
-  const notifications = [...internalNotifications, ...communicationNotifications]
+  const allNotifications = [...internalNotifications, ...communicationNotifications]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 8);
+  const reviewableNotifications = allNotifications.filter(
+    (notification) => notification.reviewable
+  );
+  const reviewsResult =
+    schoolContext.schoolId && reviewableNotifications.length > 0
+      ? await supabase
+          .from("dashboard_pending_reviews")
+          .select("pending_key,source_version")
+          .eq("user_id", userId)
+          .eq("school_id", schoolContext.schoolId)
+          .in(
+            "pending_key",
+            reviewableNotifications.map((notification) => notification.reviewKey)
+          )
+          .returns<{ pending_key: string; source_version: string }[]>()
+      : { data: [], error: null };
+  const reviewed = new Set(
+    (reviewsResult.data ?? []).map(
+      (review) => `${review.pending_key}:${review.source_version}`
+    )
+  );
+  const notifications = allNotifications.filter(
+    (notification) =>
+      !reviewed.has(`${notification.reviewKey}:${notification.reviewVersion}`)
+  );
+  const errorMessage =
+    communicationResult.error?.message ?? reviewsResult.error?.message ?? null;
 
   return {
     notifications,
     unreadCount: notifications.filter((notification) => !notification.read).length,
     errorMessage
   };
+}
+
+export function getDashboardNotificationReviewKey(
+  source: DashboardNotification["source"],
+  id: string
+) {
+  return `dashboard-notification:${source}:${id}`;
+}
+
+export function isReviewableInternalNotificationType(
+  type: InternalNotificationRow["type"]
+) {
+  return type !== "administrative_incident";
 }
 
 export async function getAuthorizedInternalNotificationIds({

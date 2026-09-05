@@ -16,6 +16,7 @@ import type { ActiveSchoolContext } from "@/lib/schools/types";
 import { SchoolLogo } from "@/components/branding/school-logo";
 import { EduCoreAssistantButton } from "@/components/ai/educore-assistant-button";
 import { SchoolSwitcher } from "@/components/layout/school-switcher";
+import { MadridDateTime } from "@/components/layout/madrid-date-time";
 
 type AppShellProps = {
   profile: Profile;
@@ -37,7 +38,7 @@ export function AppShell({
   return (
     <div className="min-h-screen bg-[#f8fafc]">
       <header className="border-b border-primary/25 bg-white shadow-sm">
-        <div className="mx-auto flex min-h-[76px] max-w-6xl items-center justify-between gap-4 px-6 py-3">
+        <div className="mx-auto flex min-h-[76px] max-w-6xl flex-col items-stretch justify-between gap-3 px-4 py-3 sm:flex-row sm:items-center sm:gap-4 sm:px-6">
           <Link href={getDashboardPathForRole(profile.role)} className="flex min-w-0 items-center gap-3">
             <SchoolLogo
               size="md"
@@ -55,22 +56,25 @@ export function AppShell({
             </span>
           </Link>
 
-          <div className="flex shrink-0 items-center gap-3">
-            <SchoolSwitcher context={schoolContext} />
-            {academicYearName ? (
-              <span className="hidden h-9 items-center rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-600 sm:inline-flex">
-                Curso {academicYearName}
-              </span>
-            ) : null}
-            <form action="/logout" method="post">
-              <button
-                type="submit"
-                className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-primary transition hover:bg-slate-50"
-              >
-                <LogOut className="h-4 w-4" aria-hidden="true" />
-                Salir
-              </button>
-            </form>
+          <div className="flex min-w-0 flex-col items-stretch gap-1.5 sm:shrink-0 sm:items-end">
+            <MadridDateTime initialIso={new Date().toISOString()} />
+            <div className="flex flex-wrap items-center gap-2 sm:justify-end sm:gap-3">
+              <SchoolSwitcher context={schoolContext} />
+              {academicYearName ? (
+                <span className="hidden h-9 items-center rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-600 sm:inline-flex">
+                  Curso {academicYearName}
+                </span>
+              ) : null}
+              <form action="/logout" method="post">
+                <button
+                  type="submit"
+                  className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-primary transition hover:bg-slate-50"
+                >
+                  <LogOut className="h-4 w-4" aria-hidden="true" />
+                  Salir
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       </header>
