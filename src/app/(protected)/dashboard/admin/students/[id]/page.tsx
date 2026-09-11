@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, ClipboardList, GraduationCap, Settings } from "lucide-react";
 
-import { getAttendanceLabel, type AttendanceRecord } from "@/lib/attendance/attendance";
+import { getAttendanceLabel, summarizeStudentAttendance, type StudentProfileAttendanceRecord } from "@/lib/attendance/attendance";
 import { requireRole } from "@/lib/auth/session";
 import type { DirectorCommunication } from "@/lib/communications/notifications";
 import { getDirectorStudentDetail } from "@/lib/director/students";
@@ -131,15 +131,16 @@ function SummaryTab({
   grades,
   termGrades
 }: {
-  attendance: AttendanceRecord[];
+  attendance: StudentProfileAttendanceRecord[];
   incidents: StudentIncident[];
   observations: StudentObservation[];
   communications: DirectorCommunication[];
   grades: GradeWithLabels[];
   termGrades: TermSubjectGradeWithLabels[];
 }) {
-  const absences = attendance.filter((record) => record.status === "absent").length;
-  const lates = attendance.filter((record) => record.status === "late").length;
+  const attendanceSummary = summarizeStudentAttendance(attendance);
+  const absences = attendanceSummary.absences;
+  const lates = attendanceSummary.lates;
   const recentAttendance = attendance.filter((record) => record.status === "absent" || record.status === "late").slice(0, 5);
   const latestItems = buildAdminLatestActivity({ incidents, observations, communications, grades, recentAttendance });
   const averageGrade = calculateAverageGrade(grades);
@@ -156,7 +157,7 @@ function SummaryTab({
         progressTotal={progress.total}
         progressPercent={progress.percent}
         attendanceValue={absences + lates === 0 ? "OK" : absences + lates}
-        attendanceHint={`${absences} faltas · ${lates} retrasos`}
+        attendanceHint={`${absences} faltas · ${lates} retrasos · ${attendanceSummary.justified} justificadas`}
         attendanceTone={absences + lates > 0 ? "amber" : "green"}
         incidents={incidents.length}
         observations={observations.length}
@@ -220,7 +221,7 @@ function buildAdminLatestActivity({
   observations: StudentObservation[];
   communications: DirectorCommunication[];
   grades: GradeWithLabels[];
-  recentAttendance: AttendanceRecord[];
+  recentAttendance: StudentProfileAttendanceRecord[];
 }): StudentActivityItem[] {
   return [
     ...communications.slice(0, 2).map((communication) => ({
@@ -250,8 +251,8 @@ function buildAdminLatestActivity({
     ...recentAttendance.slice(0, 1).map((record) => ({
       id: `attendance-${record.id}`,
       title: getAttendanceLabel(record.status),
-      meta: record.justified ? "Asistencia justificada" : "Asistencia pendiente",
-      date: record.date,
+      meta: record.status === "justified" ? "Asistencia justificada" : "Asistencia registrada",
+      date: record.attendance_date,
       tone: "gray" as const,
       kind: "attendance" as const
     })),

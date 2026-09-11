@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient, hasSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getActiveAcademicYear } from "@/lib/academic-years";
 import { getStudentsForTutor, type TutorStudent } from "@/lib/tutors/students";
 import { requireSchoolRole } from "@/lib/schools/context";
 import { getMadridDate } from "@/lib/date-time/madrid";
@@ -18,6 +20,22 @@ export type AttendanceRecord = {
   created_at: string;
 };
 
+export type StudentProfileAttendanceStatus = AttendanceStatus | "justified";
+
+export type StudentProfileAttendanceRecord = {
+  id: string;
+  student_id: string;
+  teacher_id: string;
+  course_id: string;
+  subject_id: string | null;
+  schedule_id: string | null;
+  attendance_date: string;
+  status: StudentProfileAttendanceStatus;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type TutorAttendanceRow = {
   student: TutorStudent;
   attendance: AttendanceRecord | null;
@@ -26,9 +44,13 @@ export type TutorAttendanceRow = {
 };
 
 export type StudentAttendanceSummary = {
+  days: number;
+  records: number;
+  present: number;
   absences: number;
   lates: number;
-  history: AttendanceRecord[];
+  justified: number;
+  history: StudentProfileAttendanceRecord[];
 };
 
 export type FamilyAttendanceRow = AttendanceRecord & {
@@ -52,11 +74,12 @@ export function getTodayDate() {
   return getMadridDate();
 }
 
-export function getAttendanceLabel(status: AttendanceStatus) {
-  const labels: Record<AttendanceStatus, string> = {
+export function getAttendanceLabel(status: StudentProfileAttendanceStatus) {
+  const labels: Record<StudentProfileAttendanceStatus, string> = {
     present: "Presente",
     absent: "Falta",
-    late: "Retraso"
+    late: "Retraso",
+    justified: "Justificado"
   };
 
   return labels[status];
@@ -121,37 +144,65 @@ export async function getStudentAttendanceSummary(
   const schoolContext = await requireSchoolRole(["tutor"]);
   if (!schoolContext.schoolId) {
     return {
-      summary: { absences: 0, lates: 0, history: [] },
+      summary: emptyStudentAttendanceSummary(),
       errorMessage: "No hay un centro activo seleccionado."
     };
   }
 
   const supabase = await createClient();
+  const { academicYear, errorMessage: academicYearError } = await getActiveAcademicYear(
+    schoolContext.schoolId
+  );
+
+  if (academicYearError || !academicYear) {
+    return {
+      summary: emptyStudentAttendanceSummary(),
+      errorMessage: academicYearError ?? "No hay curso escolar activo."
+    };
+  }
+
   const { data: student, error: studentError } = await supabase
     .from("students")
-    .select("id")
+    .select("id,course_id")
     .eq("id", studentId)
     .eq("school_id", schoolContext.schoolId)
-    .maybeSingle<{ id: string }>();
+    .eq("academic_year_id", academicYear.id)
+    .eq("tutor_teacher_id", tutorId)
+    .maybeSingle<{ id: string; course_id: string }>();
 
   if (studentError || !student) {
     return {
-      summary: { absences: 0, lates: 0, history: [] },
+      summary: emptyStudentAttendanceSummary(),
       errorMessage: studentError?.message ?? "El alumno no pertenece al centro activo."
     };
   }
 
-  const { data, error } = await supabase
-    .from("student_attendance")
-    .select("id,student_id,tutor_id,status,date,notes,justified,justification_text,justification_file_url,created_at")
+  // The profile is server-rendered and has already verified tutor, tenant and year ownership.
+  // An admin client lets the tutor profile include sessions recorded by every assigned teacher.
+  const attendanceClient = hasSupabaseAdminClient()
+    ? createAdminClient()
+    : (supabase as unknown as ReturnType<typeof createAdminClient>);
+  let attendanceQuery = attendanceClient
+    .from("attendance_records")
+    .select("id,student_id,teacher_id,course_id,subject_id,schedule_id,attendance_date,status,notes,created_at,updated_at")
     .eq("student_id", studentId)
-    .eq("tutor_id", tutorId)
-    .order("date", { ascending: false })
-    .returns<AttendanceRecord[]>();
+    .eq("course_id", student.course_id)
+    .order("attendance_date", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (academicYear.start_date) {
+    attendanceQuery = attendanceQuery.gte("attendance_date", academicYear.start_date);
+  }
+
+  if (academicYear.end_date) {
+    attendanceQuery = attendanceQuery.lte("attendance_date", academicYear.end_date);
+  }
+
+  const { data, error } = await attendanceQuery.returns<StudentProfileAttendanceRecord[]>();
 
   if (error) {
     return {
-      summary: { absences: 0, lates: 0, history: [] },
+      summary: emptyStudentAttendanceSummary(),
       errorMessage: error.message
     };
   }
@@ -160,12 +211,26 @@ export async function getStudentAttendanceSummary(
 
   return {
     errorMessage: null,
-    summary: {
-      absences: history.filter((record) => record.status === "absent").length,
-      lates: history.filter((record) => record.status === "late").length,
-      history
-    }
+    summary: summarizeStudentAttendance(history)
   };
+}
+
+export function summarizeStudentAttendance(
+  history: StudentProfileAttendanceRecord[]
+): StudentAttendanceSummary {
+  return {
+    days: new Set(history.map((record) => record.attendance_date)).size,
+    records: history.length,
+    present: history.filter((record) => record.status === "present").length,
+    absences: history.filter((record) => record.status === "absent").length,
+    lates: history.filter((record) => record.status === "late").length,
+    justified: history.filter((record) => record.status === "justified").length,
+    history
+  };
+}
+
+function emptyStudentAttendanceSummary(): StudentAttendanceSummary {
+  return summarizeStudentAttendance([]);
 }
 
 export async function getFamilyAttendance(familyId: string): Promise<{

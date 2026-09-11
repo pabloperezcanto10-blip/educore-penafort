@@ -9,7 +9,7 @@ import {
   MessageSquarePlus
 } from "lucide-react";
 import { requireRole } from "@/lib/auth/session";
-import { getAttendanceLabel, type AttendanceRecord } from "@/lib/attendance/attendance";
+import { getAttendanceLabel, summarizeStudentAttendance, type StudentProfileAttendanceRecord } from "@/lib/attendance/attendance";
 import type { DirectorCommunication } from "@/lib/communications/notifications";
 import { getDirectorStudentDetail } from "@/lib/director/students";
 import {
@@ -22,6 +22,7 @@ import {
 import type { StudentIncident, StudentObservation } from "@/lib/tutors/students";
 import {
   StudentActivityTimeline,
+  StudentAttendanceHistory,
   StudentProfileHeader,
   StudentProfileTabs,
   StudentQuickActions,
@@ -158,15 +159,16 @@ function SummaryTab({
   grades,
   termGrades
 }: {
-  attendance: AttendanceRecord[];
+  attendance: StudentProfileAttendanceRecord[];
   incidents: StudentIncident[];
   observations: StudentObservation[];
   communications: DirectorCommunication[];
   grades: GradeWithLabels[];
   termGrades: TermSubjectGradeWithLabels[];
 }) {
-  const absences = attendance.filter((record) => record.status === "absent").length;
-  const lates = attendance.filter((record) => record.status === "late").length;
+  const attendanceSummary = summarizeStudentAttendance(attendance);
+  const absences = attendanceSummary.absences;
+  const lates = attendanceSummary.lates;
   const recentAttendance = attendance.filter((record) => record.status === "absent" || record.status === "late").slice(0, 5);
   const latestItems = buildDirectorLatestActivity({ incidents, observations, communications, grades, recentAttendance });
   const averageGrade = calculateAverageGrade(grades);
@@ -183,7 +185,7 @@ function SummaryTab({
         progressTotal={progress.total}
         progressPercent={progress.percent}
         attendanceValue={absences + lates === 0 ? "OK" : absences + lates}
-        attendanceHint={`${absences} faltas · ${lates} retrasos`}
+        attendanceHint={`${absences} faltas · ${lates} retrasos · ${attendanceSummary.justified} justificadas`}
         attendanceTone={absences + lates > 0 ? "amber" : "green"}
         incidents={incidents.length}
         observations={observations.length}
@@ -413,37 +415,8 @@ function IncidentsTab({ incidents }: { incidents: StudentIncident[] }) {
   );
 }
 
-function AttendanceTab({ attendance }: { attendance: AttendanceRecord[] }) {
-  const relevantAttendance = attendance.filter((record) => record.status === "absent" || record.status === "late");
-
-  return (
-    <section className="rounded-lg border border-border bg-white p-5">
-      <SectionHeader
-        icon={<ClipboardList className="h-5 w-5 text-primary" aria-hidden="true" />}
-        title="Asistencia"
-        description="Faltas y retrasos ordenados por fecha."
-      />
-      {relevantAttendance.length === 0 ? (
-        <EmptyState text="No hay faltas ni retrasos registrados." />
-      ) : (
-        <div className="mt-5 space-y-3">
-          {relevantAttendance.map((record) => (
-            <article key={record.id} className="rounded-md border border-border p-4 text-sm">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <p className="font-medium text-foreground">
-                    {record.date} · {getAttendanceLabel(record.status)}
-                  </p>
-                  {record.notes ? <p className="mt-1 text-muted-foreground">{record.notes}</p> : null}
-                </div>
-                <Badge>{record.justified ? "Justificado" : "Pendiente de justificar"}</Badge>
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
-    </section>
-  );
+function AttendanceTab({ attendance }: { attendance: StudentProfileAttendanceRecord[] }) {
+  return <StudentAttendanceHistory summary={summarizeStudentAttendance(attendance)} />;
 }
 
 function ObservationsTab({ observations }: { observations: StudentObservation[] }) {
@@ -678,7 +651,7 @@ function buildDirectorLatestActivity({
   observations: StudentObservation[];
   communications: DirectorCommunication[];
   grades: GradeWithLabels[];
-  recentAttendance: AttendanceRecord[];
+  recentAttendance: StudentProfileAttendanceRecord[];
 }): StudentActivityItem[] {
   return [
     ...communications.slice(0, 2).map((communication) => ({
@@ -708,8 +681,8 @@ function buildDirectorLatestActivity({
     ...recentAttendance.slice(0, 1).map((record) => ({
       id: `attendance-${record.id}`,
       title: getAttendanceLabel(record.status),
-      meta: record.justified ? "Asistencia justificada" : "Asistencia pendiente",
-      date: record.date,
+      meta: record.status === "justified" ? "Asistencia justificada" : "Asistencia registrada",
+      date: record.attendance_date,
       tone: "gray" as const,
       kind: "attendance" as const
     })),

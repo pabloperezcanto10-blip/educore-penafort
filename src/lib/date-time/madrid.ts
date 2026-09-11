@@ -61,6 +61,16 @@ export function formatMadridDateTime(instant: Date | string) {
   return `${weekdayNames[weekday]}, ${parts.day} de ${monthNames[parts.month - 1]} de ${parts.year} · ${pad(parts.hour)}:${pad(parts.minute)}`;
 }
 
+export function formatMadridDate(value: string) {
+  const parsed = parseIsoDate(value);
+  if (parsed) {
+    return `${pad(parsed.day)}/${pad(parsed.month)}/${parsed.year}`;
+  }
+
+  const parts = getMadridDateParts(value);
+  return `${pad(parts.day)}/${pad(parts.month)}/${parts.year}`;
+}
+
 export function isIsoDate(value: string) {
   return parseIsoDate(value) !== null;
 }

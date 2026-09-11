@@ -155,8 +155,15 @@ export async function saveSessionAttendance(formData: FormData) {
   );
 
   revalidatePath(`/dashboard/tutor/attendance/${sessionId}`);
+  for (const studentId of new Set(records.map((record) => record.student_id))) {
+    revalidatePath(`/dashboard/tutor/students/${studentId}`);
+    revalidatePath(`/dashboard/director/students/${studentId}`);
+    revalidatePath(`/dashboard/admin/students/${studentId}`);
+  }
   revalidatePath("/dashboard/tutor");
   revalidatePath("/dashboard/tutor/schedule");
+  revalidatePath("/dashboard/tutor/attendance-history");
+  revalidatePath("/dashboard/director/attendance");
   redirect(withToast(returnPath, "success", "Asistencia guardada correctamente."));
 }
 

@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, hasSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getActiveCourses } from "@/lib/courses";
-import type { AttendanceRecord } from "@/lib/attendance/attendance";
+import type { StudentProfileAttendanceRecord } from "@/lib/attendance/attendance";
 import type { DirectorCommunication } from "@/lib/communications/notifications";
 import type { PartialGrade } from "@/lib/grades/grades";
 import {
@@ -64,14 +64,14 @@ export async function getDirectorStudents(): Promise<{
 
 export async function getDirectorStudentDetail(studentId: string): Promise<{
   student: TutorStudentDetail | null;
-  attendance: AttendanceRecord[];
+  attendance: StudentProfileAttendanceRecord[];
   incidents: StudentIncident[];
   observations: StudentObservation[];
   grades: PartialGrade[];
   communications: DirectorCommunication[];
   errorMessage: string | null;
 }> {
-  const { schoolId, academicYearId } =
+  const { schoolId, academicYearId, academicYear } =
     await requireAcademicOperationContext();
   const supabase = await createSupervisionClient();
   const { data: student, error: studentError } = await supabase
@@ -98,6 +98,22 @@ export async function getDirectorStudentDetail(studentId: string): Promise<{
     };
   }
 
+  let attendanceQuery = supabase
+    .from("attendance_records")
+    .select("id,student_id,teacher_id,course_id,subject_id,schedule_id,attendance_date,status,notes,created_at,updated_at")
+    .eq("student_id", studentId)
+    .eq("course_id", student.course_id)
+    .order("attendance_date", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (academicYear.start_date) {
+    attendanceQuery = attendanceQuery.gte("attendance_date", academicYear.start_date);
+  }
+
+  if (academicYear.end_date) {
+    attendanceQuery = attendanceQuery.lte("attendance_date", academicYear.end_date);
+  }
+
   const [
     { data: attendance, error: attendanceError },
     { data: incidents, error: incidentsError },
@@ -105,12 +121,7 @@ export async function getDirectorStudentDetail(studentId: string): Promise<{
     { data: grades, error: gradesError },
     { data: communications, error: communicationsError }
   ] = await Promise.all([
-    supabase
-      .from("student_attendance")
-      .select("id,student_id,tutor_id,status,date,notes,justified,justification_text,justification_file_url,created_at")
-      .eq("student_id", studentId)
-      .order("date", { ascending: false })
-      .returns<AttendanceRecord[]>(),
+    attendanceQuery.returns<StudentProfileAttendanceRecord[]>(),
     supabase
       .from("student_incidents")
       .select("id,type,description,severity,created_at")

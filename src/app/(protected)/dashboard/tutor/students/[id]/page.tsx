@@ -19,7 +19,7 @@ import { getFamilyRecipientsForStudent, getTutorCommunications, type TutorCommun
 import { getGradesForStudent, getTermSubjectGradesForStudent, type GradeTerm, type GradeWithLabels, type TermSubjectGradeWithLabels } from "@/lib/grades/grades";
 import { getIncidentsForTutorStudent, getObservationsForStudent, getStudentForTutor, type StudentIncident, type StudentObservation } from "@/lib/tutors/students";
 import { createFamilyNotification, createStudentIncident, createStudentObservation } from "./actions";
-import { StudentActivityTimeline, StudentProfileHeader, StudentProfileTabs, StudentQuickActions, StudentStatusDashboard } from "@/components/students/student-profile";
+import { StudentActivityTimeline, StudentAttendanceHistory, StudentProfileHeader, StudentProfileTabs, StudentQuickActions, StudentStatusDashboard } from "@/components/students/student-profile";
 
 type TutorStudentDetailPageProps = {
   params: { id: string };
@@ -113,7 +113,7 @@ export default async function TutorStudentDetailPage({ params, searchParams = {}
       <StudentProfileTabs activeTab={currentTab} tabs={tabs.map((tab) => ({ ...tab, href: buildStudentHref(student.id, { tab: tab.id, action: undefined }) }))} />
       {currentTab === "resumen" ? <SummaryTab attendanceSummary={attendanceSummary} recentAttendance={recentAttendance} incidents={incidents} observations={observations} communications={communications} grades={grades} termGrades={termGrades} /> : null}
       {currentTab === "calificaciones" ? <GradesTab studentId={student.id} courseId={student.course_id} subjectOptions={subjectOptions} grades={grades} gradeGroups={gradeGroups} searchParams={searchParams} errorMessage={gradesErrorMessage ?? termGradesErrorMessage} /> : null}
-      {currentTab === "asistencia" ? <AttendanceTab recentAttendance={recentAttendance} history={attendanceSummary.history} /> : null}
+      {currentTab === "asistencia" ? <AttendanceTab summary={attendanceSummary} /> : null}
       {currentTab === "comunicacion" ? <CommunicationTab studentId={student.id} communications={communications} recipients={recipients} recipientsErrorMessage={recipientsErrorMessage} /> : null}
       {currentTab === "incidencias" ? <IncidentsTab incidents={incidents} /> : null}
       {currentTab === "observaciones" ? <ObservationsTab observations={observations} errorMessage={observationsErrorMessage} /> : null}
@@ -232,7 +232,7 @@ function SummaryTab({ attendanceSummary, recentAttendance, incidents, observatio
         progressTotal={progress.total}
         progressPercent={progress.percent}
         attendanceValue={attendanceSummary.absences + attendanceSummary.lates === 0 ? "OK" : attendanceSummary.absences + attendanceSummary.lates}
-        attendanceHint={`${attendanceSummary.absences} faltas · ${attendanceSummary.lates} retrasos`}
+        attendanceHint={`${attendanceSummary.absences} faltas · ${attendanceSummary.lates} retrasos · ${attendanceSummary.justified} justificadas`}
         attendanceTone={attendanceSummary.absences + attendanceSummary.lates > 0 ? "amber" : "green"}
         incidents={incidents.length}
         observations={observations.length}
@@ -261,9 +261,8 @@ function GradesTab({ studentId, courseId, subjectOptions, grades, gradeGroups, s
   );
 }
 
-function AttendanceTab({ recentAttendance, history }: { recentAttendance: Awaited<ReturnType<typeof getStudentAttendanceSummary>>["summary"]["history"]; history: Awaited<ReturnType<typeof getStudentAttendanceSummary>>["summary"]["history"] }) {
-  const visible = recentAttendance.length > 0 ? recentAttendance : history.slice(0, 8);
-  return <GradebookCard><GradebookCardHeader title="Asistencia"><GradebookBadge tone="gray">{visible.length} registros</GradebookBadge></GradebookCardHeader><div className="p-5">{visible.length === 0 ? <EmptyBox text="No hay faltas ni retrasos recientes." /> : <CompactList items={visible.map((record) => ({ id: record.id, title: `${record.date} · ${getAttendanceLabel(record.status)}`, meta: record.justified ? "Justificado" : "Pendiente de justificar" }))} empty="Sin asistencia reciente." />}</div></GradebookCard>;
+function AttendanceTab({ summary }: { summary: Awaited<ReturnType<typeof getStudentAttendanceSummary>>["summary"] }) {
+  return <StudentAttendanceHistory summary={summary} />;
 }
 
 function CommunicationTab({ studentId, communications, recipients, recipientsErrorMessage }: { studentId: string; communications: TutorCommunication[]; recipients: { parent_id: string }[]; recipientsErrorMessage: string | null }) {
@@ -352,7 +351,7 @@ function buildLatestActivity({ incidents, observations, communications, grades, 
     ...communications.slice(0, 2).map((communication) => ({ id: `communication-${communication.id}`, title: communication.title, meta: `${communication.direction === "sent" ? "Comunicación enviada" : "Comunicación recibida"} · ${communication.counterpartName}`, date: communication.created_at, tone: "blue" as const, kind: "communication" as const })),
     ...incidents.slice(0, 2).map((incident) => ({ id: `incident-${incident.id}`, title: incident.type, meta: `Incidencia ${incident.severity}`, date: incident.created_at, tone: "amber" as const, kind: "incident" as const })),
     ...observations.slice(0, 2).map((observation) => ({ id: `observation-${observation.id}`, title: observation.title, meta: `Observación interna · ${observation.priority}`, date: observation.created_at, tone: "green" as const, kind: "observation" as const })),
-    ...recentAttendance.slice(0, 1).map((record) => ({ id: `attendance-${record.id}`, title: getAttendanceLabel(record.status), meta: record.justified ? "Asistencia justificada" : "Asistencia pendiente", date: record.date, tone: "gray" as const, kind: "attendance" as const })),
+    ...recentAttendance.slice(0, 1).map((record) => ({ id: `attendance-${record.id}`, title: getAttendanceLabel(record.status), meta: record.status === "justified" ? "Asistencia justificada" : "Asistencia registrada", date: record.attendance_date, tone: "gray" as const, kind: "attendance" as const })),
     ...grades.slice(0, 1).map((grade) => ({ id: `grade-${grade.id}`, title: `${grade.subjectName}: ${grade.grade}`, meta: grade.assessment_name, date: grade.created_at, tone: "blue" as const, kind: "grade" as const })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
 }

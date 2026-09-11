@@ -4,6 +4,8 @@ import type { LucideIcon } from "lucide-react";
 import { AlertCircle, Bell, BookOpenCheck, CalendarDays, MessageSquarePlus } from "lucide-react";
 
 import { GradebookBadge, GradebookCard, GradebookCardHeader, ProgressBar, StudentAvatar } from "@/components/grades/gradebook-design";
+import type { StudentAttendanceSummary, StudentProfileAttendanceStatus } from "@/lib/attendance/attendance";
+import { formatMadridDate } from "@/lib/date-time/madrid";
 
 export type StudentProfileTabItem = {
   id: string;
@@ -250,6 +252,88 @@ export function StudentActivityTimeline({ items, empty }: { items: StudentActivi
       </div>
     </GradebookCard>
   );
+}
+
+export function StudentAttendanceHistory({ summary }: { summary: StudentAttendanceSummary }) {
+  const metrics = [
+    { label: "Días", value: summary.days },
+    { label: "Registros", value: summary.records },
+    { label: "Presentes", value: summary.present },
+    { label: "Ausencias", value: summary.absences },
+    { label: "Retrasos", value: summary.lates },
+    { label: "Justificados", value: summary.justified }
+  ];
+
+  return (
+    <GradebookCard>
+      <GradebookCardHeader title="Asistencia">
+        <GradebookBadge tone="gray">{summary.records} registros</GradebookBadge>
+      </GradebookCardHeader>
+      <div className="space-y-4 p-4">
+        <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-slate-200 bg-slate-200 sm:grid-cols-3 xl:grid-cols-6">
+          {metrics.map((metric) => (
+            <div key={metric.label} className="bg-white px-3 py-2.5">
+              <dt className="text-[11px] font-medium text-slate-500">{metric.label}</dt>
+              <dd className="mt-1 text-base font-semibold text-slate-950">{metric.value}</dd>
+            </div>
+          ))}
+        </dl>
+
+        {summary.history.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+            No hay registros de asistencia en el curso académico activo.
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-lg border border-slate-200">
+            <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
+              <thead className="bg-slate-50 text-xs font-semibold text-slate-500">
+                <tr>
+                  <th className="px-4 py-2.5">Fecha</th>
+                  <th className="px-4 py-2.5">Estado</th>
+                  <th className="px-4 py-2.5">Notas</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {summary.history.map((record) => (
+                  <tr key={record.id}>
+                    <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-900">
+                      <time dateTime={record.attendance_date}>{formatMadridDate(record.attendance_date)}</time>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3">
+                      <GradebookBadge tone={attendanceTone(record.status)}>
+                        {attendanceLabel(record.status)}
+                      </GradebookBadge>
+                    </td>
+                    <td className="min-w-52 px-4 py-3 text-slate-500">{record.notes || "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </GradebookCard>
+  );
+}
+
+function attendanceLabel(status: StudentProfileAttendanceStatus) {
+  return {
+    present: "Presente",
+    absent: "Ausente",
+    late: "Retraso",
+    justified: "Justificado"
+  }[status];
+}
+
+function attendanceTone(status: StudentProfileAttendanceStatus): "green" | "red" | "amber" | "blue" {
+  const tones: Record<StudentProfileAttendanceStatus, "green" | "red" | "amber" | "blue"> = {
+    present: "green",
+    absent: "red",
+    late: "amber",
+    justified: "blue"
+  };
+
+  return tones[status];
 }
 
 function StatusTile({ label, value, hint, tone }: { label: string; value: string | number; hint: string; tone: "green" | "amber" | "blue" }) {
