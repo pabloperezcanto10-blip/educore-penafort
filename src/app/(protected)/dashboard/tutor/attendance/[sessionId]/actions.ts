@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth/session";
 import { logAuditAction } from "@/lib/audit";
 import { getTodayDate } from "@/lib/attendance/attendance";
+import { saveAttendanceWithObservations } from "@/lib/attendance/internal-observations";
 import type { SessionAttendanceStatus } from "@/lib/attendance/session-attendance";
 import { createClient } from "@/lib/supabase/server";
 import { withToast } from "@/lib/toast";
@@ -129,9 +130,12 @@ export async function saveSessionAttendance(formData: FormData) {
   }
 
   const existingByStudent = new Map((existing ?? []).map((record) => [record.student_id, record]));
-  const { error } = await supabase
-    .from("attendance_records")
-    .upsert(records as never, { onConflict: "student_id,schedule_id,attendance_date" });
+  const { error } = await saveAttendanceWithObservations(supabase, {
+    p_school_id: schoolId,
+    p_date: date,
+    p_session_id: sessionId,
+    p_rows: records.map(({ student_id, status, notes }) => ({ student_id, status, notes: notes ?? null }))
+  });
 
   if (error) {
     redirect(withToast(returnPath, "error", "No se pudo guardar la asistencia."));

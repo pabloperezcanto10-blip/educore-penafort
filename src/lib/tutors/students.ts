@@ -42,6 +42,8 @@ export type StudentIncident = {
 };
 
 export type StudentObservation = {
+  observation_date?: string | null;
+  author_name?: string | null;
   id: string;
   student_id: string;
   tutor_id: string;
@@ -312,6 +314,8 @@ export async function getObservationsForStudent(studentId: string): Promise<{
 }> {
   const schoolContext = await requireOperationalSchoolContext();
   const supabase = await createClient();
+  const { academicYear } = await getActiveAcademicYear(schoolContext.schoolId);
+  if (!academicYear) return { observations: [], errorMessage: "No hay curso escolar activo." };
   const { data: student, error: studentError } = await supabase
     .from("students")
     .select("id")
@@ -329,7 +333,9 @@ export async function getObservationsForStudent(studentId: string): Promise<{
 
   const { data, error } = await supabase
     .from("student_observations")
-    .select("id,student_id,tutor_id,type,title,content,priority,created_at")
+    .select("id,student_id,tutor_id,type,title,content,priority,created_at,observation_date,author_name")
+    .eq("school_id", schoolContext.schoolId)
+    .eq("academic_year_id", academicYear.id)
     .eq("student_id", studentId)
     .order("created_at", { ascending: false })
     .returns<StudentObservation[]>();
@@ -342,9 +348,16 @@ export async function getObservationsForStudent(studentId: string): Promise<{
   }
 
   return {
-    observations: data ?? [],
+    observations: sortStudentObservations(data ?? []),
     errorMessage: null
   };
+}
+
+export function sortStudentObservations(observations: StudentObservation[]) {
+  return observations.sort((a, b) =>
+    (b.observation_date ?? b.created_at).localeCompare(a.observation_date ?? a.created_at)
+    || b.created_at.localeCompare(a.created_at)
+  );
 }
 
 export async function getStudentById(studentId: string): Promise<{

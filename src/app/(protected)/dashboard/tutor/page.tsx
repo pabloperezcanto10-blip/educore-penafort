@@ -15,6 +15,7 @@ import { getDashboardNotifications } from "@/lib/internal-notifications";
 import { toBrandConfig } from "@/lib/schools/branding";
 import { getTeacherScheduleForToday } from "@/lib/tutors/schedule";
 import { getMadridDate } from "@/lib/date-time/madrid";
+import { MadridDayRefresh } from "@/components/attendance/madrid-day-refresh";
 
 type TutorDashboardPageProps = {
   searchParams?: {
@@ -24,6 +25,7 @@ type TutorDashboardPageProps = {
 
 export default async function TutorDashboardPage({ searchParams }: TutorDashboardPageProps) {
   const profile = await requireRole("tutor");
+  const todayDate = getMadridDate();
   const activeTab = normalizeWorkTab(searchParams?.work_tab);
   const [
     { items: subjectCourses, errorMessage: subjectsError },
@@ -39,12 +41,13 @@ export default async function TutorDashboardPage({ searchParams }: TutorDashboar
       role: "tutor",
       communicationHref: productionTutorDashboardRoutes.communications
     }),
-    getTeacherScheduleForToday(profile.id),
+    getTeacherScheduleForToday(profile.id, todayDate, profile),
     getDashboardCalendarEvents()
   ]);
   const { registeredScheduleIds, errorMessage: scheduleRegistrationError } = await getRegisteredScheduleIdsForDate({
     teacherId: profile.id,
-    scheduleIds: todaySchedule.filter((slot) => !slot.is_break).map((slot) => slot.id)
+    scheduleIds: todaySchedule.filter((slot) => !slot.is_break).map((slot) => slot.id),
+    date: todayDate
   });
   const errorMessage = subjectsError ?? communicationsError ?? dashboardNotificationsError ?? scheduleError ?? scheduleRegistrationError ?? calendarError;
   const tutorName = profile.full_name ?? profile.email ?? "tutor";
@@ -52,6 +55,8 @@ export default async function TutorDashboardPage({ searchParams }: TutorDashboar
   const pendingAttendance = teachingSlots.filter((slot) => !registeredScheduleIds.has(slot.id)).length;
 
   return (
+    <>
+    <MadridDayRefresh renderedDate={todayDate} />
     <TutorDashboardView
       activeTab={activeTab}
       brand={toBrandConfig(
@@ -71,7 +76,7 @@ export default async function TutorDashboardPage({ searchParams }: TutorDashboar
         subjectCourses,
         teachingSlotsCount: teachingSlots.length,
         todayEvents,
-        todayDate: getMadridDate(),
+        todayDate,
         todaySchedule,
         tutorName,
         unreadCommunications,
@@ -80,6 +85,7 @@ export default async function TutorDashboardPage({ searchParams }: TutorDashboar
         weekday
       }}
     />
+    </>
   );
 }
 

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MadridDayRefresh } from "@/components/attendance/madrid-day-refresh";
 import { ArrowLeft, ArrowRight, CalendarCheck2, CalendarDays, CheckCircle2, Clock3, Coffee, ListChecks } from "lucide-react";
 
 import { GradebookBadge, GradebookCard, GradebookCardHeader } from "@/components/grades/gradebook-design";
@@ -10,7 +11,7 @@ import { requireRole } from "@/lib/auth/session";
 import { getMadridDate, getMadridWeek, type MadridWeekDay } from "@/lib/date-time/madrid";
 import {
   formatScheduleTime,
-  getMadridWeekday,
+  getScheduleSlotsForDate,
   getTeacherScheduleForWeek,
   getWeekdayLabel,
   type TeacherScheduleSlot
@@ -24,10 +25,9 @@ type TutorSchedulePageProps = {
 
 export default async function TutorSchedulePage({ searchParams }: TutorSchedulePageProps) {
   const profile = await requireRole("tutor");
-  const todayWeekday = getMadridWeekday();
   const todayDate = getMadridDate();
   const week = getMadridWeek(searchParams?.week);
-  const { slots, errorMessage } = await getTeacherScheduleForWeek(profile.id);
+  const { slots, errorMessage } = await getTeacherScheduleForWeek(profile.id, profile);
   const scheduleIds = slots.filter((slot) => !slot.is_break).map((slot) => slot.id);
   const [todayRegistration, weekRegistration] = await Promise.all([
     getRegisteredScheduleIdsForDate({
@@ -50,7 +50,7 @@ export default async function TutorSchedulePage({ searchParams }: TutorScheduleP
   });
 
   const teachingSlots = slots.filter((slot) => !slot.is_break);
-  const todaySlots = todayWeekday ? slotsByWeekday.get(todayWeekday) ?? [] : [];
+  const todaySlots = getScheduleSlotsForDate(slots, todayDate);
   const todayTeachingSlots = todaySlots.filter((slot) => !slot.is_break);
   const pendingToday = todayTeachingSlots.filter((slot) => !todayRegistration.registeredScheduleIds.has(slot.id)).length;
   const nextSlot = getNextScheduleSlot(todaySlots);
@@ -58,6 +58,7 @@ export default async function TutorSchedulePage({ searchParams }: TutorScheduleP
 
   return (
     <section className="space-y-5">
+      <MadridDayRefresh renderedDate={todayDate} />
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-950">Horario docente</h1>

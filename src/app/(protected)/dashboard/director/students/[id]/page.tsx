@@ -20,6 +20,7 @@ import {
   type TermSubjectGradeWithLabels
 } from "@/lib/grades/grades";
 import type { StudentIncident, StudentObservation } from "@/lib/tutors/students";
+import { ObservationContext } from "@/components/students/observation-context";
 import {
   StudentActivityTimeline,
   StudentAttendanceHistory,
@@ -442,7 +443,7 @@ function ObservationsTab({ observations }: { observations: StudentObservation[] 
                   <h3 className="mt-3 text-sm font-semibold text-foreground">{observation.title}</h3>
                   <p className="mt-1 text-sm text-muted-foreground">{observation.content}</p>
                 </div>
-                <DateText value={observation.created_at} />
+                <p className="text-xs text-muted-foreground"><ObservationContext observation={observation} /></p>
               </div>
             </article>
           ))}

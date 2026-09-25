@@ -946,6 +946,11 @@ export type Database = {
       };
       student_observations: {
         Row: {
+          school_id: string;
+          attendance_record_id: string | null;
+          daily_attendance_id: string | null;
+          observation_date: string | null;
+          author_name: string | null;
           id: string;
           student_id: string;
           tutor_id: string;
@@ -957,6 +962,11 @@ export type Database = {
           created_at: string;
         };
         Insert: {
+          school_id?: string;
+          attendance_record_id?: string | null;
+          daily_attendance_id?: string | null;
+          observation_date?: string | null;
+          author_name?: string | null;
           id?: string;
           student_id: string;
           tutor_id: string;
@@ -1043,7 +1053,17 @@ export type Database = {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      save_attendance_with_observations: {
+        Args: {
+          p_school_id: string;
+          p_date: string;
+          p_rows: Json;
+          p_session_id?: string;
+        };
+        Returns: undefined;
+      };
+    };
     Enums: {
       app_role: "superadmin" | "director" | "tutor" | "family";
     };

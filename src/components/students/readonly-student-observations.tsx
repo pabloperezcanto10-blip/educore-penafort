@@ -1,5 +1,6 @@
 import { MessageSquarePlus } from "lucide-react";
 import type { StudentObservation } from "@/lib/tutors/students";
+import { ObservationContext } from "@/components/students/observation-context";
 
 export function ReadonlyStudentObservations({
   observations,
@@ -45,10 +46,7 @@ export function ReadonlyStudentObservations({
                 </span>
               </div>
               <p className="mt-3 text-xs text-muted-foreground">
-                {new Intl.DateTimeFormat("es-ES", {
-                  dateStyle: "medium",
-                  timeStyle: "short"
-                }).format(new Date(observation.created_at))}
+                <ObservationContext observation={observation} />
               </p>
             </article>
           ))}

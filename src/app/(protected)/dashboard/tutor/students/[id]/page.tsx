@@ -19,6 +19,7 @@ import { getFamilyRecipientsForStudent, getTutorCommunications, type TutorCommun
 import { getGradesForStudent, getTermSubjectGradesForStudent, type GradeTerm, type GradeWithLabels, type TermSubjectGradeWithLabels } from "@/lib/grades/grades";
 import { getIncidentsForTutorStudent, getObservationsForStudent, getStudentForTutor, type StudentIncident, type StudentObservation } from "@/lib/tutors/students";
 import { createFamilyNotification, createStudentIncident, createStudentObservation } from "./actions";
+import { ObservationContext } from "@/components/students/observation-context";
 import { StudentActivityTimeline, StudentAttendanceHistory, StudentProfileHeader, StudentProfileTabs, StudentQuickActions, StudentStatusDashboard } from "@/components/students/student-profile";
 
 type TutorStudentDetailPageProps = {
@@ -393,7 +394,7 @@ function CommunicationList({ communications }: { communications: TutorCommunicat
 
 function ObservationList({ observations }: { observations: StudentObservation[] }) {
   if (observations.length === 0) return <EmptyBox text="No hay observaciones internas recientes." />;
-  return <div className="grid gap-3 lg:grid-cols-2">{observations.map((observation) => <article key={observation.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4"><div className="flex flex-wrap items-center gap-2"><h3 className="text-sm font-semibold text-slate-950">{observation.title}</h3><GradebookBadge tone={observation.priority === "alta" ? "red" : observation.priority === "media" ? "amber" : "green"}>{observation.priority}</GradebookBadge></div><p className="mt-2 line-clamp-3 text-sm text-slate-500">{observation.content}</p><p className="mt-3 text-xs text-slate-400">{observation.type} · {formatDate(observation.created_at)}</p></article>)}</div>;
+  return <div className="grid gap-3 lg:grid-cols-2">{observations.map((observation) => <article key={observation.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4"><div className="flex flex-wrap items-center gap-2"><h3 className="text-sm font-semibold text-slate-950">{observation.title}</h3><GradebookBadge tone={observation.priority === "alta" ? "red" : observation.priority === "media" ? "amber" : "green"}>{observation.priority}</GradebookBadge></div><p className="mt-2 whitespace-pre-wrap text-sm text-slate-500">{observation.content}</p><p className="mt-3 text-xs text-slate-400">{observation.type} · <ObservationContext observation={observation} /></p></article>)}</div>;
 }
 
 function Input({ name, label, required = false, placeholder }: { name: string; label: string; required?: boolean; placeholder?: string }) {

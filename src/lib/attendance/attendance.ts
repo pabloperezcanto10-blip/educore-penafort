@@ -4,6 +4,7 @@ import { getActiveAcademicYear } from "@/lib/academic-years";
 import { getStudentsForTutor, type TutorStudent } from "@/lib/tutors/students";
 import { requireSchoolRole } from "@/lib/schools/context";
 import { getMadridDate } from "@/lib/date-time/madrid";
+import { getAttendanceInternalNotes } from "@/lib/attendance/internal-observations";
 
 export type AttendanceStatus = "present" | "absent" | "late";
 
@@ -117,6 +118,12 @@ export async function getTutorAttendanceForDate(
   }
 
   const attendanceByStudent = new Map((data ?? []).map((record) => [record.student_id, record]));
+  const context = await requireSchoolRole(["tutor"]);
+  if (!context.schoolId) return { rows: [], date, errorMessage: "Selecciona un centro." };
+  const internalNotes = await getAttendanceInternalNotes(
+    supabase, context.schoolId, (data ?? []).map((record) => record.id), "daily"
+  );
+  if (internalNotes.errorMessage) return { rows: [], date, errorMessage: internalNotes.errorMessage };
 
   return {
     date,
@@ -128,7 +135,7 @@ export async function getTutorAttendanceForDate(
         student,
         attendance,
         status: attendance?.status ?? "present",
-        notes: attendance?.notes ?? ""
+        notes: attendance ? internalNotes.notes.get(attendance.id) ?? attendance.notes ?? "" : ""
       };
     })
   };

@@ -8,7 +8,7 @@ import {
   academicReadError,
   requireAcademicOperationContext
 } from "@/lib/grades/context";
-import type { StudentIncident, StudentObservation, TutorStudentDetail } from "@/lib/tutors/students";
+import { sortStudentObservations, type StudentIncident, type StudentObservation, type TutorStudentDetail } from "@/lib/tutors/students";
 
 type SupervisionClient = ReturnType<typeof createAdminClient>;
 
@@ -130,7 +130,9 @@ export async function getDirectorStudentDetail(studentId: string): Promise<{
       .returns<StudentIncident[]>(),
     supabase
       .from("student_observations")
-      .select("id,student_id,tutor_id,type,title,content,priority,created_at")
+      .select("id,student_id,tutor_id,type,title,content,priority,created_at,observation_date,author_name")
+      .eq("school_id", schoolId)
+      .eq("academic_year_id", academicYearId)
       .eq("student_id", studentId)
       .order("created_at", { ascending: false })
       .returns<StudentObservation[]>(),
@@ -167,7 +169,7 @@ export async function getDirectorStudentDetail(studentId: string): Promise<{
     student,
     attendance: attendance ?? [],
     incidents: incidents ?? [],
-    observations: observations ?? [],
+    observations: sortStudentObservations(observations ?? []),
     grades: grades ?? [],
     communications: communications ?? [],
     errorMessage

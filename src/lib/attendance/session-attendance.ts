@@ -4,6 +4,7 @@ import { getTodayDate } from "@/lib/attendance/attendance";
 import type { TeacherScheduleSlot } from "@/lib/tutors/schedule";
 import { requireOperationalSchoolContext } from "@/lib/schools/context";
 import { getIsoWeekday, isIsoDate } from "@/lib/date-time/madrid";
+import { getAttendanceInternalNotes } from "@/lib/attendance/internal-observations";
 
 export type SessionAttendanceStatus = "present" | "absent" | "late" | "justified";
 
@@ -149,6 +150,10 @@ export async function getSessionAttendanceContext({
     return { context: null, errorMessage: records.errorMessage };
   }
 
+  const internalNotes = await getAttendanceInternalNotes(
+    supabase, schoolContext.schoolId, records.records.map((record) => record.id), "session"
+  );
+  if (internalNotes.errorMessage) return { context: null, errorMessage: internalNotes.errorMessage };
   const recordsByStudent = new Map(records.records.map((record) => [record.student_id, record]));
 
   return {
@@ -165,7 +170,7 @@ export async function getSessionAttendanceContext({
           student,
           record,
           status: record?.status ?? "present",
-          notes: record?.notes ?? ""
+          notes: record ? internalNotes.notes.get(record.id) ?? record.notes ?? "" : ""
         };
       })
     }

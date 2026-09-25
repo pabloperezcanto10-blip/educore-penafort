@@ -6,6 +6,7 @@ import { requireRole } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { getStudentsForTutor } from "@/lib/tutors/students";
 import { getTodayDate, type AttendanceStatus } from "@/lib/attendance/attendance";
+import { saveAttendanceWithObservations } from "@/lib/attendance/internal-observations";
 import { createInternalNotifications, type InternalNotificationInsert } from "@/lib/internal-notifications";
 import { withToast } from "@/lib/toast";
 import type { Database } from "@/lib/database.types";
@@ -58,9 +59,11 @@ export async function saveDailyAttendance(formData: FormData) {
     throw new Error("No hay alumnos para guardar asistencia.");
   }
 
-  const { error } = await supabase
-    .from("student_attendance")
-    .upsert(records as never, { onConflict: "academic_year_id,student_id,date" });
+  const { error } = await saveAttendanceWithObservations(supabase, {
+    p_school_id: schoolId,
+    p_date: date,
+    p_rows: records.map(({ student_id, status, notes }) => ({ student_id, status, notes: notes ?? null }))
+  });
 
   if (error) {
     throw new Error(error.message);
@@ -69,6 +72,11 @@ export async function saveDailyAttendance(formData: FormData) {
   await notifyFamiliesAboutPendingAttendance(supabase, schoolId, records);
 
   revalidatePath("/dashboard/tutor/attendance");
+  for (const studentId of new Set(records.map((record) => record.student_id))) {
+    revalidatePath(`/dashboard/tutor/students/${studentId}`);
+    revalidatePath(`/dashboard/director/students/${studentId}`);
+    revalidatePath(`/dashboard/admin/students/${studentId}`);
+  }
   revalidatePath("/dashboard/family");
   redirect(withToast("/dashboard/tutor/attendance", "success", "Asistencia guardada correctamente."));
 }
