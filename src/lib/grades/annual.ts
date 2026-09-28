@@ -153,6 +153,7 @@ export async function getFinalRowsForTeacher(params: {
         .eq("course_id", params.courseId)
         .eq("active", true)
         .eq("academic_year_id", academicYearId)
+        .order("sort_order", { ascending: true, nullsFirst: false })
         .returns<{ id: string; name: string; last_name: string; course_id: string }[]>(),
       getAnnualWeight(params),
       supabase
@@ -401,7 +402,12 @@ async function attachFinalLabels(rows: FinalCourseGrade[]): Promise<{ rows: Fina
       status: row.status,
       closed_at: row.closed_at,
       existingId: row.id
-    }))
+    })).sort((a, b) =>
+      a.courseName.localeCompare(b.courseName, "es")
+      || (labels.positions.get(a.student_id) ?? Number.MAX_SAFE_INTEGER)
+        - (labels.positions.get(b.student_id) ?? Number.MAX_SAFE_INTEGER)
+      || a.studentName.localeCompare(b.studentName, "es")
+      || a.subjectName.localeCompare(b.subjectName, "es"))
   };
 }
 
@@ -435,7 +441,7 @@ async function getLabels({
         ? supabase.from("profiles").select("id,email,full_name").in("id", uniqueTeacherIds).returns<{ id: string; email: string | null; full_name: string | null }[]>()
         : Promise.resolve({ data: [], error: null }),
       uniqueStudentIds.length > 0
-        ? supabase.from("students").select("id,name,last_name").eq("school_id", schoolContext.schoolId).in("id", uniqueStudentIds).returns<{ id: string; name: string; last_name: string }[]>()
+        ? supabase.from("students").select("id,name,last_name,sort_order").eq("school_id", schoolContext.schoolId).in("id", uniqueStudentIds).returns<{ id: string; name: string; last_name: string; sort_order: number | null }[]>()
         : Promise.resolve({ data: [], error: null })
     ]);
 
@@ -447,7 +453,8 @@ async function getLabels({
     courses: new Map((courses ?? []).map((course) => [course.id, course.name])),
     subjects: new Map((subjects ?? []).map((subject) => [subject.id, subject.name])),
     teachers: new Map((teachers ?? []).map((teacher) => [teacher.id, teacher.full_name ?? teacher.email ?? teacher.id])),
-    students: new Map((students ?? []).map((student) => [student.id, `${student.name} ${student.last_name}`]))
+    students: new Map((students ?? []).map((student) => [student.id, `${student.name} ${student.last_name}`])),
+    positions: new Map((students ?? []).map((student) => [student.id, student.sort_order]))
   };
 }
 

@@ -185,6 +185,7 @@ export type Database = {
         Row: {
           id: string;
           school_id: string;
+          sort_order: number | null;
           name: string;
           last_name: string;
           birth_date: string | null;
@@ -197,6 +198,7 @@ export type Database = {
         Insert: {
           id?: string;
           school_id: string;
+          sort_order?: number | null;
           name: string;
           last_name: string;
           birth_date?: string | null;
@@ -208,6 +210,7 @@ export type Database = {
         };
         Update: {
           school_id?: string;
+          sort_order?: number | null;
           name?: string;
           last_name?: string;
           birth_date?: string | null;

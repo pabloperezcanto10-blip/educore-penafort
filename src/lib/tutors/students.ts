@@ -85,6 +85,9 @@ export async function getStudentsForTutor(tutorId: string): Promise<{
     .eq("school_id", schoolContext.schoolId)
     .eq("tutor_teacher_id", effectiveTutorId)
     .eq("academic_year_id", academicYear.id)
+    .eq("active", true)
+    .order("course_id", { ascending: true })
+    .order("sort_order", { ascending: true, nullsFirst: false })
     .order("last_name", { ascending: true })
     .order("name", { ascending: true })
     .returns<TutorStudent[]>();
@@ -139,6 +142,7 @@ export async function getStudentsForCourseName(courseName: string): Promise<{
     .eq("course_id", course.id)
     .eq("academic_year_id", academicYear.id)
     .eq("active", true)
+    .order("sort_order", { ascending: true, nullsFirst: false })
     .order("last_name", { ascending: true })
     .order("name", { ascending: true })
     .returns<TutorStudent[]>();
@@ -181,6 +185,9 @@ export async function getStudentsWithCourseForTutor(tutorId: string): Promise<{
     .eq("school_id", schoolContext.schoolId)
     .eq("tutor_teacher_id", effectiveTutorId)
     .eq("academic_year_id", academicYear.id)
+    .eq("active", true)
+    .order("course_id", { ascending: true })
+    .order("sort_order", { ascending: true, nullsFirst: false })
     .order("last_name", { ascending: true })
     .order("name", { ascending: true })
     .returns<TutorStudentWithCourse[]>();

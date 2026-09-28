@@ -203,6 +203,7 @@ type AssignmentLabel = {
 
 type ReportStudentLabel = StudentLabel & {
   course_id: string;
+  sort_order: number | null;
 };
 
 const gradeSelect =
@@ -334,6 +335,7 @@ export async function getStudentsForCourse(courseId: string): Promise<{
     .eq("course_id", courseId)
     .eq("active", true)
     .eq("academic_year_id", academicYearId)
+    .order("sort_order", { ascending: true, nullsFirst: false })
     .order("last_name", { ascending: true })
     .order("name", { ascending: true })
     .returns<GradebookStudent[]>();
@@ -1106,7 +1108,7 @@ export async function getTermSubjectReportsForSupervision(term: GradeTerm): Prom
     { data: profiles, error: profilesError },
     { data: termGrades, error: termGradesError }
   ] = await Promise.all([
-    supabase.from("students").select("id,name,last_name,course_id").eq("school_id", schoolContext.schoolId).eq("academic_year_id", academicYearId).eq("active", true).returns<ReportStudentLabel[]>(),
+    supabase.from("students").select("id,name,last_name,course_id,sort_order").eq("school_id", schoolContext.schoolId).eq("academic_year_id", academicYearId).eq("active", true).returns<ReportStudentLabel[]>(),
     supabase.from("teacher_assignments").select("teacher_id,course_id,subject_id").eq("school_id", schoolContext.schoolId).eq("academic_year_id", academicYearId).returns<AssignmentLabel[]>(),
     supabase.from("subjects").select("id,name").eq("school_id", schoolContext.schoolId).returns<Subject[]>(),
     supabase.from("courses").select("id,name").eq("school_id", schoolContext.schoolId).eq("academic_year_id", academicYearId).returns<CourseLabel[]>(),
@@ -1128,6 +1130,7 @@ export async function getTermSubjectReportsForSupervision(term: GradeTerm): Prom
   }
 
   const subjectsById = new Map((subjects ?? []).map((subject) => [subject.id, subject]));
+  const studentOrderById = new Map((students ?? []).map((student) => [student.id, student.sort_order]));
   const coursesById = new Map((courses ?? []).map((course) => [course.id, course]));
   const profilesById = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
   const gradesByKey = new Map(
@@ -1174,7 +1177,9 @@ export async function getTermSubjectReportsForSupervision(term: GradeTerm): Prom
     reports: rows.sort((a, b) => {
       const courseCompare = a.courseName.localeCompare(b.courseName, "es");
       if (courseCompare !== 0) return courseCompare;
-      const studentCompare = a.studentName.localeCompare(b.studentName, "es");
+      const aOrder = studentOrderById.get(a.student_id) ?? Number.MAX_SAFE_INTEGER;
+      const bOrder = studentOrderById.get(b.student_id) ?? Number.MAX_SAFE_INTEGER;
+      const studentCompare = aOrder - bOrder || a.studentName.localeCompare(b.studentName, "es");
       if (studentCompare !== 0) return studentCompare;
       return a.subjectName.localeCompare(b.subjectName, "es");
     }),

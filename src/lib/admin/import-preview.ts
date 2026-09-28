@@ -41,20 +41,20 @@ export function parseStudentLine(rawLine: string, familyEmailDomain: string) {
   const cleaned = rawLine.trim().replace(/\s+/g, " ");
   const parts = cleaned.split(" ").filter(Boolean);
 
-  if (parts.length < 3) {
+  if (parts.length < 2) {
     return null;
   }
 
-  const lastName2 = parts.at(-1) ?? "";
-  const lastName1 = parts.at(-2) ?? "";
-  const firstName = parts.slice(0, -2).join(" ");
+  const lastName2 = parts.length > 2 ? parts.at(-1) ?? "" : "";
+  const lastName1 = parts.length > 2 ? parts.at(-2) ?? "" : parts[1];
+  const firstName = parts.length > 2 ? parts.slice(0, -2).join(" ") : parts[0];
 
   return {
     studentName: cleaned,
     firstName,
     lastName1,
     lastName2,
-    familyEmail: `familia.${normalizeForEmail(lastName1)}.${normalizeForEmail(lastName2)}@${familyEmailDomain}`
+    familyEmail: `familia.${[lastName1, lastName2].filter(Boolean).map(normalizeForEmail).join(".")}@${familyEmailDomain}`
   };
 }
 

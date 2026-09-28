@@ -132,6 +132,7 @@ export async function getSessionAttendanceContext({
     .eq("course_id", course.id)
     .eq("academic_year_id", academicYear.id)
     .eq("active", true)
+    .order("sort_order", { ascending: true, nullsFirst: false })
     .order("last_name", { ascending: true })
     .order("name", { ascending: true })
     .returns<SessionAttendanceStudent[]>();

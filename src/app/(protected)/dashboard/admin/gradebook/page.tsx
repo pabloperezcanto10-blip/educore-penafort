@@ -331,7 +331,7 @@ function buildStudentClosureGroups(reports: TermSubjectReportRow[], grades: Grad
     }
   });
 
-  return Array.from(groups.values()).sort((a, b) => a.studentName.localeCompare(b.studentName, "es"));
+  return Array.from(groups.values());
 }
 
 function normalizeOptionalTerm(value: unknown): GradeTerm | "" {

@@ -92,6 +92,7 @@ export async function getTutorAttendanceHistory({
       .eq("course_id", courseId)
       .eq("academic_year_id", academicYear.id)
       .eq("active", true)
+      .order("sort_order", { ascending: true, nullsFirst: false })
       .order("last_name", { ascending: true })
       .order("name", { ascending: true })
       .returns<{ id: string; name: string; last_name: string }[]>()

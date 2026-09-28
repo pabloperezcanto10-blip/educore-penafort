@@ -207,6 +207,9 @@ export async function getAdminStudents(): Promise<{
     .from("students")
     .select("id,school_id,name,last_name,birth_date,course_id,tutor_teacher_id,active,academic_year_id,created_at")
     .eq("school_id", schoolContext.schoolId)
+    .order("course_id", { ascending: true })
+    .order("active", { ascending: false })
+    .order("sort_order", { ascending: true, nullsFirst: false })
     .order("last_name", { ascending: true })
     .order("name", { ascending: true });
 

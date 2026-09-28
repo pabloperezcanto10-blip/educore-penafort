@@ -17,9 +17,7 @@ export function FinalGradesSupervision({
   action: (formData: FormData) => void | Promise<void>;
 }) {
   const pendingCount = rows.filter((row) => row.status !== "closed").length;
-  const studentPdfRows = Array.from(new Map(rows.map((row) => [row.student_id, row.studentName])).entries()).sort((a, b) =>
-    a[1].localeCompare(b[1], "es")
-  );
+  const studentPdfRows = Array.from(new Map(rows.map((row) => [row.student_id, row.studentName])).entries());
 
   return (
     <div className="space-y-6">

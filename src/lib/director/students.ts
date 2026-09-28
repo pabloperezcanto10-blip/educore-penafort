@@ -48,6 +48,9 @@ export async function getDirectorStudents(): Promise<{
     .select("id,name,last_name,birth_date,course_id,active,courses(name)")
     .eq("school_id", schoolId)
     .eq("academic_year_id", academicYearId)
+    .order("course_id", { ascending: true })
+    .order("active", { ascending: false })
+    .order("sort_order", { ascending: true, nullsFirst: false })
     .order("last_name", { ascending: true })
     .order("name", { ascending: true })
     .returns<DirectorStudentListItem[]>();
